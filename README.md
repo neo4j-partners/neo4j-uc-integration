@@ -17,6 +17,51 @@ The following two notebooks are the primary demonstration of the current blocker
 
 The rest of the samples and code in this repository demonstrate how Neo4j JDBC works for SQL-to-Cypher translation and schema discovery of graph-to-relational mapping when used outside of Unity Catalog's SafeSpark wrapper.
 
+## SafeSpark and the Unity Catalog Neo4j JDBC Blocker
+
+### Current Status Summary
+
+SafeSpark appears to be what is blocking the JDBC Unity Catalog connection from working with the Neo4j driver. Based on my investigation of the error stack traces and testing, this is what I understand is happening.
+
+### What is SafeSpark?
+
+**SafeSpark** is Databricks' internal isolation layer for running custom JDBC drivers in Unity Catalog. When you create a UC JDBC connection with a custom driver, SafeSpark:
+
+1. **Runs JDBC drivers in a sandboxed process** - The driver JAR executes in an isolated container/process, not directly in the Spark executor
+2. **Communicates via gRPC** - Spark talks to the isolated driver through a gRPC bridge
+3. **Enforces security boundaries** - Prevents custom drivers from accessing cluster resources, secrets, or other data directly
+
+This architecture provides security isolation but introduces a layer that can cause compatibility issues with certain JDBC drivers.
+
+### Evidence that SafeSpark Is Causing the Errors
+
+The SafeSpark components are visible in error messages when Unity Catalog JDBC connections fail:
+
+```
+java.lang.RuntimeException: Connection was closed before the operation completed.
+    at com.databricks.safespark.jdbc.grpc_client.JdbcConnectClient.awaitWhileConnected
+    at com.databricks.safespark.jdbc.grpc_client.JdbcGetRowsClient.fetchMetadata
+    at com.databricks.safespark.jdbc.driver.GrpcResultSet.metadata$lzycompute
+```
+
+### Why I Believe SafeSpark Breaks Neo4j JDBC
+
+The Neo4j JDBC driver works  when loaded directly into Spark (all Direct JDBC tests pass), but fails when routed through SafeSpark:
+
+| Scenario | Works? | Reason |
+|----------|--------|--------|
+| Direct JDBC (driver in Spark classpath) | Yes | Driver runs in-process with Spark |
+| Unity Catalog JDBC Connection | No | SafeSpark gRPC wrapper intercepts calls |
+
+**Failure points:**
+- SafeSpark's gRPC wrapper intercepts all JDBC calls
+- The metadata/schema resolution phase fails before any query executes
+- The sandboxed process may timeout or crash during Neo4j's connection handshake
+- Even with `customSchema` to bypass schema inference, SafeSpark still attempts its own resolution
+
+
+## Project Overview
+
 ### Component Test Results
 
 | Component | Status | Description |
@@ -26,10 +71,7 @@ The rest of the samples and code in this repository demonstrate how Neo4j JDBC w
 | Neo4j Spark Connector | PASS | `org.neo4j.spark.DataSource` fully functional |
 | **Neo4j JDBC SQL-to-Cypher** | **PASS** | **Tested & verified** - SQL translated to Cypher |
 | Direct JDBC | PASS | Works with `customSchema` workaround |
-| **Unity Catalog JDBC ** | **FAIL** | **SafeSpark incompatibility - blocked** |
-
-
-## Project Overview
+| **Unity Catalog JDBC** | **FAIL** | **SafeSpark incompatibility - blocked** |
 
 **What Works:**
 - **Neo4j JDBC SQL-to-Cypher translation** - Fully tested and verified with Spark
@@ -130,44 +172,6 @@ To fully understand the functionality and set up the integration, follow these s
 4.  **Execute the Notebooks**: Import notebooks from `uc-neo4j-test-suite/` into your Databricks workspace. Use `neo4j_databricks_sql_translation.ipynb` for full testing or `neo4j_schema_test.ipynb` for focused schema tests.
 
 ---
-
-## Technical Deep Dive: SafeSpark and the Unity Catalog JDBC Blocker
-
-### What is SafeSpark?
-
-**SafeSpark** is Databricks' internal isolation layer for running custom JDBC drivers in Unity Catalog. When you create a UC JDBC connection with a custom driver, SafeSpark:
-
-1. **Runs JDBC drivers in a sandboxed process** - The driver JAR executes in an isolated container/process, not directly in the Spark executor
-2. **Communicates via gRPC** - Spark talks to the isolated driver through a gRPC bridge
-3. **Enforces security boundaries** - Prevents custom drivers from accessing cluster resources, secrets, or other data directly
-
-This architecture provides security isolation but introduces a layer that can cause compatibility issues with certain JDBC drivers.
-
-### Evidence from Error Stack Traces
-
-The SafeSpark components are visible in error messages when Unity Catalog JDBC connections fail:
-
-```
-java.lang.RuntimeException: Connection was closed before the operation completed.
-    at com.databricks.safespark.jdbc.grpc_client.JdbcConnectClient.awaitWhileConnected
-    at com.databricks.safespark.jdbc.grpc_client.JdbcGetRowsClient.fetchMetadata
-    at com.databricks.safespark.jdbc.driver.GrpcResultSet.metadata$lzycompute
-```
-
-### Why SafeSpark Breaks Neo4j JDBC
-
-The Neo4j JDBC driver works  when loaded directly into Spark (all Direct JDBC tests pass), but fails when routed through SafeSpark:
-
-| Scenario | Works? | Reason |
-|----------|--------|--------|
-| Direct JDBC (driver in Spark classpath) | Yes | Driver runs in-process with Spark |
-| Unity Catalog JDBC Connection | No | SafeSpark gRPC wrapper intercepts calls |
-
-**Failure points:**
-- SafeSpark's gRPC wrapper intercepts all JDBC calls
-- The metadata/schema resolution phase fails before any query executes
-- The sandboxed process may timeout or crash during Neo4j's connection handshake
-- Even with `customSchema` to bypass schema inference, SafeSpark still attempts its own resolution
 
 ### Next Steps
 
