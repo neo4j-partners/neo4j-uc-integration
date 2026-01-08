@@ -1,93 +1,3 @@
-OpenJDK 64-Bit Server VM warning: Option UseBiasedLocking was deprecated in version 15.0 and will likely be removed in a future release.
-WARNING: Using incubator modules: jdk.incubator.vector
-SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
-SLF4J: Defaulting to no-operation (NOP) logger implementation
-SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-chown: invalid group: ‘:spark-users’
-WARNING: A terminally deprecated method in java.lang.System has been called
-WARNING: System::setSecurityManager has been called by com.databricks.backend.daemon.driver.DriverLocal$TrapExitInternal$ (file:/databricks/jars/spark--driver--driver-spark_4.0_2.13_deploy.jar)
-WARNING: Please consider reporting this to the maintainers of com.databricks.backend.daemon.driver.DriverLocal$TrapExitInternal$
-WARNING: System::setSecurityManager will be removed in a future release
-Thu Jan  8 16:16:34 2026 Connection to spark from PID  2426
-Thu Jan  8 16:16:34 2026 Initialized gateway on port 44083
-Thu Jan  8 16:16:34 2026 Connected to spark.
-Traceback (most recent call last):
-  File "/root/.ipykernel/2426/command-7730399508088085-3718757636", line 82, in <module>
-    .load()
-     ^^^^^^
-  File "/databricks/spark/python/pyspark/instrumentation_utils.py", line 47, in wrapper
-    res = func(*args, **kwargs)
-          ^^^^^^^^^^^^^^^^^^^^^
-  File "/databricks/spark/python/pyspark/sql/readwriter.py", line 318, in load
-    return self._df(self._jreader.load())
-                    ^^^^^^^^^^^^^^^^^^^^
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/java_gateway.py", line 1362, in __call__
-    return_value = get_return_value(
-                   ^^^^^^^^^^^^^^^^^
-  File "/databricks/spark/python/pyspark/errors/exceptions/captured.py", line 304, in deco
-    return f(*a, **kw)
-           ^^^^^^^^^^^
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/protocol.py", line 327, in get_return_value
-    raise Py4JJavaError(
-py4j.protocol.Py4JJavaError: An error occurred while calling o652.load.
-: java.sql.SQLException: INTERNAL: org.neo4j.jdbc.internal.shaded.bolt.exception.BoltServiceUnavailableException: Unable to connect to 3f1f827a.databases.neo4j.io:7687, ensure the database is running and that there is a working network connection to it.
-	at com.databricks.safespark.jdbc.common.GrpcExceptionWrapper$.$anonfun$unwrapToSQLException$2(GrpcExceptionWrapper.scala:65)
-	at scala.Option.getOrElse(Option.scala:201)
-	at com.databricks.safespark.jdbc.common.GrpcExceptionWrapper$.unwrapToSQLException(GrpcExceptionWrapper.scala:65)
-	at com.databricks.safespark.jdbc.grpc_client.JdbcConnectClient.unwrapToSQLException(JdbcConnectClient.scala:72)
-	at com.databricks.safespark.jdbc.grpc_client.JdbcConnectClient$$anon$1.onError(JdbcConnectClient.scala:121)
-	at grpc_shaded.io.grpc.stub.ClientCalls$StreamObserverToCallListenerAdapter.onClose(ClientCalls.java:481)
-	at grpc_shaded.io.grpc.internal.ClientCallImpl.closeObserver(ClientCallImpl.java:564)
-	at grpc_shaded.io.grpc.internal.ClientCallImpl.access$100(ClientCallImpl.java:72)
-	at grpc_shaded.io.grpc.internal.ClientCallImpl$ClientStreamListenerImpl$1StreamClosed.runInternal(ClientCallImpl.java:729)
-	at grpc_shaded.io.grpc.internal.ClientCallImpl$ClientStreamListenerImpl$1StreamClosed.runInContext(ClientCallImpl.java:710)
-	at grpc_shaded.io.grpc.internal.ContextRunnable.run(ContextRunnable.java:37)
-	at grpc_shaded.io.grpc.internal.SerializingExecutor.run(SerializingExecutor.java:133)
-	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1136)
-	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:635)
-	at org.apache.spark.util.Utils$.getTryWithCallerStacktrace(Utils.scala:1745)
-	at org.apache.spark.util.LazyTry.get(LazyTry.scala:75)
-	at org.apache.spark.sql.execution.QueryExecution.analyzed(QueryExecution.scala:479)
-	at org.mlflow.spark.autologging.DatasourceAttributeExtractorBase.getTableInfos(DatasourceAttributeExtractor.scala:88)
-	at org.mlflow.spark.autologging.DatasourceAttributeExtractorBase.getTableInfos$(DatasourceAttributeExtractor.scala:85)
-	at org.mlflow.spark.autologging.ReplAwareDatasourceAttributeExtractor$.getTableInfos(DatasourceAttributeExtractor.scala:142)
-	at org.mlflow.spark.autologging.ReplAwareSparkDataSourceListener.onSQLExecutionEnd(ReplAwareSparkDataSourceListener.scala:49)
-	at org.mlflow.spark.autologging.SparkDataSourceListener.$anonfun$onOtherEvent$1(SparkDataSourceListener.scala:39)
-	at scala.runtime.java8.JFunction0$mcV$sp.apply(JFunction0$mcV$sp.scala:18)
-	at org.mlflow.spark.autologging.ExceptionUtils$.tryAndLogUnexpectedError(ExceptionUtils.scala:26)
-	at org.mlflow.spark.autologging.SparkDataSourceListener.onOtherEvent(SparkDataSourceListener.scala:39)
-	at org.apache.spark.scheduler.SparkListenerBus.doPostEvent(SparkListenerBus.scala:108)
-	at org.apache.spark.scheduler.SparkListenerBus.doPostEvent$(SparkListenerBus.scala:28)
-	at org.apache.spark.scheduler.AsyncEventQueue.doPostEvent(AsyncEventQueue.scala:46)
-	at org.apache.spark.scheduler.AsyncEventQueue.doPostEvent(AsyncEventQueue.scala:46)
-	at org.apache.spark.util.ListenerBus.postToAll(ListenerBus.scala:208)
-	at org.apache.spark.util.ListenerBus.postToAll$(ListenerBus.scala:172)
-	at org.apache.spark.scheduler.AsyncEventQueue.super$postToAll(AsyncEventQueue.scala:150)
-	at org.apache.spark.scheduler.AsyncEventQueue.$anonfun$dispatch$1(AsyncEventQueue.scala:150)
-	at scala.runtime.java8.JFunction0$mcJ$sp.apply(JFunction0$mcJ$sp.scala:17)
-	at scala.util.DynamicVariable.withValue(DynamicVariable.scala:59)
-	at org.apache.spark.scheduler.AsyncEventQueue.org$apache$spark$scheduler$AsyncEventQueue$$dispatch(AsyncEventQueue.scala:119)
-	at org.apache.spark.scheduler.AsyncEventQueue$$anon$2.$anonfun$run$1(AsyncEventQueue.scala:115)
-	at org.apache.spark.util.Utils$.tryOrStopSparkContext(Utils.scala:1572)
-	at org.apache.spark.scheduler.AsyncEventQueue$$anon$2.run(AsyncEventQueue.scala:115)
-	Suppressed: org.apache.spark.util.Utils$OriginalTryStackTraceException: Full stacktrace of original doTryWithCallerStacktrace caller
-		at com.databricks.safespark.jdbc.common.GrpcExceptionWrapper$.$anonfun$unwrapToSQLException$2(GrpcExceptionWrapper.scala:65)
-		at scala.Option.getOrElse(Option.scala:201)
-		at com.databricks.safespark.jdbc.common.GrpcExceptionWrapper$.unwrapToSQLException(GrpcExceptionWrapper.scala:65)
-		at com.databricks.safespark.jdbc.grpc_client.JdbcConnectClient.unwrapToSQLException(JdbcConnectClient.scala:72)
-		at com.databricks.safespark.jdbc.grpc_client.JdbcConnectClient$$anon$1.onError(JdbcConnectClient.scala:121)
-		at grpc_shaded.io.grpc.stub.ClientCalls$StreamObserverToCallListenerAdapter.onClose(ClientCalls.java:481)
-		at grpc_shaded.io.grpc.internal.ClientCallImpl.closeObserver(ClientCallImpl.java:564)
-		at grpc_shaded.io.grpc.internal.ClientCallImpl.access$100(ClientCallImpl.java:72)
-		at grpc_shaded.io.grpc.internal.ClientCallImpl$ClientStreamListenerImpl$1StreamClosed.runInternal(ClientCallImpl.java:729)
-		at grpc_shaded.io.grpc.internal.ClientCallImpl$ClientStreamListenerImpl$1StreamClosed.runInContext(ClientCallImpl.java:710)
-		at grpc_shaded.io.grpc.internal.ContextRunnable.run(ContextRunnable.java:37)
-		at grpc_shaded.io.grpc.internal.SerializingExecutor.run(SerializingExecutor.java:133)
-		at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1136)
-		at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:635)
-		at java.base/java.lang.Thread.run(Thread.java:840)
-
-Unable to retrieve routing information
 ERROR:root:KeyboardInterrupt while sending command.
 Traceback (most recent call last):
   File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/java_gateway.py", line 1038, in send_command
@@ -101,7 +11,7 @@ Traceback (most recent call last):
            ^^^^^^^^^^^^^^^^^^^^^^^
 KeyboardInterrupt
 DEBUG:ThreadMonitor:Logging python thread stack frames for MainThread and py4j threads:
-DEBUG:ThreadMonitor:Logging Thread-19 (run) stack frames:
+DEBUG:ThreadMonitor:Logging Thread-10 (run) stack frames:
   File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
     self._bootstrap_inner()
   File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
@@ -117,7 +27,7 @@ DEBUG:ThreadMonitor:Logging Thread-19 (run) stack frames:
   File "/usr/lib/python3.12/socket.py", line 707, in readinto
     return self._sock.recv_into(b)
 
-DEBUG:ThreadMonitor:Logging Thread-18 (run) stack frames:
+DEBUG:ThreadMonitor:Logging Thread-8 (run) stack frames:
   File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
     self._bootstrap_inner()
   File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
@@ -133,39 +43,7 @@ DEBUG:ThreadMonitor:Logging Thread-18 (run) stack frames:
   File "/usr/lib/python3.12/socket.py", line 707, in readinto
     return self._sock.recv_into(b)
 
-DEBUG:ThreadMonitor:Logging Thread-17 (run) stack frames:
-  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
-    self._bootstrap_inner()
-  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
-    self.run()
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
-    _threading_Thread_run(self)
-  File "/usr/lib/python3.12/threading.py", line 1010, in run
-    self._target(*self._args, **self._kwargs)
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
-    self.wait_for_commands()
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
-    command = smart_decode(self.stream.readline())[:-1]
-  File "/usr/lib/python3.12/socket.py", line 707, in readinto
-    return self._sock.recv_into(b)
-
-DEBUG:ThreadMonitor:Logging Thread-13 (run) stack frames:
-  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
-    self._bootstrap_inner()
-  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
-    self.run()
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
-    _threading_Thread_run(self)
-  File "/usr/lib/python3.12/threading.py", line 1010, in run
-    self._target(*self._args, **self._kwargs)
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
-    self.wait_for_commands()
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
-    command = smart_decode(self.stream.readline())[:-1]
-  File "/usr/lib/python3.12/socket.py", line 707, in readinto
-    return self._sock.recv_into(b)
-
-DEBUG:ThreadMonitor:Logging Thread-12 (run) stack frames:
+DEBUG:ThreadMonitor:Logging Thread-7 (run) stack frames:
   File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
     self._bootstrap_inner()
   File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
@@ -236,488 +114,7 @@ DEBUG:ThreadMonitor:Logging MainThread stack frames:
     if await self.run_code(code, result, async_=asy):
   File "/databricks/python/lib/python3.12/site-packages/IPython/core/interactiveshell.py", line 3577, in run_code
     exec(code_obj, self.user_global_ns, self.user_ns)
-  File "/root/.ipykernel/2426/command-7730399508088075-2650020174", line 10, in <module>
-    .load()
-  File "/databricks/spark/python/pyspark/instrumentation_utils.py", line 47, in wrapper
-    res = func(*args, **kwargs)
-  File "/databricks/spark/python/pyspark/sql/readwriter.py", line 318, in load
-    return self._df(self._jreader.load())
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/java_gateway.py", line 1361, in __call__
-    answer = self.gateway_client.send_command(command)
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/java_gateway.py", line 1038, in send_command
-    response = connection.send_command(command)
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 535, in send_command
-    answer = smart_decode(self.stream.readline()[:-1])
-  File "/usr/lib/python3.12/socket.py", line 707, in readinto
-    return self._sock.recv_into(b)
-
-DEBUG:ThreadMonitor:Logging python thread stack frames for MainThread and py4j threads:
-DEBUG:ThreadMonitor:Logging Thread-19 (run) stack frames:
-  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
-    self._bootstrap_inner()
-  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
-    self.run()
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
-    _threading_Thread_run(self)
-  File "/usr/lib/python3.12/threading.py", line 1010, in run
-    self._target(*self._args, **self._kwargs)
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
-    self.wait_for_commands()
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
-    command = smart_decode(self.stream.readline())[:-1]
-  File "/usr/lib/python3.12/socket.py", line 707, in readinto
-    return self._sock.recv_into(b)
-
-DEBUG:ThreadMonitor:Logging Thread-18 (run) stack frames:
-  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
-    self._bootstrap_inner()
-  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
-    self.run()
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
-    _threading_Thread_run(self)
-  File "/usr/lib/python3.12/threading.py", line 1010, in run
-    self._target(*self._args, **self._kwargs)
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
-    self.wait_for_commands()
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
-    command = smart_decode(self.stream.readline())[:-1]
-  File "/usr/lib/python3.12/socket.py", line 707, in readinto
-    return self._sock.recv_into(b)
-
-DEBUG:ThreadMonitor:Logging Thread-17 (run) stack frames:
-  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
-    self._bootstrap_inner()
-  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
-    self.run()
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
-    _threading_Thread_run(self)
-  File "/usr/lib/python3.12/threading.py", line 1010, in run
-    self._target(*self._args, **self._kwargs)
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
-    self.wait_for_commands()
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
-    command = smart_decode(self.stream.readline())[:-1]
-  File "/usr/lib/python3.12/socket.py", line 707, in readinto
-    return self._sock.recv_into(b)
-
-DEBUG:ThreadMonitor:Logging Thread-13 (run) stack frames:
-  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
-    self._bootstrap_inner()
-  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
-    self.run()
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
-    _threading_Thread_run(self)
-  File "/usr/lib/python3.12/threading.py", line 1010, in run
-    self._target(*self._args, **self._kwargs)
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
-    self.wait_for_commands()
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
-    command = smart_decode(self.stream.readline())[:-1]
-  File "/usr/lib/python3.12/socket.py", line 707, in readinto
-    return self._sock.recv_into(b)
-
-DEBUG:ThreadMonitor:Logging Thread-12 (run) stack frames:
-  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
-    self._bootstrap_inner()
-  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
-    self.run()
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
-    _threading_Thread_run(self)
-  File "/usr/lib/python3.12/threading.py", line 1010, in run
-    self._target(*self._args, **self._kwargs)
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
-    self.wait_for_commands()
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
-    command = smart_decode(self.stream.readline())[:-1]
-  File "/usr/lib/python3.12/socket.py", line 707, in readinto
-    return self._sock.recv_into(b)
-
-DEBUG:ThreadMonitor:Logging Thread-4 (run) stack frames:
-  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
-    self._bootstrap_inner()
-  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
-    self.run()
-  File "/usr/lib/python3.12/threading.py", line 1010, in run
-    self._target(*self._args, **self._kwargs)
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/java_gateway.py", line 2323, in run
-    readable, writable, errored = select.select(
-
-DEBUG:ThreadMonitor:Logging MainThread stack frames:
-  File "/databricks/python_shell/scripts/db_ipykernel_launcher.py", line 52, in <module>
-    main()
-  File "/databricks/python_shell/scripts/db_ipykernel_launcher.py", line 48, in main
-    DatabricksKernelApp.launch_instance(config=databricks_kernel_config())
-  File "/databricks/python/lib/python3.12/site-packages/traitlets/config/application.py", line 1075, in launch_instance
-    app.start()
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/kernelapp.py", line 739, in start
-    self.io_loop.start()
-  File "/databricks/python/lib/python3.12/site-packages/tornado/platform/asyncio.py", line 205, in start
-    self.asyncio_loop.run_forever()
-  File "/usr/lib/python3.12/asyncio/base_events.py", line 641, in run_forever
-    self._run_once()
-  File "/usr/lib/python3.12/asyncio/base_events.py", line 1987, in _run_once
-    handle._run()
-  File "/usr/lib/python3.12/asyncio/events.py", line 88, in _run
-    self._context.run(self._callback, *self._args)
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/kernelbase.py", line 545, in dispatch_queue
-    await self.process_one()
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/kernelbase.py", line 534, in process_one
-    await dispatch(*args)
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/kernelbase.py", line 437, in dispatch_shell
-    await result
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 362, in execute_request
-    await super().execute_request(stream, ident, parent)
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/kernelbase.py", line 778, in execute_request
-    reply_content = await reply_content
-  File "/databricks/python_shell/lib/dbruntime/kernel.py", line 534, in do_execute
-    reply_content = await super().do_execute(*args, **kwargs)
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 449, in do_execute
-    res = shell.run_cell(
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/zmqshell.py", line 549, in run_cell
-    return super().run_cell(*args, **kwargs)
-  File "/databricks/python/lib/python3.12/site-packages/IPython/core/interactiveshell.py", line 3075, in run_cell
-    result = self._run_cell(
-  File "/databricks/python/lib/python3.12/site-packages/IPython/core/interactiveshell.py", line 3130, in _run_cell
-    result = runner(coro)
-  File "/databricks/python/lib/python3.12/site-packages/IPython/core/async_helpers.py", line 128, in _pseudo_sync_runner
-    coro.send(None)
-  File "/databricks/python/lib/python3.12/site-packages/IPython/core/interactiveshell.py", line 3334, in run_cell_async
-    has_raised = await self.run_ast_nodes(code_ast.body, cell_name,
-  File "/databricks/python/lib/python3.12/site-packages/IPython/core/interactiveshell.py", line 3517, in run_ast_nodes
-    if await self.run_code(code, result, async_=asy):
-  File "/databricks/python/lib/python3.12/site-packages/IPython/core/interactiveshell.py", line 3577, in run_code
-    exec(code_obj, self.user_global_ns, self.user_ns)
-  File "/root/.ipykernel/2426/command-7730399508088075-2650020174", line 10, in <module>
-    .load()
-  File "/databricks/spark/python/pyspark/instrumentation_utils.py", line 47, in wrapper
-    res = func(*args, **kwargs)
-  File "/databricks/spark/python/pyspark/sql/readwriter.py", line 318, in load
-    return self._df(self._jreader.load())
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/java_gateway.py", line 1361, in __call__
-    answer = self.gateway_client.send_command(command)
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/java_gateway.py", line 1038, in send_command
-    response = connection.send_command(command)
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 535, in send_command
-    answer = smart_decode(self.stream.readline()[:-1])
-  File "/usr/lib/python3.12/socket.py", line 707, in readinto
-    return self._sock.recv_into(b)
-
-DEBUG:ThreadMonitor:Logging python thread stack frames for MainThread and py4j threads:
-DEBUG:ThreadMonitor:Logging Thread-19 (run) stack frames:
-  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
-    self._bootstrap_inner()
-  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
-    self.run()
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
-    _threading_Thread_run(self)
-  File "/usr/lib/python3.12/threading.py", line 1010, in run
-    self._target(*self._args, **self._kwargs)
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
-    self.wait_for_commands()
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
-    command = smart_decode(self.stream.readline())[:-1]
-  File "/usr/lib/python3.12/socket.py", line 707, in readinto
-    return self._sock.recv_into(b)
-
-DEBUG:ThreadMonitor:Logging Thread-18 (run) stack frames:
-  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
-    self._bootstrap_inner()
-  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
-    self.run()
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
-    _threading_Thread_run(self)
-  File "/usr/lib/python3.12/threading.py", line 1010, in run
-    self._target(*self._args, **self._kwargs)
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
-    self.wait_for_commands()
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
-    command = smart_decode(self.stream.readline())[:-1]
-  File "/usr/lib/python3.12/socket.py", line 707, in readinto
-    return self._sock.recv_into(b)
-
-DEBUG:ThreadMonitor:Logging Thread-17 (run) stack frames:
-  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
-    self._bootstrap_inner()
-  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
-    self.run()
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
-    _threading_Thread_run(self)
-  File "/usr/lib/python3.12/threading.py", line 1010, in run
-    self._target(*self._args, **self._kwargs)
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
-    self.wait_for_commands()
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
-    command = smart_decode(self.stream.readline())[:-1]
-  File "/usr/lib/python3.12/socket.py", line 707, in readinto
-    return self._sock.recv_into(b)
-
-DEBUG:ThreadMonitor:Logging Thread-13 (run) stack frames:
-  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
-    self._bootstrap_inner()
-  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
-    self.run()
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
-    _threading_Thread_run(self)
-  File "/usr/lib/python3.12/threading.py", line 1010, in run
-    self._target(*self._args, **self._kwargs)
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
-    self.wait_for_commands()
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
-    command = smart_decode(self.stream.readline())[:-1]
-  File "/usr/lib/python3.12/socket.py", line 707, in readinto
-    return self._sock.recv_into(b)
-
-DEBUG:ThreadMonitor:Logging Thread-12 (run) stack frames:
-  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
-    self._bootstrap_inner()
-  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
-    self.run()
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
-    _threading_Thread_run(self)
-  File "/usr/lib/python3.12/threading.py", line 1010, in run
-    self._target(*self._args, **self._kwargs)
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
-    self.wait_for_commands()
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
-    command = smart_decode(self.stream.readline())[:-1]
-  File "/usr/lib/python3.12/socket.py", line 707, in readinto
-    return self._sock.recv_into(b)
-
-DEBUG:ThreadMonitor:Logging Thread-4 (run) stack frames:
-  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
-    self._bootstrap_inner()
-  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
-    self.run()
-  File "/usr/lib/python3.12/threading.py", line 1010, in run
-    self._target(*self._args, **self._kwargs)
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/java_gateway.py", line 2323, in run
-    readable, writable, errored = select.select(
-
-DEBUG:ThreadMonitor:Logging MainThread stack frames:
-  File "/databricks/python_shell/scripts/db_ipykernel_launcher.py", line 52, in <module>
-    main()
-  File "/databricks/python_shell/scripts/db_ipykernel_launcher.py", line 48, in main
-    DatabricksKernelApp.launch_instance(config=databricks_kernel_config())
-  File "/databricks/python/lib/python3.12/site-packages/traitlets/config/application.py", line 1075, in launch_instance
-    app.start()
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/kernelapp.py", line 739, in start
-    self.io_loop.start()
-  File "/databricks/python/lib/python3.12/site-packages/tornado/platform/asyncio.py", line 205, in start
-    self.asyncio_loop.run_forever()
-  File "/usr/lib/python3.12/asyncio/base_events.py", line 641, in run_forever
-    self._run_once()
-  File "/usr/lib/python3.12/asyncio/base_events.py", line 1987, in _run_once
-    handle._run()
-  File "/usr/lib/python3.12/asyncio/events.py", line 88, in _run
-    self._context.run(self._callback, *self._args)
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/kernelbase.py", line 545, in dispatch_queue
-    await self.process_one()
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/kernelbase.py", line 534, in process_one
-    await dispatch(*args)
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/kernelbase.py", line 437, in dispatch_shell
-    await result
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 362, in execute_request
-    await super().execute_request(stream, ident, parent)
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/kernelbase.py", line 778, in execute_request
-    reply_content = await reply_content
-  File "/databricks/python_shell/lib/dbruntime/kernel.py", line 534, in do_execute
-    reply_content = await super().do_execute(*args, **kwargs)
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 449, in do_execute
-    res = shell.run_cell(
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/zmqshell.py", line 549, in run_cell
-    return super().run_cell(*args, **kwargs)
-  File "/databricks/python/lib/python3.12/site-packages/IPython/core/interactiveshell.py", line 3075, in run_cell
-    result = self._run_cell(
-  File "/databricks/python/lib/python3.12/site-packages/IPython/core/interactiveshell.py", line 3130, in _run_cell
-    result = runner(coro)
-  File "/databricks/python/lib/python3.12/site-packages/IPython/core/async_helpers.py", line 128, in _pseudo_sync_runner
-    coro.send(None)
-  File "/databricks/python/lib/python3.12/site-packages/IPython/core/interactiveshell.py", line 3334, in run_cell_async
-    has_raised = await self.run_ast_nodes(code_ast.body, cell_name,
-  File "/databricks/python/lib/python3.12/site-packages/IPython/core/interactiveshell.py", line 3517, in run_ast_nodes
-    if await self.run_code(code, result, async_=asy):
-  File "/databricks/python/lib/python3.12/site-packages/IPython/core/interactiveshell.py", line 3577, in run_code
-    exec(code_obj, self.user_global_ns, self.user_ns)
-  File "/root/.ipykernel/2426/command-7730399508088075-2650020174", line 10, in <module>
-    .load()
-  File "/databricks/spark/python/pyspark/instrumentation_utils.py", line 47, in wrapper
-    res = func(*args, **kwargs)
-  File "/databricks/spark/python/pyspark/sql/readwriter.py", line 318, in load
-    return self._df(self._jreader.load())
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/java_gateway.py", line 1361, in __call__
-    answer = self.gateway_client.send_command(command)
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/java_gateway.py", line 1038, in send_command
-    response = connection.send_command(command)
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 535, in send_command
-    answer = smart_decode(self.stream.readline()[:-1])
-  File "/usr/lib/python3.12/socket.py", line 707, in readinto
-    return self._sock.recv_into(b)
-
-ERROR:root:KeyboardInterrupt while sending command.
-Traceback (most recent call last):
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/java_gateway.py", line 1038, in send_command
-    response = connection.send_command(command)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 535, in send_command
-    answer = smart_decode(self.stream.readline()[:-1])
-                          ^^^^^^^^^^^^^^^^^^^^^^
-  File "/usr/lib/python3.12/socket.py", line 707, in readinto
-    return self._sock.recv_into(b)
-           ^^^^^^^^^^^^^^^^^^^^^^^
-KeyboardInterrupt
-DEBUG:ThreadMonitor:Logging python thread stack frames for MainThread and py4j threads:
-DEBUG:ThreadMonitor:Logging Thread-20 (run) stack frames:
-  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
-    self._bootstrap_inner()
-  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
-    self.run()
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
-    _threading_Thread_run(self)
-  File "/usr/lib/python3.12/threading.py", line 1010, in run
-    self._target(*self._args, **self._kwargs)
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
-    self.wait_for_commands()
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
-    command = smart_decode(self.stream.readline())[:-1]
-  File "/usr/lib/python3.12/socket.py", line 707, in readinto
-    return self._sock.recv_into(b)
-
-DEBUG:ThreadMonitor:Logging Thread-19 (run) stack frames:
-  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
-    self._bootstrap_inner()
-  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
-    self.run()
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
-    _threading_Thread_run(self)
-  File "/usr/lib/python3.12/threading.py", line 1010, in run
-    self._target(*self._args, **self._kwargs)
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
-    self.wait_for_commands()
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
-    command = smart_decode(self.stream.readline())[:-1]
-  File "/usr/lib/python3.12/socket.py", line 707, in readinto
-    return self._sock.recv_into(b)
-
-DEBUG:ThreadMonitor:Logging Thread-18 (run) stack frames:
-  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
-    self._bootstrap_inner()
-  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
-    self.run()
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
-    _threading_Thread_run(self)
-  File "/usr/lib/python3.12/threading.py", line 1010, in run
-    self._target(*self._args, **self._kwargs)
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
-    self.wait_for_commands()
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
-    command = smart_decode(self.stream.readline())[:-1]
-  File "/usr/lib/python3.12/socket.py", line 707, in readinto
-    return self._sock.recv_into(b)
-
-DEBUG:ThreadMonitor:Logging Thread-17 (run) stack frames:
-  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
-    self._bootstrap_inner()
-  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
-    self.run()
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
-    _threading_Thread_run(self)
-  File "/usr/lib/python3.12/threading.py", line 1010, in run
-    self._target(*self._args, **self._kwargs)
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
-    self.wait_for_commands()
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
-    command = smart_decode(self.stream.readline())[:-1]
-  File "/usr/lib/python3.12/socket.py", line 707, in readinto
-    return self._sock.recv_into(b)
-
-DEBUG:ThreadMonitor:Logging Thread-13 (run) stack frames:
-  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
-    self._bootstrap_inner()
-  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
-    self.run()
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
-    _threading_Thread_run(self)
-  File "/usr/lib/python3.12/threading.py", line 1010, in run
-    self._target(*self._args, **self._kwargs)
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
-    self.wait_for_commands()
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
-    command = smart_decode(self.stream.readline())[:-1]
-  File "/usr/lib/python3.12/socket.py", line 707, in readinto
-    return self._sock.recv_into(b)
-
-DEBUG:ThreadMonitor:Logging Thread-12 (run) stack frames:
-  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
-    self._bootstrap_inner()
-  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
-    self.run()
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
-    _threading_Thread_run(self)
-  File "/usr/lib/python3.12/threading.py", line 1010, in run
-    self._target(*self._args, **self._kwargs)
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
-    self.wait_for_commands()
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
-    command = smart_decode(self.stream.readline())[:-1]
-  File "/usr/lib/python3.12/socket.py", line 707, in readinto
-    return self._sock.recv_into(b)
-
-DEBUG:ThreadMonitor:Logging Thread-4 (run) stack frames:
-  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
-    self._bootstrap_inner()
-  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
-    self.run()
-  File "/usr/lib/python3.12/threading.py", line 1010, in run
-    self._target(*self._args, **self._kwargs)
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/java_gateway.py", line 2323, in run
-    readable, writable, errored = select.select(
-
-DEBUG:ThreadMonitor:Logging MainThread stack frames:
-  File "/databricks/python_shell/scripts/db_ipykernel_launcher.py", line 52, in <module>
-    main()
-  File "/databricks/python_shell/scripts/db_ipykernel_launcher.py", line 48, in main
-    DatabricksKernelApp.launch_instance(config=databricks_kernel_config())
-  File "/databricks/python/lib/python3.12/site-packages/traitlets/config/application.py", line 1075, in launch_instance
-    app.start()
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/kernelapp.py", line 739, in start
-    self.io_loop.start()
-  File "/databricks/python/lib/python3.12/site-packages/tornado/platform/asyncio.py", line 205, in start
-    self.asyncio_loop.run_forever()
-  File "/usr/lib/python3.12/asyncio/base_events.py", line 641, in run_forever
-    self._run_once()
-  File "/usr/lib/python3.12/asyncio/base_events.py", line 1987, in _run_once
-    handle._run()
-  File "/usr/lib/python3.12/asyncio/events.py", line 88, in _run
-    self._context.run(self._callback, *self._args)
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/kernelbase.py", line 545, in dispatch_queue
-    await self.process_one()
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/kernelbase.py", line 534, in process_one
-    await dispatch(*args)
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/kernelbase.py", line 437, in dispatch_shell
-    await result
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 362, in execute_request
-    await super().execute_request(stream, ident, parent)
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/kernelbase.py", line 778, in execute_request
-    reply_content = await reply_content
-  File "/databricks/python_shell/lib/dbruntime/kernel.py", line 534, in do_execute
-    reply_content = await super().do_execute(*args, **kwargs)
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 449, in do_execute
-    res = shell.run_cell(
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/zmqshell.py", line 549, in run_cell
-    return super().run_cell(*args, **kwargs)
-  File "/databricks/python/lib/python3.12/site-packages/IPython/core/interactiveshell.py", line 3075, in run_cell
-    result = self._run_cell(
-  File "/databricks/python/lib/python3.12/site-packages/IPython/core/interactiveshell.py", line 3130, in _run_cell
-    result = runner(coro)
-  File "/databricks/python/lib/python3.12/site-packages/IPython/core/async_helpers.py", line 128, in _pseudo_sync_runner
-    coro.send(None)
-  File "/databricks/python/lib/python3.12/site-packages/IPython/core/interactiveshell.py", line 3334, in run_cell_async
-    has_raised = await self.run_ast_nodes(code_ast.body, cell_name,
-  File "/databricks/python/lib/python3.12/site-packages/IPython/core/interactiveshell.py", line 3517, in run_ast_nodes
-    if await self.run_code(code, result, async_=asy):
-  File "/databricks/python/lib/python3.12/site-packages/IPython/core/interactiveshell.py", line 3577, in run_code
-    exec(code_obj, self.user_global_ns, self.user_ns)
-  File "/root/.ipykernel/2426/command-7730399508088077-572485745", line 7, in <module>
+  File "/root/.ipykernel/1703/command-7730399508088077-572485745", line 7, in <module>
     df = spark.sql(f"""
   File "/databricks/spark/python/pyspark/instrumentation_utils.py", line 47, in wrapper
     res = func(*args, **kwargs)
@@ -733,7 +130,7 @@ DEBUG:ThreadMonitor:Logging MainThread stack frames:
     return self._sock.recv_into(b)
 
 DEBUG:ThreadMonitor:Logging python thread stack frames for MainThread and py4j threads:
-DEBUG:ThreadMonitor:Logging Thread-20 (run) stack frames:
+DEBUG:ThreadMonitor:Logging Thread-11 (run) stack frames:
   File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
     self._bootstrap_inner()
   File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
@@ -749,7 +146,7 @@ DEBUG:ThreadMonitor:Logging Thread-20 (run) stack frames:
   File "/usr/lib/python3.12/socket.py", line 707, in readinto
     return self._sock.recv_into(b)
 
-DEBUG:ThreadMonitor:Logging Thread-19 (run) stack frames:
+DEBUG:ThreadMonitor:Logging Thread-10 (run) stack frames:
   File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
     self._bootstrap_inner()
   File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
@@ -765,7 +162,7 @@ DEBUG:ThreadMonitor:Logging Thread-19 (run) stack frames:
   File "/usr/lib/python3.12/socket.py", line 707, in readinto
     return self._sock.recv_into(b)
 
-DEBUG:ThreadMonitor:Logging Thread-18 (run) stack frames:
+DEBUG:ThreadMonitor:Logging Thread-8 (run) stack frames:
   File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
     self._bootstrap_inner()
   File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
@@ -781,39 +178,7 @@ DEBUG:ThreadMonitor:Logging Thread-18 (run) stack frames:
   File "/usr/lib/python3.12/socket.py", line 707, in readinto
     return self._sock.recv_into(b)
 
-DEBUG:ThreadMonitor:Logging Thread-17 (run) stack frames:
-  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
-    self._bootstrap_inner()
-  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
-    self.run()
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
-    _threading_Thread_run(self)
-  File "/usr/lib/python3.12/threading.py", line 1010, in run
-    self._target(*self._args, **self._kwargs)
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
-    self.wait_for_commands()
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
-    command = smart_decode(self.stream.readline())[:-1]
-  File "/usr/lib/python3.12/socket.py", line 707, in readinto
-    return self._sock.recv_into(b)
-
-DEBUG:ThreadMonitor:Logging Thread-13 (run) stack frames:
-  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
-    self._bootstrap_inner()
-  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
-    self.run()
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
-    _threading_Thread_run(self)
-  File "/usr/lib/python3.12/threading.py", line 1010, in run
-    self._target(*self._args, **self._kwargs)
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
-    self.wait_for_commands()
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
-    command = smart_decode(self.stream.readline())[:-1]
-  File "/usr/lib/python3.12/socket.py", line 707, in readinto
-    return self._sock.recv_into(b)
-
-DEBUG:ThreadMonitor:Logging Thread-12 (run) stack frames:
+DEBUG:ThreadMonitor:Logging Thread-7 (run) stack frames:
   File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
     self._bootstrap_inner()
   File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
@@ -884,7 +249,7 @@ DEBUG:ThreadMonitor:Logging MainThread stack frames:
     if await self.run_code(code, result, async_=asy):
   File "/databricks/python/lib/python3.12/site-packages/IPython/core/interactiveshell.py", line 3577, in run_code
     exec(code_obj, self.user_global_ns, self.user_ns)
-  File "/root/.ipykernel/2426/command-7730399508088077-572485745", line 7, in <module>
+  File "/root/.ipykernel/1703/command-7730399508088077-572485745", line 7, in <module>
     df = spark.sql(f"""
   File "/databricks/spark/python/pyspark/instrumentation_utils.py", line 47, in wrapper
     res = func(*args, **kwargs)
@@ -911,123 +276,72 @@ Traceback (most recent call last):
     return self._sock.recv_into(b)
            ^^^^^^^^^^^^^^^^^^^^^^^
 KeyboardInterrupt
-ERROR:py4j.clientserver:Exception occurred while shutting down connection
-Traceback (most recent call last):
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/java_gateway.py", line 1038, in send_command
-    response = connection.send_command(command)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 535, in send_command
-    answer = smart_decode(self.stream.readline()[:-1])
-                          ^^^^^^^^^^^^^^^^^^^^^^
-  File "/usr/lib/python3.12/socket.py", line 707, in readinto
-    return self._sock.recv_into(b)
-           ^^^^^^^^^^^^^^^^^^^^^^^
-KeyboardInterrupt
-
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last):
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 504, in shutdown_socket
-    self.socket.sendall(("%s\n" % address).encode("utf-8"))
-BrokenPipeError: [Errno 32] Broken pipe
 DEBUG:ThreadMonitor:Logging python thread stack frames for MainThread and py4j threads:
-DEBUG:ThreadMonitor:Logging Thread-21 (run) stack frames:
-  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
-    self._bootstrap_inner()
-  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
-    self.run()
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
-    _threading_Thread_run(self)
-  File "/usr/lib/python3.12/threading.py", line 1010, in run
-    self._target(*self._args, **self._kwargs)
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
-    self.wait_for_commands()
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
-    command = smart_decode(self.stream.readline())[:-1]
-  File "/usr/lib/python3.12/socket.py", line 707, in readinto
-    return self._sock.recv_into(b)
-
-DEBUG:ThreadMonitor:Logging Thread-20 (run) stack frames:
-  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
-    self._bootstrap_inner()
-  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
-    self.run()
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
-    _threading_Thread_run(self)
-  File "/usr/lib/python3.12/threading.py", line 1010, in run
-    self._target(*self._args, **self._kwargs)
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
-    self.wait_for_commands()
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
-    command = smart_decode(self.stream.readline())[:-1]
-  File "/usr/lib/python3.12/socket.py", line 707, in readinto
-    return self._sock.recv_into(b)
-
-DEBUG:ThreadMonitor:Logging Thread-19 (run) stack frames:
-  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
-    self._bootstrap_inner()
-  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
-    self.run()
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
-    _threading_Thread_run(self)
-  File "/usr/lib/python3.12/threading.py", line 1010, in run
-    self._target(*self._args, **self._kwargs)
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
-    self.wait_for_commands()
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
-    command = smart_decode(self.stream.readline())[:-1]
-  File "/usr/lib/python3.12/socket.py", line 707, in readinto
-    return self._sock.recv_into(b)
-
-DEBUG:ThreadMonitor:Logging Thread-18 (run) stack frames:
-  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
-    self._bootstrap_inner()
-  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
-    self.run()
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
-    _threading_Thread_run(self)
-  File "/usr/lib/python3.12/threading.py", line 1010, in run
-    self._target(*self._args, **self._kwargs)
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
-    self.wait_for_commands()
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
-    command = smart_decode(self.stream.readline())[:-1]
-  File "/usr/lib/python3.12/socket.py", line 707, in readinto
-    return self._sock.recv_into(b)
-
-DEBUG:ThreadMonitor:Logging Thread-17 (run) stack frames:
-  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
-    self._bootstrap_inner()
-  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
-    self.run()
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
-    _threading_Thread_run(self)
-  File "/usr/lib/python3.12/threading.py", line 1010, in run
-    self._target(*self._args, **self._kwargs)
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
-    self.wait_for_commands()
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
-    command = smart_decode(self.stream.readline())[:-1]
-  File "/usr/lib/python3.12/socket.py", line 707, in readinto
-    return self._sock.recv_into(b)
-
-DEBUG:ThreadMonitor:Logging Thread-13 (run) stack frames:
-  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
-    self._bootstrap_inner()
-  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
-    self.run()
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
-    _threading_Thread_run(self)
-  File "/usr/lib/python3.12/threading.py", line 1010, in run
-    self._target(*self._args, **self._kwargs)
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
-    self.wait_for_commands()
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
-    command = smart_decode(self.stream.readline())[:-1]
-  File "/usr/lib/python3.12/socket.py", line 707, in readinto
-    return self._sock.recv_into(b)
-
 DEBUG:ThreadMonitor:Logging Thread-12 (run) stack frames:
+  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
+    self._bootstrap_inner()
+  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
+    self.run()
+  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
+    _threading_Thread_run(self)
+  File "/usr/lib/python3.12/threading.py", line 1010, in run
+    self._target(*self._args, **self._kwargs)
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
+    self.wait_for_commands()
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
+    command = smart_decode(self.stream.readline())[:-1]
+  File "/usr/lib/python3.12/socket.py", line 707, in readinto
+    return self._sock.recv_into(b)
+
+DEBUG:ThreadMonitor:Logging Thread-11 (run) stack frames:
+  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
+    self._bootstrap_inner()
+  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
+    self.run()
+  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
+    _threading_Thread_run(self)
+  File "/usr/lib/python3.12/threading.py", line 1010, in run
+    self._target(*self._args, **self._kwargs)
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
+    self.wait_for_commands()
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
+    command = smart_decode(self.stream.readline())[:-1]
+  File "/usr/lib/python3.12/socket.py", line 707, in readinto
+    return self._sock.recv_into(b)
+
+DEBUG:ThreadMonitor:Logging Thread-10 (run) stack frames:
+  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
+    self._bootstrap_inner()
+  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
+    self.run()
+  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
+    _threading_Thread_run(self)
+  File "/usr/lib/python3.12/threading.py", line 1010, in run
+    self._target(*self._args, **self._kwargs)
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
+    self.wait_for_commands()
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
+    command = smart_decode(self.stream.readline())[:-1]
+  File "/usr/lib/python3.12/socket.py", line 707, in readinto
+    return self._sock.recv_into(b)
+
+DEBUG:ThreadMonitor:Logging Thread-8 (run) stack frames:
+  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
+    self._bootstrap_inner()
+  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
+    self.run()
+  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
+    _threading_Thread_run(self)
+  File "/usr/lib/python3.12/threading.py", line 1010, in run
+    self._target(*self._args, **self._kwargs)
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
+    self.wait_for_commands()
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
+    command = smart_decode(self.stream.readline())[:-1]
+  File "/usr/lib/python3.12/socket.py", line 707, in readinto
+    return self._sock.recv_into(b)
+
+DEBUG:ThreadMonitor:Logging Thread-7 (run) stack frames:
   File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
     self._bootstrap_inner()
   File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
@@ -1098,7 +412,7 @@ DEBUG:ThreadMonitor:Logging MainThread stack frames:
     if await self.run_code(code, result, async_=asy):
   File "/databricks/python/lib/python3.12/site-packages/IPython/core/interactiveshell.py", line 3577, in run_code
     exec(code_obj, self.user_global_ns, self.user_ns)
-  File "/root/.ipykernel/2426/command-7730399508088078-520004995", line 28, in <module>
+  File "/root/.ipykernel/1703/command-7730399508088083-3620399133", line 9, in <module>
     .load()
   File "/databricks/spark/python/pyspark/instrumentation_utils.py", line 47, in wrapper
     res = func(*args, **kwargs)
@@ -1126,86 +440,6 @@ Traceback (most recent call last):
            ^^^^^^^^^^^^^^^^^^^^^^^
 KeyboardInterrupt
 DEBUG:ThreadMonitor:Logging python thread stack frames for MainThread and py4j threads:
-DEBUG:ThreadMonitor:Logging Thread-21 (run) stack frames:
-  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
-    self._bootstrap_inner()
-  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
-    self.run()
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
-    _threading_Thread_run(self)
-  File "/usr/lib/python3.12/threading.py", line 1010, in run
-    self._target(*self._args, **self._kwargs)
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
-    self.wait_for_commands()
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
-    command = smart_decode(self.stream.readline())[:-1]
-  File "/usr/lib/python3.12/socket.py", line 707, in readinto
-    return self._sock.recv_into(b)
-
-DEBUG:ThreadMonitor:Logging Thread-20 (run) stack frames:
-  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
-    self._bootstrap_inner()
-  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
-    self.run()
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
-    _threading_Thread_run(self)
-  File "/usr/lib/python3.12/threading.py", line 1010, in run
-    self._target(*self._args, **self._kwargs)
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
-    self.wait_for_commands()
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
-    command = smart_decode(self.stream.readline())[:-1]
-  File "/usr/lib/python3.12/socket.py", line 707, in readinto
-    return self._sock.recv_into(b)
-
-DEBUG:ThreadMonitor:Logging Thread-19 (run) stack frames:
-  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
-    self._bootstrap_inner()
-  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
-    self.run()
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
-    _threading_Thread_run(self)
-  File "/usr/lib/python3.12/threading.py", line 1010, in run
-    self._target(*self._args, **self._kwargs)
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
-    self.wait_for_commands()
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
-    command = smart_decode(self.stream.readline())[:-1]
-  File "/usr/lib/python3.12/socket.py", line 707, in readinto
-    return self._sock.recv_into(b)
-
-DEBUG:ThreadMonitor:Logging Thread-18 (run) stack frames:
-  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
-    self._bootstrap_inner()
-  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
-    self.run()
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
-    _threading_Thread_run(self)
-  File "/usr/lib/python3.12/threading.py", line 1010, in run
-    self._target(*self._args, **self._kwargs)
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
-    self.wait_for_commands()
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
-    command = smart_decode(self.stream.readline())[:-1]
-  File "/usr/lib/python3.12/socket.py", line 707, in readinto
-    return self._sock.recv_into(b)
-
-DEBUG:ThreadMonitor:Logging Thread-17 (run) stack frames:
-  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
-    self._bootstrap_inner()
-  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
-    self.run()
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
-    _threading_Thread_run(self)
-  File "/usr/lib/python3.12/threading.py", line 1010, in run
-    self._target(*self._args, **self._kwargs)
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
-    self.wait_for_commands()
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
-    command = smart_decode(self.stream.readline())[:-1]
-  File "/usr/lib/python3.12/socket.py", line 707, in readinto
-    return self._sock.recv_into(b)
-
 DEBUG:ThreadMonitor:Logging Thread-13 (run) stack frames:
   File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
     self._bootstrap_inner()
@@ -1238,36 +472,7 @@ DEBUG:ThreadMonitor:Logging Thread-12 (run) stack frames:
   File "/usr/lib/python3.12/socket.py", line 707, in readinto
     return self._sock.recv_into(b)
 
-DEBUG:ThreadMonitor:Logging Thread-4 (run) stack frames:
-  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
-    self._bootstrap_inner()
-  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
-    self.run()
-  File "/usr/lib/python3.12/threading.py", line 1010, in run
-    self._target(*self._args, **self._kwargs)
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/java_gateway.py", line 2323, in run
-    readable, writable, errored = select.select(
-
-DEBUG:ThreadMonitor:Logging MainThread stack frames:
-  File "/databricks/python_shell/scripts/db_ipykernel_launcher.py", line 52, in <module>
-    main()
-  File "/databricks/python_shell/scripts/db_ipykernel_launcher.py", line 48, in main
-    DatabricksKernelApp.launch_instance(config=databricks_kernel_config())
-  File "/databricks/python/lib/python3.12/site-packages/traitlets/config/application.py", line 1075, in launch_instance
-    app.start()
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/kernelapp.py", line 739, in start
-    self.io_loop.start()
-  File "/databricks/python/lib/python3.12/site-packages/tornado/platform/asyncio.py", line 205, in start
-    self.asyncio_loop.run_forever()
-  File "/usr/lib/python3.12/asyncio/base_events.py", line 641, in run_forever
-    self._run_once()
-  File "/usr/lib/python3.12/asyncio/base_events.py", line 1949, in _run_once
-    event_list = self._selector.select(timeout)
-  File "/usr/lib/python3.12/selectors.py", line 468, in select
-    fd_event_list = self._selector.poll(timeout, max_ev)
-
-DEBUG:ThreadMonitor:Logging python thread stack frames for MainThread and py4j threads:
-DEBUG:ThreadMonitor:Logging Thread-22 (run) stack frames:
+DEBUG:ThreadMonitor:Logging Thread-11 (run) stack frames:
   File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
     self._bootstrap_inner()
   File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
@@ -1283,7 +488,7 @@ DEBUG:ThreadMonitor:Logging Thread-22 (run) stack frames:
   File "/usr/lib/python3.12/socket.py", line 707, in readinto
     return self._sock.recv_into(b)
 
-DEBUG:ThreadMonitor:Logging Thread-21 (run) stack frames:
+DEBUG:ThreadMonitor:Logging Thread-10 (run) stack frames:
   File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
     self._bootstrap_inner()
   File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
@@ -1299,7 +504,7 @@ DEBUG:ThreadMonitor:Logging Thread-21 (run) stack frames:
   File "/usr/lib/python3.12/socket.py", line 707, in readinto
     return self._sock.recv_into(b)
 
-DEBUG:ThreadMonitor:Logging Thread-20 (run) stack frames:
+DEBUG:ThreadMonitor:Logging Thread-8 (run) stack frames:
   File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
     self._bootstrap_inner()
   File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
@@ -1315,71 +520,7 @@ DEBUG:ThreadMonitor:Logging Thread-20 (run) stack frames:
   File "/usr/lib/python3.12/socket.py", line 707, in readinto
     return self._sock.recv_into(b)
 
-DEBUG:ThreadMonitor:Logging Thread-19 (run) stack frames:
-  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
-    self._bootstrap_inner()
-  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
-    self.run()
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
-    _threading_Thread_run(self)
-  File "/usr/lib/python3.12/threading.py", line 1010, in run
-    self._target(*self._args, **self._kwargs)
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
-    self.wait_for_commands()
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
-    command = smart_decode(self.stream.readline())[:-1]
-  File "/usr/lib/python3.12/socket.py", line 707, in readinto
-    return self._sock.recv_into(b)
-
-DEBUG:ThreadMonitor:Logging Thread-18 (run) stack frames:
-  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
-    self._bootstrap_inner()
-  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
-    self.run()
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
-    _threading_Thread_run(self)
-  File "/usr/lib/python3.12/threading.py", line 1010, in run
-    self._target(*self._args, **self._kwargs)
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
-    self.wait_for_commands()
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
-    command = smart_decode(self.stream.readline())[:-1]
-  File "/usr/lib/python3.12/socket.py", line 707, in readinto
-    return self._sock.recv_into(b)
-
-DEBUG:ThreadMonitor:Logging Thread-17 (run) stack frames:
-  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
-    self._bootstrap_inner()
-  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
-    self.run()
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
-    _threading_Thread_run(self)
-  File "/usr/lib/python3.12/threading.py", line 1010, in run
-    self._target(*self._args, **self._kwargs)
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
-    self.wait_for_commands()
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
-    command = smart_decode(self.stream.readline())[:-1]
-  File "/usr/lib/python3.12/socket.py", line 707, in readinto
-    return self._sock.recv_into(b)
-
-DEBUG:ThreadMonitor:Logging Thread-13 (run) stack frames:
-  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
-    self._bootstrap_inner()
-  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
-    self.run()
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
-    _threading_Thread_run(self)
-  File "/usr/lib/python3.12/threading.py", line 1010, in run
-    self._target(*self._args, **self._kwargs)
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
-    self.wait_for_commands()
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
-    command = smart_decode(self.stream.readline())[:-1]
-  File "/usr/lib/python3.12/socket.py", line 707, in readinto
-    return self._sock.recv_into(b)
-
-DEBUG:ThreadMonitor:Logging Thread-12 (run) stack frames:
+DEBUG:ThreadMonitor:Logging Thread-7 (run) stack frames:
   File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
     self._bootstrap_inner()
   File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
@@ -1450,7 +591,7 @@ DEBUG:ThreadMonitor:Logging MainThread stack frames:
     if await self.run_code(code, result, async_=asy):
   File "/databricks/python/lib/python3.12/site-packages/IPython/core/interactiveshell.py", line 3577, in run_code
     exec(code_obj, self.user_global_ns, self.user_ns)
-  File "/root/.ipykernel/2426/command-7730399508088083-3620399133", line 9, in <module>
+  File "/root/.ipykernel/1703/command-7730399508088084-1924478256", line 67, in <module>
     .load()
   File "/databricks/spark/python/pyspark/instrumentation_utils.py", line 47, in wrapper
     res = func(*args, **kwargs)
@@ -1466,102 +607,6 @@ DEBUG:ThreadMonitor:Logging MainThread stack frames:
     return self._sock.recv_into(b)
 
 DEBUG:ThreadMonitor:Logging python thread stack frames for MainThread and py4j threads:
-DEBUG:ThreadMonitor:Logging Thread-22 (run) stack frames:
-  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
-    self._bootstrap_inner()
-  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
-    self.run()
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
-    _threading_Thread_run(self)
-  File "/usr/lib/python3.12/threading.py", line 1010, in run
-    self._target(*self._args, **self._kwargs)
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
-    self.wait_for_commands()
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
-    command = smart_decode(self.stream.readline())[:-1]
-  File "/usr/lib/python3.12/socket.py", line 707, in readinto
-    return self._sock.recv_into(b)
-
-DEBUG:ThreadMonitor:Logging Thread-21 (run) stack frames:
-  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
-    self._bootstrap_inner()
-  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
-    self.run()
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
-    _threading_Thread_run(self)
-  File "/usr/lib/python3.12/threading.py", line 1010, in run
-    self._target(*self._args, **self._kwargs)
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
-    self.wait_for_commands()
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
-    command = smart_decode(self.stream.readline())[:-1]
-  File "/usr/lib/python3.12/socket.py", line 707, in readinto
-    return self._sock.recv_into(b)
-
-DEBUG:ThreadMonitor:Logging Thread-20 (run) stack frames:
-  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
-    self._bootstrap_inner()
-  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
-    self.run()
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
-    _threading_Thread_run(self)
-  File "/usr/lib/python3.12/threading.py", line 1010, in run
-    self._target(*self._args, **self._kwargs)
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
-    self.wait_for_commands()
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
-    command = smart_decode(self.stream.readline())[:-1]
-  File "/usr/lib/python3.12/socket.py", line 707, in readinto
-    return self._sock.recv_into(b)
-
-DEBUG:ThreadMonitor:Logging Thread-19 (run) stack frames:
-  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
-    self._bootstrap_inner()
-  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
-    self.run()
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
-    _threading_Thread_run(self)
-  File "/usr/lib/python3.12/threading.py", line 1010, in run
-    self._target(*self._args, **self._kwargs)
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
-    self.wait_for_commands()
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
-    command = smart_decode(self.stream.readline())[:-1]
-  File "/usr/lib/python3.12/socket.py", line 707, in readinto
-    return self._sock.recv_into(b)
-
-DEBUG:ThreadMonitor:Logging Thread-18 (run) stack frames:
-  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
-    self._bootstrap_inner()
-  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
-    self.run()
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
-    _threading_Thread_run(self)
-  File "/usr/lib/python3.12/threading.py", line 1010, in run
-    self._target(*self._args, **self._kwargs)
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
-    self.wait_for_commands()
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
-    command = smart_decode(self.stream.readline())[:-1]
-  File "/usr/lib/python3.12/socket.py", line 707, in readinto
-    return self._sock.recv_into(b)
-
-DEBUG:ThreadMonitor:Logging Thread-17 (run) stack frames:
-  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
-    self._bootstrap_inner()
-  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
-    self.run()
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
-    _threading_Thread_run(self)
-  File "/usr/lib/python3.12/threading.py", line 1010, in run
-    self._target(*self._args, **self._kwargs)
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
-    self.wait_for_commands()
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
-    command = smart_decode(self.stream.readline())[:-1]
-  File "/usr/lib/python3.12/socket.py", line 707, in readinto
-    return self._sock.recv_into(b)
-
 DEBUG:ThreadMonitor:Logging Thread-13 (run) stack frames:
   File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
     self._bootstrap_inner()
@@ -1579,6 +624,70 @@ DEBUG:ThreadMonitor:Logging Thread-13 (run) stack frames:
     return self._sock.recv_into(b)
 
 DEBUG:ThreadMonitor:Logging Thread-12 (run) stack frames:
+  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
+    self._bootstrap_inner()
+  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
+    self.run()
+  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
+    _threading_Thread_run(self)
+  File "/usr/lib/python3.12/threading.py", line 1010, in run
+    self._target(*self._args, **self._kwargs)
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
+    self.wait_for_commands()
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
+    command = smart_decode(self.stream.readline())[:-1]
+  File "/usr/lib/python3.12/socket.py", line 707, in readinto
+    return self._sock.recv_into(b)
+
+DEBUG:ThreadMonitor:Logging Thread-11 (run) stack frames:
+  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
+    self._bootstrap_inner()
+  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
+    self.run()
+  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
+    _threading_Thread_run(self)
+  File "/usr/lib/python3.12/threading.py", line 1010, in run
+    self._target(*self._args, **self._kwargs)
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
+    self.wait_for_commands()
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
+    command = smart_decode(self.stream.readline())[:-1]
+  File "/usr/lib/python3.12/socket.py", line 707, in readinto
+    return self._sock.recv_into(b)
+
+DEBUG:ThreadMonitor:Logging Thread-10 (run) stack frames:
+  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
+    self._bootstrap_inner()
+  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
+    self.run()
+  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
+    _threading_Thread_run(self)
+  File "/usr/lib/python3.12/threading.py", line 1010, in run
+    self._target(*self._args, **self._kwargs)
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
+    self.wait_for_commands()
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
+    command = smart_decode(self.stream.readline())[:-1]
+  File "/usr/lib/python3.12/socket.py", line 707, in readinto
+    return self._sock.recv_into(b)
+
+DEBUG:ThreadMonitor:Logging Thread-8 (run) stack frames:
+  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
+    self._bootstrap_inner()
+  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
+    self.run()
+  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
+    _threading_Thread_run(self)
+  File "/usr/lib/python3.12/threading.py", line 1010, in run
+    self._target(*self._args, **self._kwargs)
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
+    self.wait_for_commands()
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
+    command = smart_decode(self.stream.readline())[:-1]
+  File "/usr/lib/python3.12/socket.py", line 707, in readinto
+    return self._sock.recv_into(b)
+
+DEBUG:ThreadMonitor:Logging Thread-7 (run) stack frames:
   File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
     self._bootstrap_inner()
   File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
@@ -1649,7 +758,675 @@ DEBUG:ThreadMonitor:Logging MainThread stack frames:
     if await self.run_code(code, result, async_=asy):
   File "/databricks/python/lib/python3.12/site-packages/IPython/core/interactiveshell.py", line 3577, in run_code
     exec(code_obj, self.user_global_ns, self.user_ns)
-  File "/root/.ipykernel/2426/command-7730399508088083-3620399133", line 9, in <module>
+  File "/root/.ipykernel/1703/command-7730399508088084-1924478256", line 67, in <module>
+    .load()
+  File "/databricks/spark/python/pyspark/instrumentation_utils.py", line 47, in wrapper
+    res = func(*args, **kwargs)
+  File "/databricks/spark/python/pyspark/sql/readwriter.py", line 318, in load
+    return self._df(self._jreader.load())
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/java_gateway.py", line 1361, in __call__
+    answer = self.gateway_client.send_command(command)
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/java_gateway.py", line 1038, in send_command
+    response = connection.send_command(command)
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 535, in send_command
+    answer = smart_decode(self.stream.readline()[:-1])
+  File "/usr/lib/python3.12/socket.py", line 707, in readinto
+    return self._sock.recv_into(b)
+
+DEBUG:ThreadMonitor:Logging python thread stack frames for MainThread and py4j threads:
+DEBUG:ThreadMonitor:Logging Thread-13 (run) stack frames:
+  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
+    self._bootstrap_inner()
+  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
+    self.run()
+  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
+    _threading_Thread_run(self)
+  File "/usr/lib/python3.12/threading.py", line 1010, in run
+    self._target(*self._args, **self._kwargs)
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
+    self.wait_for_commands()
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
+    command = smart_decode(self.stream.readline())[:-1]
+  File "/usr/lib/python3.12/socket.py", line 707, in readinto
+    return self._sock.recv_into(b)
+
+DEBUG:ThreadMonitor:Logging Thread-12 (run) stack frames:
+  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
+    self._bootstrap_inner()
+  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
+    self.run()
+  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
+    _threading_Thread_run(self)
+  File "/usr/lib/python3.12/threading.py", line 1010, in run
+    self._target(*self._args, **self._kwargs)
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
+    self.wait_for_commands()
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
+    command = smart_decode(self.stream.readline())[:-1]
+  File "/usr/lib/python3.12/socket.py", line 707, in readinto
+    return self._sock.recv_into(b)
+
+DEBUG:ThreadMonitor:Logging Thread-11 (run) stack frames:
+  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
+    self._bootstrap_inner()
+  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
+    self.run()
+  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
+    _threading_Thread_run(self)
+  File "/usr/lib/python3.12/threading.py", line 1010, in run
+    self._target(*self._args, **self._kwargs)
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
+    self.wait_for_commands()
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
+    command = smart_decode(self.stream.readline())[:-1]
+  File "/usr/lib/python3.12/socket.py", line 707, in readinto
+    return self._sock.recv_into(b)
+
+DEBUG:ThreadMonitor:Logging Thread-10 (run) stack frames:
+  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
+    self._bootstrap_inner()
+  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
+    self.run()
+  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
+    _threading_Thread_run(self)
+  File "/usr/lib/python3.12/threading.py", line 1010, in run
+    self._target(*self._args, **self._kwargs)
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
+    self.wait_for_commands()
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
+    command = smart_decode(self.stream.readline())[:-1]
+  File "/usr/lib/python3.12/socket.py", line 707, in readinto
+    return self._sock.recv_into(b)
+
+DEBUG:ThreadMonitor:Logging Thread-8 (run) stack frames:
+  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
+    self._bootstrap_inner()
+  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
+    self.run()
+  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
+    _threading_Thread_run(self)
+  File "/usr/lib/python3.12/threading.py", line 1010, in run
+    self._target(*self._args, **self._kwargs)
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
+    self.wait_for_commands()
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
+    command = smart_decode(self.stream.readline())[:-1]
+  File "/usr/lib/python3.12/socket.py", line 707, in readinto
+    return self._sock.recv_into(b)
+
+DEBUG:ThreadMonitor:Logging Thread-7 (run) stack frames:
+  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
+    self._bootstrap_inner()
+  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
+    self.run()
+  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
+    _threading_Thread_run(self)
+  File "/usr/lib/python3.12/threading.py", line 1010, in run
+    self._target(*self._args, **self._kwargs)
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
+    self.wait_for_commands()
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
+    command = smart_decode(self.stream.readline())[:-1]
+  File "/usr/lib/python3.12/socket.py", line 707, in readinto
+    return self._sock.recv_into(b)
+
+DEBUG:ThreadMonitor:Logging Thread-4 (run) stack frames:
+  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
+    self._bootstrap_inner()
+  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
+    self.run()
+  File "/usr/lib/python3.12/threading.py", line 1010, in run
+    self._target(*self._args, **self._kwargs)
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/java_gateway.py", line 2323, in run
+    readable, writable, errored = select.select(
+
+DEBUG:ThreadMonitor:Logging MainThread stack frames:
+  File "/databricks/python_shell/scripts/db_ipykernel_launcher.py", line 52, in <module>
+    main()
+  File "/databricks/python_shell/scripts/db_ipykernel_launcher.py", line 48, in main
+    DatabricksKernelApp.launch_instance(config=databricks_kernel_config())
+  File "/databricks/python/lib/python3.12/site-packages/traitlets/config/application.py", line 1075, in launch_instance
+    app.start()
+  File "/databricks/python/lib/python3.12/site-packages/ipykernel/kernelapp.py", line 739, in start
+    self.io_loop.start()
+  File "/databricks/python/lib/python3.12/site-packages/tornado/platform/asyncio.py", line 205, in start
+    self.asyncio_loop.run_forever()
+  File "/usr/lib/python3.12/asyncio/base_events.py", line 641, in run_forever
+    self._run_once()
+  File "/usr/lib/python3.12/asyncio/base_events.py", line 1987, in _run_once
+    handle._run()
+  File "/usr/lib/python3.12/asyncio/events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+  File "/databricks/python/lib/python3.12/site-packages/ipykernel/kernelbase.py", line 545, in dispatch_queue
+    await self.process_one()
+  File "/databricks/python/lib/python3.12/site-packages/ipykernel/kernelbase.py", line 534, in process_one
+    await dispatch(*args)
+  File "/databricks/python/lib/python3.12/site-packages/ipykernel/kernelbase.py", line 437, in dispatch_shell
+    await result
+  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 362, in execute_request
+    await super().execute_request(stream, ident, parent)
+  File "/databricks/python/lib/python3.12/site-packages/ipykernel/kernelbase.py", line 778, in execute_request
+    reply_content = await reply_content
+  File "/databricks/python_shell/lib/dbruntime/kernel.py", line 534, in do_execute
+    reply_content = await super().do_execute(*args, **kwargs)
+  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 449, in do_execute
+    res = shell.run_cell(
+  File "/databricks/python/lib/python3.12/site-packages/ipykernel/zmqshell.py", line 549, in run_cell
+    return super().run_cell(*args, **kwargs)
+  File "/databricks/python/lib/python3.12/site-packages/IPython/core/interactiveshell.py", line 3075, in run_cell
+    result = self._run_cell(
+  File "/databricks/python/lib/python3.12/site-packages/IPython/core/interactiveshell.py", line 3130, in _run_cell
+    result = runner(coro)
+  File "/databricks/python/lib/python3.12/site-packages/IPython/core/async_helpers.py", line 128, in _pseudo_sync_runner
+    coro.send(None)
+  File "/databricks/python/lib/python3.12/site-packages/IPython/core/interactiveshell.py", line 3334, in run_cell_async
+    has_raised = await self.run_ast_nodes(code_ast.body, cell_name,
+  File "/databricks/python/lib/python3.12/site-packages/IPython/core/interactiveshell.py", line 3517, in run_ast_nodes
+    if await self.run_code(code, result, async_=asy):
+  File "/databricks/python/lib/python3.12/site-packages/IPython/core/interactiveshell.py", line 3577, in run_code
+    exec(code_obj, self.user_global_ns, self.user_ns)
+  File "/root/.ipykernel/1703/command-7730399508088084-1924478256", line 67, in <module>
+    .load()
+  File "/databricks/spark/python/pyspark/instrumentation_utils.py", line 47, in wrapper
+    res = func(*args, **kwargs)
+  File "/databricks/spark/python/pyspark/sql/readwriter.py", line 318, in load
+    return self._df(self._jreader.load())
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/java_gateway.py", line 1361, in __call__
+    answer = self.gateway_client.send_command(command)
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/java_gateway.py", line 1038, in send_command
+    response = connection.send_command(command)
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 535, in send_command
+    answer = smart_decode(self.stream.readline()[:-1])
+  File "/usr/lib/python3.12/socket.py", line 707, in readinto
+    return self._sock.recv_into(b)
+
+DEBUG:ThreadMonitor:Logging python thread stack frames for MainThread and py4j threads:
+DEBUG:ThreadMonitor:Logging Thread-13 (run) stack frames:
+  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
+    self._bootstrap_inner()
+  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
+    self.run()
+  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
+    _threading_Thread_run(self)
+  File "/usr/lib/python3.12/threading.py", line 1010, in run
+    self._target(*self._args, **self._kwargs)
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
+    self.wait_for_commands()
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
+    command = smart_decode(self.stream.readline())[:-1]
+  File "/usr/lib/python3.12/socket.py", line 707, in readinto
+    return self._sock.recv_into(b)
+
+DEBUG:ThreadMonitor:Logging Thread-12 (run) stack frames:
+  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
+    self._bootstrap_inner()
+  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
+    self.run()
+  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
+    _threading_Thread_run(self)
+  File "/usr/lib/python3.12/threading.py", line 1010, in run
+    self._target(*self._args, **self._kwargs)
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
+    self.wait_for_commands()
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
+    command = smart_decode(self.stream.readline())[:-1]
+  File "/usr/lib/python3.12/socket.py", line 707, in readinto
+    return self._sock.recv_into(b)
+
+DEBUG:ThreadMonitor:Logging Thread-11 (run) stack frames:
+  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
+    self._bootstrap_inner()
+  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
+    self.run()
+  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
+    _threading_Thread_run(self)
+  File "/usr/lib/python3.12/threading.py", line 1010, in run
+    self._target(*self._args, **self._kwargs)
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
+    self.wait_for_commands()
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
+    command = smart_decode(self.stream.readline())[:-1]
+  File "/usr/lib/python3.12/socket.py", line 707, in readinto
+    return self._sock.recv_into(b)
+
+DEBUG:ThreadMonitor:Logging Thread-10 (run) stack frames:
+  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
+    self._bootstrap_inner()
+  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
+    self.run()
+  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
+    _threading_Thread_run(self)
+  File "/usr/lib/python3.12/threading.py", line 1010, in run
+    self._target(*self._args, **self._kwargs)
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
+    self.wait_for_commands()
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
+    command = smart_decode(self.stream.readline())[:-1]
+  File "/usr/lib/python3.12/socket.py", line 707, in readinto
+    return self._sock.recv_into(b)
+
+DEBUG:ThreadMonitor:Logging Thread-8 (run) stack frames:
+  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
+    self._bootstrap_inner()
+  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
+    self.run()
+  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
+    _threading_Thread_run(self)
+  File "/usr/lib/python3.12/threading.py", line 1010, in run
+    self._target(*self._args, **self._kwargs)
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
+    self.wait_for_commands()
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
+    command = smart_decode(self.stream.readline())[:-1]
+  File "/usr/lib/python3.12/socket.py", line 707, in readinto
+    return self._sock.recv_into(b)
+
+DEBUG:ThreadMonitor:Logging Thread-7 (run) stack frames:
+  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
+    self._bootstrap_inner()
+  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
+    self.run()
+  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
+    _threading_Thread_run(self)
+  File "/usr/lib/python3.12/threading.py", line 1010, in run
+    self._target(*self._args, **self._kwargs)
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
+    self.wait_for_commands()
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
+    command = smart_decode(self.stream.readline())[:-1]
+  File "/usr/lib/python3.12/socket.py", line 707, in readinto
+    return self._sock.recv_into(b)
+
+DEBUG:ThreadMonitor:Logging Thread-4 (run) stack frames:
+  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
+    self._bootstrap_inner()
+  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
+    self.run()
+  File "/usr/lib/python3.12/threading.py", line 1010, in run
+    self._target(*self._args, **self._kwargs)
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/java_gateway.py", line 2323, in run
+    readable, writable, errored = select.select(
+
+DEBUG:ThreadMonitor:Logging MainThread stack frames:
+  File "/databricks/python_shell/scripts/db_ipykernel_launcher.py", line 52, in <module>
+    main()
+  File "/databricks/python_shell/scripts/db_ipykernel_launcher.py", line 48, in main
+    DatabricksKernelApp.launch_instance(config=databricks_kernel_config())
+  File "/databricks/python/lib/python3.12/site-packages/traitlets/config/application.py", line 1075, in launch_instance
+    app.start()
+  File "/databricks/python/lib/python3.12/site-packages/ipykernel/kernelapp.py", line 739, in start
+    self.io_loop.start()
+  File "/databricks/python/lib/python3.12/site-packages/tornado/platform/asyncio.py", line 205, in start
+    self.asyncio_loop.run_forever()
+  File "/usr/lib/python3.12/asyncio/base_events.py", line 641, in run_forever
+    self._run_once()
+  File "/usr/lib/python3.12/asyncio/base_events.py", line 1987, in _run_once
+    handle._run()
+  File "/usr/lib/python3.12/asyncio/events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+  File "/databricks/python/lib/python3.12/site-packages/ipykernel/kernelbase.py", line 545, in dispatch_queue
+    await self.process_one()
+  File "/databricks/python/lib/python3.12/site-packages/ipykernel/kernelbase.py", line 534, in process_one
+    await dispatch(*args)
+  File "/databricks/python/lib/python3.12/site-packages/ipykernel/kernelbase.py", line 437, in dispatch_shell
+    await result
+  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 362, in execute_request
+    await super().execute_request(stream, ident, parent)
+  File "/databricks/python/lib/python3.12/site-packages/ipykernel/kernelbase.py", line 778, in execute_request
+    reply_content = await reply_content
+  File "/databricks/python_shell/lib/dbruntime/kernel.py", line 534, in do_execute
+    reply_content = await super().do_execute(*args, **kwargs)
+  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 449, in do_execute
+    res = shell.run_cell(
+  File "/databricks/python/lib/python3.12/site-packages/ipykernel/zmqshell.py", line 549, in run_cell
+    return super().run_cell(*args, **kwargs)
+  File "/databricks/python/lib/python3.12/site-packages/IPython/core/interactiveshell.py", line 3075, in run_cell
+    result = self._run_cell(
+  File "/databricks/python/lib/python3.12/site-packages/IPython/core/interactiveshell.py", line 3130, in _run_cell
+    result = runner(coro)
+  File "/databricks/python/lib/python3.12/site-packages/IPython/core/async_helpers.py", line 128, in _pseudo_sync_runner
+    coro.send(None)
+  File "/databricks/python/lib/python3.12/site-packages/IPython/core/interactiveshell.py", line 3334, in run_cell_async
+    has_raised = await self.run_ast_nodes(code_ast.body, cell_name,
+  File "/databricks/python/lib/python3.12/site-packages/IPython/core/interactiveshell.py", line 3517, in run_ast_nodes
+    if await self.run_code(code, result, async_=asy):
+  File "/databricks/python/lib/python3.12/site-packages/IPython/core/interactiveshell.py", line 3577, in run_code
+    exec(code_obj, self.user_global_ns, self.user_ns)
+  File "/root/.ipykernel/1703/command-7730399508088084-1924478256", line 67, in <module>
+    .load()
+  File "/databricks/spark/python/pyspark/instrumentation_utils.py", line 47, in wrapper
+    res = func(*args, **kwargs)
+  File "/databricks/spark/python/pyspark/sql/readwriter.py", line 318, in load
+    return self._df(self._jreader.load())
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/java_gateway.py", line 1361, in __call__
+    answer = self.gateway_client.send_command(command)
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/java_gateway.py", line 1038, in send_command
+    response = connection.send_command(command)
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 535, in send_command
+    answer = smart_decode(self.stream.readline()[:-1])
+  File "/usr/lib/python3.12/socket.py", line 707, in readinto
+    return self._sock.recv_into(b)
+
+DEBUG:ThreadMonitor:Logging python thread stack frames for MainThread and py4j threads:
+DEBUG:ThreadMonitor:Logging Thread-13 (run) stack frames:
+  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
+    self._bootstrap_inner()
+  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
+    self.run()
+  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
+    _threading_Thread_run(self)
+  File "/usr/lib/python3.12/threading.py", line 1010, in run
+    self._target(*self._args, **self._kwargs)
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
+    self.wait_for_commands()
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
+    command = smart_decode(self.stream.readline())[:-1]
+  File "/usr/lib/python3.12/socket.py", line 707, in readinto
+    return self._sock.recv_into(b)
+
+DEBUG:ThreadMonitor:Logging Thread-12 (run) stack frames:
+  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
+    self._bootstrap_inner()
+  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
+    self.run()
+  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
+    _threading_Thread_run(self)
+  File "/usr/lib/python3.12/threading.py", line 1010, in run
+    self._target(*self._args, **self._kwargs)
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
+    self.wait_for_commands()
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
+    command = smart_decode(self.stream.readline())[:-1]
+  File "/usr/lib/python3.12/socket.py", line 707, in readinto
+    return self._sock.recv_into(b)
+
+DEBUG:ThreadMonitor:Logging Thread-11 (run) stack frames:
+  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
+    self._bootstrap_inner()
+  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
+    self.run()
+  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
+    _threading_Thread_run(self)
+  File "/usr/lib/python3.12/threading.py", line 1010, in run
+    self._target(*self._args, **self._kwargs)
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
+    self.wait_for_commands()
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
+    command = smart_decode(self.stream.readline())[:-1]
+  File "/usr/lib/python3.12/socket.py", line 707, in readinto
+    return self._sock.recv_into(b)
+
+DEBUG:ThreadMonitor:Logging Thread-10 (run) stack frames:
+  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
+    self._bootstrap_inner()
+  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
+    self.run()
+  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
+    _threading_Thread_run(self)
+  File "/usr/lib/python3.12/threading.py", line 1010, in run
+    self._target(*self._args, **self._kwargs)
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
+    self.wait_for_commands()
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
+    command = smart_decode(self.stream.readline())[:-1]
+  File "/usr/lib/python3.12/socket.py", line 707, in readinto
+    return self._sock.recv_into(b)
+
+DEBUG:ThreadMonitor:Logging Thread-8 (run) stack frames:
+  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
+    self._bootstrap_inner()
+  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
+    self.run()
+  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
+    _threading_Thread_run(self)
+  File "/usr/lib/python3.12/threading.py", line 1010, in run
+    self._target(*self._args, **self._kwargs)
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
+    self.wait_for_commands()
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
+    command = smart_decode(self.stream.readline())[:-1]
+  File "/usr/lib/python3.12/socket.py", line 707, in readinto
+    return self._sock.recv_into(b)
+
+DEBUG:ThreadMonitor:Logging Thread-7 (run) stack frames:
+  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
+    self._bootstrap_inner()
+  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
+    self.run()
+  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
+    _threading_Thread_run(self)
+  File "/usr/lib/python3.12/threading.py", line 1010, in run
+    self._target(*self._args, **self._kwargs)
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
+    self.wait_for_commands()
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
+    command = smart_decode(self.stream.readline())[:-1]
+  File "/usr/lib/python3.12/socket.py", line 707, in readinto
+    return self._sock.recv_into(b)
+
+DEBUG:ThreadMonitor:Logging Thread-4 (run) stack frames:
+  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
+    self._bootstrap_inner()
+  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
+    self.run()
+  File "/usr/lib/python3.12/threading.py", line 1010, in run
+    self._target(*self._args, **self._kwargs)
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/java_gateway.py", line 2323, in run
+    readable, writable, errored = select.select(
+
+DEBUG:ThreadMonitor:Logging MainThread stack frames:
+  File "/databricks/python_shell/scripts/db_ipykernel_launcher.py", line 52, in <module>
+    main()
+  File "/databricks/python_shell/scripts/db_ipykernel_launcher.py", line 48, in main
+    DatabricksKernelApp.launch_instance(config=databricks_kernel_config())
+  File "/databricks/python/lib/python3.12/site-packages/traitlets/config/application.py", line 1075, in launch_instance
+    app.start()
+  File "/databricks/python/lib/python3.12/site-packages/ipykernel/kernelapp.py", line 739, in start
+    self.io_loop.start()
+  File "/databricks/python/lib/python3.12/site-packages/tornado/platform/asyncio.py", line 205, in start
+    self.asyncio_loop.run_forever()
+  File "/usr/lib/python3.12/asyncio/base_events.py", line 641, in run_forever
+    self._run_once()
+  File "/usr/lib/python3.12/asyncio/base_events.py", line 1987, in _run_once
+    handle._run()
+  File "/usr/lib/python3.12/asyncio/events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+  File "/databricks/python/lib/python3.12/site-packages/ipykernel/kernelbase.py", line 545, in dispatch_queue
+    await self.process_one()
+  File "/databricks/python/lib/python3.12/site-packages/ipykernel/kernelbase.py", line 534, in process_one
+    await dispatch(*args)
+  File "/databricks/python/lib/python3.12/site-packages/ipykernel/kernelbase.py", line 437, in dispatch_shell
+    await result
+  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 362, in execute_request
+    await super().execute_request(stream, ident, parent)
+  File "/databricks/python/lib/python3.12/site-packages/ipykernel/kernelbase.py", line 778, in execute_request
+    reply_content = await reply_content
+  File "/databricks/python_shell/lib/dbruntime/kernel.py", line 534, in do_execute
+    reply_content = await super().do_execute(*args, **kwargs)
+  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 449, in do_execute
+    res = shell.run_cell(
+  File "/databricks/python/lib/python3.12/site-packages/ipykernel/zmqshell.py", line 549, in run_cell
+    return super().run_cell(*args, **kwargs)
+  File "/databricks/python/lib/python3.12/site-packages/IPython/core/interactiveshell.py", line 3075, in run_cell
+    result = self._run_cell(
+  File "/databricks/python/lib/python3.12/site-packages/IPython/core/interactiveshell.py", line 3130, in _run_cell
+    result = runner(coro)
+  File "/databricks/python/lib/python3.12/site-packages/IPython/core/async_helpers.py", line 128, in _pseudo_sync_runner
+    coro.send(None)
+  File "/databricks/python/lib/python3.12/site-packages/IPython/core/interactiveshell.py", line 3334, in run_cell_async
+    has_raised = await self.run_ast_nodes(code_ast.body, cell_name,
+  File "/databricks/python/lib/python3.12/site-packages/IPython/core/interactiveshell.py", line 3517, in run_ast_nodes
+    if await self.run_code(code, result, async_=asy):
+  File "/databricks/python/lib/python3.12/site-packages/IPython/core/interactiveshell.py", line 3577, in run_code
+    exec(code_obj, self.user_global_ns, self.user_ns)
+  File "/root/.ipykernel/1703/command-7730399508088084-1924478256", line 67, in <module>
+    .load()
+  File "/databricks/spark/python/pyspark/instrumentation_utils.py", line 47, in wrapper
+    res = func(*args, **kwargs)
+  File "/databricks/spark/python/pyspark/sql/readwriter.py", line 318, in load
+    return self._df(self._jreader.load())
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/java_gateway.py", line 1361, in __call__
+    answer = self.gateway_client.send_command(command)
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/java_gateway.py", line 1038, in send_command
+    response = connection.send_command(command)
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 535, in send_command
+    answer = smart_decode(self.stream.readline()[:-1])
+  File "/usr/lib/python3.12/socket.py", line 707, in readinto
+    return self._sock.recv_into(b)
+
+DEBUG:ThreadMonitor:Logging python thread stack frames for MainThread and py4j threads:
+DEBUG:ThreadMonitor:Logging Thread-13 (run) stack frames:
+  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
+    self._bootstrap_inner()
+  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
+    self.run()
+  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
+    _threading_Thread_run(self)
+  File "/usr/lib/python3.12/threading.py", line 1010, in run
+    self._target(*self._args, **self._kwargs)
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
+    self.wait_for_commands()
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
+    command = smart_decode(self.stream.readline())[:-1]
+  File "/usr/lib/python3.12/socket.py", line 707, in readinto
+    return self._sock.recv_into(b)
+
+DEBUG:ThreadMonitor:Logging Thread-12 (run) stack frames:
+  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
+    self._bootstrap_inner()
+  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
+    self.run()
+  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
+    _threading_Thread_run(self)
+  File "/usr/lib/python3.12/threading.py", line 1010, in run
+    self._target(*self._args, **self._kwargs)
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
+    self.wait_for_commands()
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
+    command = smart_decode(self.stream.readline())[:-1]
+  File "/usr/lib/python3.12/socket.py", line 707, in readinto
+    return self._sock.recv_into(b)
+
+DEBUG:ThreadMonitor:Logging Thread-11 (run) stack frames:
+  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
+    self._bootstrap_inner()
+  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
+    self.run()
+  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
+    _threading_Thread_run(self)
+  File "/usr/lib/python3.12/threading.py", line 1010, in run
+    self._target(*self._args, **self._kwargs)
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
+    self.wait_for_commands()
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
+    command = smart_decode(self.stream.readline())[:-1]
+  File "/usr/lib/python3.12/socket.py", line 707, in readinto
+    return self._sock.recv_into(b)
+
+DEBUG:ThreadMonitor:Logging Thread-10 (run) stack frames:
+  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
+    self._bootstrap_inner()
+  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
+    self.run()
+  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
+    _threading_Thread_run(self)
+  File "/usr/lib/python3.12/threading.py", line 1010, in run
+    self._target(*self._args, **self._kwargs)
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
+    self.wait_for_commands()
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
+    command = smart_decode(self.stream.readline())[:-1]
+  File "/usr/lib/python3.12/socket.py", line 707, in readinto
+    return self._sock.recv_into(b)
+
+DEBUG:ThreadMonitor:Logging Thread-8 (run) stack frames:
+  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
+    self._bootstrap_inner()
+  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
+    self.run()
+  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
+    _threading_Thread_run(self)
+  File "/usr/lib/python3.12/threading.py", line 1010, in run
+    self._target(*self._args, **self._kwargs)
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
+    self.wait_for_commands()
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
+    command = smart_decode(self.stream.readline())[:-1]
+  File "/usr/lib/python3.12/socket.py", line 707, in readinto
+    return self._sock.recv_into(b)
+
+DEBUG:ThreadMonitor:Logging Thread-7 (run) stack frames:
+  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
+    self._bootstrap_inner()
+  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
+    self.run()
+  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
+    _threading_Thread_run(self)
+  File "/usr/lib/python3.12/threading.py", line 1010, in run
+    self._target(*self._args, **self._kwargs)
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
+    self.wait_for_commands()
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
+    command = smart_decode(self.stream.readline())[:-1]
+  File "/usr/lib/python3.12/socket.py", line 707, in readinto
+    return self._sock.recv_into(b)
+
+DEBUG:ThreadMonitor:Logging Thread-4 (run) stack frames:
+  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
+    self._bootstrap_inner()
+  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
+    self.run()
+  File "/usr/lib/python3.12/threading.py", line 1010, in run
+    self._target(*self._args, **self._kwargs)
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/java_gateway.py", line 2323, in run
+    readable, writable, errored = select.select(
+
+DEBUG:ThreadMonitor:Logging MainThread stack frames:
+  File "/databricks/python_shell/scripts/db_ipykernel_launcher.py", line 52, in <module>
+    main()
+  File "/databricks/python_shell/scripts/db_ipykernel_launcher.py", line 48, in main
+    DatabricksKernelApp.launch_instance(config=databricks_kernel_config())
+  File "/databricks/python/lib/python3.12/site-packages/traitlets/config/application.py", line 1075, in launch_instance
+    app.start()
+  File "/databricks/python/lib/python3.12/site-packages/ipykernel/kernelapp.py", line 739, in start
+    self.io_loop.start()
+  File "/databricks/python/lib/python3.12/site-packages/tornado/platform/asyncio.py", line 205, in start
+    self.asyncio_loop.run_forever()
+  File "/usr/lib/python3.12/asyncio/base_events.py", line 641, in run_forever
+    self._run_once()
+  File "/usr/lib/python3.12/asyncio/base_events.py", line 1987, in _run_once
+    handle._run()
+  File "/usr/lib/python3.12/asyncio/events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+  File "/databricks/python/lib/python3.12/site-packages/ipykernel/kernelbase.py", line 545, in dispatch_queue
+    await self.process_one()
+  File "/databricks/python/lib/python3.12/site-packages/ipykernel/kernelbase.py", line 534, in process_one
+    await dispatch(*args)
+  File "/databricks/python/lib/python3.12/site-packages/ipykernel/kernelbase.py", line 437, in dispatch_shell
+    await result
+  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 362, in execute_request
+    await super().execute_request(stream, ident, parent)
+  File "/databricks/python/lib/python3.12/site-packages/ipykernel/kernelbase.py", line 778, in execute_request
+    reply_content = await reply_content
+  File "/databricks/python_shell/lib/dbruntime/kernel.py", line 534, in do_execute
+    reply_content = await super().do_execute(*args, **kwargs)
+  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 449, in do_execute
+    res = shell.run_cell(
+  File "/databricks/python/lib/python3.12/site-packages/ipykernel/zmqshell.py", line 549, in run_cell
+    return super().run_cell(*args, **kwargs)
+  File "/databricks/python/lib/python3.12/site-packages/IPython/core/interactiveshell.py", line 3075, in run_cell
+    result = self._run_cell(
+  File "/databricks/python/lib/python3.12/site-packages/IPython/core/interactiveshell.py", line 3130, in _run_cell
+    result = runner(coro)
+  File "/databricks/python/lib/python3.12/site-packages/IPython/core/async_helpers.py", line 128, in _pseudo_sync_runner
+    coro.send(None)
+  File "/databricks/python/lib/python3.12/site-packages/IPython/core/interactiveshell.py", line 3334, in run_cell_async
+    has_raised = await self.run_ast_nodes(code_ast.body, cell_name,
+  File "/databricks/python/lib/python3.12/site-packages/IPython/core/interactiveshell.py", line 3517, in run_ast_nodes
+    if await self.run_code(code, result, async_=asy):
+  File "/databricks/python/lib/python3.12/site-packages/IPython/core/interactiveshell.py", line 3577, in run_code
+    exec(code_obj, self.user_global_ns, self.user_ns)
+  File "/root/.ipykernel/1703/command-7730399508088084-1924478256", line 67, in <module>
     .load()
   File "/databricks/spark/python/pyspark/instrumentation_utils.py", line 47, in wrapper
     res = func(*args, **kwargs)
@@ -1677,103 +1454,7 @@ Traceback (most recent call last):
            ^^^^^^^^^^^^^^^^^^^^^^^
 KeyboardInterrupt
 DEBUG:ThreadMonitor:Logging python thread stack frames for MainThread and py4j threads:
-DEBUG:ThreadMonitor:Logging Thread-23 (run) stack frames:
-  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
-    self._bootstrap_inner()
-  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
-    self.run()
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
-    _threading_Thread_run(self)
-  File "/usr/lib/python3.12/threading.py", line 1010, in run
-    self._target(*self._args, **self._kwargs)
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
-    self.wait_for_commands()
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
-    command = smart_decode(self.stream.readline())[:-1]
-  File "/usr/lib/python3.12/socket.py", line 707, in readinto
-    return self._sock.recv_into(b)
-
-DEBUG:ThreadMonitor:Logging Thread-22 (run) stack frames:
-  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
-    self._bootstrap_inner()
-  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
-    self.run()
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
-    _threading_Thread_run(self)
-  File "/usr/lib/python3.12/threading.py", line 1010, in run
-    self._target(*self._args, **self._kwargs)
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
-    self.wait_for_commands()
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
-    command = smart_decode(self.stream.readline())[:-1]
-  File "/usr/lib/python3.12/socket.py", line 707, in readinto
-    return self._sock.recv_into(b)
-
-DEBUG:ThreadMonitor:Logging Thread-21 (run) stack frames:
-  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
-    self._bootstrap_inner()
-  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
-    self.run()
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
-    _threading_Thread_run(self)
-  File "/usr/lib/python3.12/threading.py", line 1010, in run
-    self._target(*self._args, **self._kwargs)
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
-    self.wait_for_commands()
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
-    command = smart_decode(self.stream.readline())[:-1]
-  File "/usr/lib/python3.12/socket.py", line 707, in readinto
-    return self._sock.recv_into(b)
-
-DEBUG:ThreadMonitor:Logging Thread-20 (run) stack frames:
-  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
-    self._bootstrap_inner()
-  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
-    self.run()
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
-    _threading_Thread_run(self)
-  File "/usr/lib/python3.12/threading.py", line 1010, in run
-    self._target(*self._args, **self._kwargs)
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
-    self.wait_for_commands()
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
-    command = smart_decode(self.stream.readline())[:-1]
-  File "/usr/lib/python3.12/socket.py", line 707, in readinto
-    return self._sock.recv_into(b)
-
-DEBUG:ThreadMonitor:Logging Thread-19 (run) stack frames:
-  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
-    self._bootstrap_inner()
-  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
-    self.run()
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
-    _threading_Thread_run(self)
-  File "/usr/lib/python3.12/threading.py", line 1010, in run
-    self._target(*self._args, **self._kwargs)
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
-    self.wait_for_commands()
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
-    command = smart_decode(self.stream.readline())[:-1]
-  File "/usr/lib/python3.12/socket.py", line 707, in readinto
-    return self._sock.recv_into(b)
-
-DEBUG:ThreadMonitor:Logging Thread-18 (run) stack frames:
-  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
-    self._bootstrap_inner()
-  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
-    self.run()
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
-    _threading_Thread_run(self)
-  File "/usr/lib/python3.12/threading.py", line 1010, in run
-    self._target(*self._args, **self._kwargs)
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
-    self.wait_for_commands()
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
-    command = smart_decode(self.stream.readline())[:-1]
-  File "/usr/lib/python3.12/socket.py", line 707, in readinto
-    return self._sock.recv_into(b)
-
-DEBUG:ThreadMonitor:Logging Thread-17 (run) stack frames:
+DEBUG:ThreadMonitor:Logging Thread-14 (run) stack frames:
   File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
     self._bootstrap_inner()
   File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
@@ -1806,6 +1487,70 @@ DEBUG:ThreadMonitor:Logging Thread-13 (run) stack frames:
     return self._sock.recv_into(b)
 
 DEBUG:ThreadMonitor:Logging Thread-12 (run) stack frames:
+  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
+    self._bootstrap_inner()
+  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
+    self.run()
+  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
+    _threading_Thread_run(self)
+  File "/usr/lib/python3.12/threading.py", line 1010, in run
+    self._target(*self._args, **self._kwargs)
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
+    self.wait_for_commands()
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
+    command = smart_decode(self.stream.readline())[:-1]
+  File "/usr/lib/python3.12/socket.py", line 707, in readinto
+    return self._sock.recv_into(b)
+
+DEBUG:ThreadMonitor:Logging Thread-11 (run) stack frames:
+  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
+    self._bootstrap_inner()
+  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
+    self.run()
+  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
+    _threading_Thread_run(self)
+  File "/usr/lib/python3.12/threading.py", line 1010, in run
+    self._target(*self._args, **self._kwargs)
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
+    self.wait_for_commands()
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
+    command = smart_decode(self.stream.readline())[:-1]
+  File "/usr/lib/python3.12/socket.py", line 707, in readinto
+    return self._sock.recv_into(b)
+
+DEBUG:ThreadMonitor:Logging Thread-10 (run) stack frames:
+  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
+    self._bootstrap_inner()
+  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
+    self.run()
+  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
+    _threading_Thread_run(self)
+  File "/usr/lib/python3.12/threading.py", line 1010, in run
+    self._target(*self._args, **self._kwargs)
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
+    self.wait_for_commands()
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
+    command = smart_decode(self.stream.readline())[:-1]
+  File "/usr/lib/python3.12/socket.py", line 707, in readinto
+    return self._sock.recv_into(b)
+
+DEBUG:ThreadMonitor:Logging Thread-8 (run) stack frames:
+  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
+    self._bootstrap_inner()
+  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
+    self.run()
+  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
+    _threading_Thread_run(self)
+  File "/usr/lib/python3.12/threading.py", line 1010, in run
+    self._target(*self._args, **self._kwargs)
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
+    self.wait_for_commands()
+  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
+    command = smart_decode(self.stream.readline())[:-1]
+  File "/usr/lib/python3.12/socket.py", line 707, in readinto
+    return self._sock.recv_into(b)
+
+DEBUG:ThreadMonitor:Logging Thread-7 (run) stack frames:
   File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
     self._bootstrap_inner()
   File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
@@ -1876,7 +1621,7 @@ DEBUG:ThreadMonitor:Logging MainThread stack frames:
     if await self.run_code(code, result, async_=asy):
   File "/databricks/python/lib/python3.12/site-packages/IPython/core/interactiveshell.py", line 3577, in run_code
     exec(code_obj, self.user_global_ns, self.user_ns)
-  File "/root/.ipykernel/2426/command-7730399508088084-1924478256", line 67, in <module>
+  File "/root/.ipykernel/1703/command-7730399508088085-3718757636", line 82, in <module>
     .load()
   File "/databricks/spark/python/pyspark/instrumentation_utils.py", line 47, in wrapper
     res = func(*args, **kwargs)
@@ -1891,258 +1636,3 @@ DEBUG:ThreadMonitor:Logging MainThread stack frames:
   File "/usr/lib/python3.12/socket.py", line 707, in readinto
     return self._sock.recv_into(b)
 
-ERROR:root:KeyboardInterrupt while sending command.
-Traceback (most recent call last):
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/java_gateway.py", line 1038, in send_command
-    response = connection.send_command(command)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 535, in send_command
-    answer = smart_decode(self.stream.readline()[:-1])
-                          ^^^^^^^^^^^^^^^^^^^^^^
-  File "/usr/lib/python3.12/socket.py", line 707, in readinto
-    return self._sock.recv_into(b)
-           ^^^^^^^^^^^^^^^^^^^^^^^
-KeyboardInterrupt
-DEBUG:ThreadMonitor:Logging python thread stack frames for MainThread and py4j threads:
-DEBUG:ThreadMonitor:Logging Thread-24 (run) stack frames:
-  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
-    self._bootstrap_inner()
-  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
-    self.run()
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
-    _threading_Thread_run(self)
-  File "/usr/lib/python3.12/threading.py", line 1010, in run
-    self._target(*self._args, **self._kwargs)
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
-    self.wait_for_commands()
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
-    command = smart_decode(self.stream.readline())[:-1]
-  File "/usr/lib/python3.12/socket.py", line 707, in readinto
-    return self._sock.recv_into(b)
-
-DEBUG:ThreadMonitor:Logging Thread-23 (run) stack frames:
-  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
-    self._bootstrap_inner()
-  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
-    self.run()
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
-    _threading_Thread_run(self)
-  File "/usr/lib/python3.12/threading.py", line 1010, in run
-    self._target(*self._args, **self._kwargs)
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
-    self.wait_for_commands()
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
-    command = smart_decode(self.stream.readline())[:-1]
-  File "/usr/lib/python3.12/socket.py", line 707, in readinto
-    return self._sock.recv_into(b)
-
-DEBUG:ThreadMonitor:Logging Thread-22 (run) stack frames:
-  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
-    self._bootstrap_inner()
-  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
-    self.run()
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
-    _threading_Thread_run(self)
-  File "/usr/lib/python3.12/threading.py", line 1010, in run
-    self._target(*self._args, **self._kwargs)
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
-    self.wait_for_commands()
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
-    command = smart_decode(self.stream.readline())[:-1]
-  File "/usr/lib/python3.12/socket.py", line 707, in readinto
-    return self._sock.recv_into(b)
-
-DEBUG:ThreadMonitor:Logging Thread-21 (run) stack frames:
-  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
-    self._bootstrap_inner()
-  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
-    self.run()
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
-    _threading_Thread_run(self)
-  File "/usr/lib/python3.12/threading.py", line 1010, in run
-    self._target(*self._args, **self._kwargs)
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
-    self.wait_for_commands()
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
-    command = smart_decode(self.stream.readline())[:-1]
-  File "/usr/lib/python3.12/socket.py", line 707, in readinto
-    return self._sock.recv_into(b)
-
-DEBUG:ThreadMonitor:Logging Thread-20 (run) stack frames:
-  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
-    self._bootstrap_inner()
-  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
-    self.run()
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
-    _threading_Thread_run(self)
-  File "/usr/lib/python3.12/threading.py", line 1010, in run
-    self._target(*self._args, **self._kwargs)
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
-    self.wait_for_commands()
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
-    command = smart_decode(self.stream.readline())[:-1]
-  File "/usr/lib/python3.12/socket.py", line 707, in readinto
-    return self._sock.recv_into(b)
-
-DEBUG:ThreadMonitor:Logging Thread-19 (run) stack frames:
-  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
-    self._bootstrap_inner()
-  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
-    self.run()
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
-    _threading_Thread_run(self)
-  File "/usr/lib/python3.12/threading.py", line 1010, in run
-    self._target(*self._args, **self._kwargs)
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
-    self.wait_for_commands()
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
-    command = smart_decode(self.stream.readline())[:-1]
-  File "/usr/lib/python3.12/socket.py", line 707, in readinto
-    return self._sock.recv_into(b)
-
-DEBUG:ThreadMonitor:Logging Thread-18 (run) stack frames:
-  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
-    self._bootstrap_inner()
-  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
-    self.run()
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
-    _threading_Thread_run(self)
-  File "/usr/lib/python3.12/threading.py", line 1010, in run
-    self._target(*self._args, **self._kwargs)
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
-    self.wait_for_commands()
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
-    command = smart_decode(self.stream.readline())[:-1]
-  File "/usr/lib/python3.12/socket.py", line 707, in readinto
-    return self._sock.recv_into(b)
-
-DEBUG:ThreadMonitor:Logging Thread-17 (run) stack frames:
-  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
-    self._bootstrap_inner()
-  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
-    self.run()
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
-    _threading_Thread_run(self)
-  File "/usr/lib/python3.12/threading.py", line 1010, in run
-    self._target(*self._args, **self._kwargs)
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
-    self.wait_for_commands()
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
-    command = smart_decode(self.stream.readline())[:-1]
-  File "/usr/lib/python3.12/socket.py", line 707, in readinto
-    return self._sock.recv_into(b)
-
-DEBUG:ThreadMonitor:Logging Thread-13 (run) stack frames:
-  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
-    self._bootstrap_inner()
-  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
-    self.run()
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
-    _threading_Thread_run(self)
-  File "/usr/lib/python3.12/threading.py", line 1010, in run
-    self._target(*self._args, **self._kwargs)
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
-    self.wait_for_commands()
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
-    command = smart_decode(self.stream.readline())[:-1]
-  File "/usr/lib/python3.12/socket.py", line 707, in readinto
-    return self._sock.recv_into(b)
-
-DEBUG:ThreadMonitor:Logging Thread-12 (run) stack frames:
-  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
-    self._bootstrap_inner()
-  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
-    self.run()
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 766, in run_closure
-    _threading_Thread_run(self)
-  File "/usr/lib/python3.12/threading.py", line 1010, in run
-    self._target(*self._args, **self._kwargs)
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 521, in run
-    self.wait_for_commands()
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 593, in wait_for_commands
-    command = smart_decode(self.stream.readline())[:-1]
-  File "/usr/lib/python3.12/socket.py", line 707, in readinto
-    return self._sock.recv_into(b)
-
-DEBUG:ThreadMonitor:Logging Thread-4 (run) stack frames:
-  File "/usr/lib/python3.12/threading.py", line 1030, in _bootstrap
-    self._bootstrap_inner()
-  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
-    self.run()
-  File "/usr/lib/python3.12/threading.py", line 1010, in run
-    self._target(*self._args, **self._kwargs)
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/java_gateway.py", line 2323, in run
-    readable, writable, errored = select.select(
-
-DEBUG:ThreadMonitor:Logging MainThread stack frames:
-  File "/databricks/python_shell/scripts/db_ipykernel_launcher.py", line 52, in <module>
-    main()
-  File "/databricks/python_shell/scripts/db_ipykernel_launcher.py", line 48, in main
-    DatabricksKernelApp.launch_instance(config=databricks_kernel_config())
-  File "/databricks/python/lib/python3.12/site-packages/traitlets/config/application.py", line 1075, in launch_instance
-    app.start()
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/kernelapp.py", line 739, in start
-    self.io_loop.start()
-  File "/databricks/python/lib/python3.12/site-packages/tornado/platform/asyncio.py", line 205, in start
-    self.asyncio_loop.run_forever()
-  File "/usr/lib/python3.12/asyncio/base_events.py", line 641, in run_forever
-    self._run_once()
-  File "/usr/lib/python3.12/asyncio/base_events.py", line 1987, in _run_once
-    handle._run()
-  File "/usr/lib/python3.12/asyncio/events.py", line 88, in _run
-    self._context.run(self._callback, *self._args)
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/kernelbase.py", line 545, in dispatch_queue
-    await self.process_one()
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/kernelbase.py", line 534, in process_one
-    await dispatch(*args)
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/kernelbase.py", line 437, in dispatch_shell
-    await result
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 362, in execute_request
-    await super().execute_request(stream, ident, parent)
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/kernelbase.py", line 778, in execute_request
-    reply_content = await reply_content
-  File "/databricks/python_shell/lib/dbruntime/kernel.py", line 534, in do_execute
-    reply_content = await super().do_execute(*args, **kwargs)
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/ipkernel.py", line 449, in do_execute
-    res = shell.run_cell(
-  File "/databricks/python/lib/python3.12/site-packages/ipykernel/zmqshell.py", line 549, in run_cell
-    return super().run_cell(*args, **kwargs)
-  File "/databricks/python/lib/python3.12/site-packages/IPython/core/interactiveshell.py", line 3075, in run_cell
-    result = self._run_cell(
-  File "/databricks/python/lib/python3.12/site-packages/IPython/core/interactiveshell.py", line 3130, in _run_cell
-    result = runner(coro)
-  File "/databricks/python/lib/python3.12/site-packages/IPython/core/async_helpers.py", line 128, in _pseudo_sync_runner
-    coro.send(None)
-  File "/databricks/python/lib/python3.12/site-packages/IPython/core/interactiveshell.py", line 3334, in run_cell_async
-    has_raised = await self.run_ast_nodes(code_ast.body, cell_name,
-  File "/databricks/python/lib/python3.12/site-packages/IPython/core/interactiveshell.py", line 3517, in run_ast_nodes
-    if await self.run_code(code, result, async_=asy):
-  File "/databricks/python/lib/python3.12/site-packages/IPython/core/interactiveshell.py", line 3577, in run_code
-    exec(code_obj, self.user_global_ns, self.user_ns)
-  File "/root/.ipykernel/2426/command-7730399508088085-3718757636", line 82, in <module>
-    .load()
-  File "/databricks/spark/python/pyspark/instrumentation_utils.py", line 47, in wrapper
-    res = func(*args, **kwargs)
-  File "/databricks/spark/python/pyspark/sql/readwriter.py", line 318, in load
-    return self._df(self._jreader.load())
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/java_gateway.py", line 1361, in __call__
-    answer = self.gateway_client.send_command(command)
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/java_gateway.py", line 1038, in send_command
-    response = connection.send_command(command)
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 535, in send_command
-    answer = smart_decode(self.stream.readline()[:-1])
-  File "/usr/lib/python3.12/socket.py", line 707, in readinto
-    return self._sock.recv_into(b)
-
-ERROR:root:KeyboardInterrupt while sending command.
-Traceback (most recent call last):
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/java_gateway.py", line 1038, in send_command
-    response = connection.send_command(command)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/databricks/spark/python/lib/py4j-0.10.9.9-src.zip/py4j/clientserver.py", line 535, in send_command
-    answer = smart_decode(self.stream.readline()[:-1])
-                          ^^^^^^^^^^^^^^^^^^^^^^
-  File "/usr/lib/python3.12/socket.py", line 707, in readinto
-    return self._sock.recv_into(b)
-           ^^^^^^^^^^^^^^^^^^^^^^^
-KeyboardInterrupt
