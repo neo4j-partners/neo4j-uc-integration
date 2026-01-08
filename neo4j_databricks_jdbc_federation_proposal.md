@@ -136,16 +136,33 @@ For additional details, see the [Databricks Custom JDBC Connection documentation
 **Reference Documentation**: The official Databricks guide for this feature is available at:
 - **[Custom JDBC on UC Compute - Private Preview Documentation](https://docs.google.com/document/d/1xQvePREa0JxdMK5XHYjqSFXKT08C_qap17oGthRdESE/edit?tab=t.0)** - Contains detailed setup instructions, limitations, and best practices for using custom JDBC drivers with Unity Catalog.
 
-#### Step 1.1: Download the Neo4j JDBC Driver
+#### Step 1.1: Obtain the Neo4j JDBC Driver JAR
 
-Obtain `neo4j-jdbc-full-bundle-6.10.3.jar` from the [Neo4j JDBC releases](https://github.com/neo4j/neo4j-jdbc/releases). The full bundle is recommended because it includes the SQL-to-Cypher translator.
+Use the prebuilt JAR from this repository that includes the **SparkSubqueryCleaningTranslator** module for better Spark compatibility:
 
-**Direct download URL**:
+```
+neo4j_jdbc_spark_cleaning/neo4j-jdbc-full-bundle-6.10.4-SNAPSHOT.jar
+```
+
+This custom build includes:
+- **neo4j-jdbc-full-bundle**: Core driver with SQL-to-Cypher translation
+- **neo4j-jdbc-translator-sparkcleaner**: Handles Spark's schema inference subquery wrapping (`SELECT * FROM (query) SPARK_GEN_SUBQ_0 WHERE 1=0`)
+
+**Important**: The driver class name is `org.neo4j.jdbc.Neo4jDriver`.
+
+**Alternative: Official Release (without SparkCleaner)**
+
+If you prefer the official release (note: does not include SparkSubqueryCleaningTranslator):
 ```
 https://github.com/neo4j/neo4j-jdbc/releases/download/6.10.3/neo4j-jdbc-full-bundle-6.10.3.jar
 ```
 
-**Important**: The driver class name is `org.neo4j.jdbc.Neo4jDriver` (per the [Neo4j JDBC README](https://github.com/neo4j/neo4j-jdbc/blob/main/README.adoc)).
+**Need to Rebuild?**
+
+If you need to rebuild the JAR with sparkcleaner from source (e.g., for a newer version), see [CLEANER_USER.md](./CLEANER_USER.md) for complete build instructions. Key requirements:
+- JDK 25 to build (outputs JDK 17 bytecode for Databricks Runtime 17.3 LTS compatibility)
+- Modify `bundles/neo4j-jdbc-full-bundle/pom.xml` to add sparkcleaner dependency
+- Build with `./mvnw -Dfast package`
 
 #### Step 1.2: Create a Unity Catalog Volume for the Driver
 
@@ -163,9 +180,9 @@ After creating the volume, upload the JAR file:
 1. Navigate to **Catalog** in the Databricks workspace
 2. Browse to `main` > `jdbc_drivers` > `jars`
 3. Click **Upload to this volume**
-4. Select `neo4j-jdbc-full-bundle-6.10.3.jar`
+4. Select `neo4j-jdbc-full-bundle-6.10.4-SNAPSHOT.jar` from `neo4j_jdbc_spark_cleaning/`
 
-The driver will be available at path: `/Volumes/main/jdbc_drivers/jars/neo4j-jdbc-full-bundle-6.10.3.jar`
+The driver will be available at path: `/Volumes/main/jdbc_drivers/jars/neo4j-jdbc-full-bundle-6.10.4-SNAPSHOT.jar`
 
 #### Step 1.3: Create Databricks Secrets (Recommended)
 
@@ -193,7 +210,7 @@ DROP CONNECTION IF EXISTS neo4j_connection;
 -- Create the Neo4j JDBC connection with SQL translation enabled
 CREATE CONNECTION neo4j_connection TYPE JDBC
 ENVIRONMENT (
-  java_dependencies '["/Volumes/main/jdbc_drivers/jars/neo4j-jdbc-full-bundle-6.10.3.jar"]'
+  java_dependencies '["/Volumes/main/jdbc_drivers/jars/neo4j-jdbc-full-bundle-6.10.4-SNAPSHOT.jar"]'
 )
 OPTIONS (
   url 'jdbc:neo4j://your-neo4j-host:7687/neo4j?enableSQLTranslation=true',
@@ -225,7 +242,7 @@ OPTIONS (
 ```sql
 CREATE CONNECTION neo4j_connection_test TYPE JDBC
 ENVIRONMENT (
-  java_dependencies '["/Volumes/main/jdbc_drivers/jars/neo4j-jdbc-full-bundle-6.10.3.jar"]'
+  java_dependencies '["/Volumes/main/jdbc_drivers/jars/neo4j-jdbc-full-bundle-6.10.4-SNAPSHOT.jar"]'
 )
 OPTIONS (
   url 'jdbc:neo4j://your-neo4j-host:7687/neo4j?enableSQLTranslation=true',
@@ -486,7 +503,7 @@ DROP CONNECTION IF EXISTS neo4j_connection;
 
 CREATE CONNECTION neo4j_connection TYPE JDBC
 ENVIRONMENT (
-  java_dependencies '["/Volumes/main/jdbc_drivers/jars/neo4j-jdbc-full-bundle-6.10.3.jar"]'
+  java_dependencies '["/Volumes/main/jdbc_drivers/jars/neo4j-jdbc-full-bundle-6.10.4-SNAPSHOT.jar"]'
 )
 OPTIONS (
   url 'jdbc:neo4j://your-neo4j-host:7687/neo4j?enableSQLTranslation=true&cacheSQLTranslations=true',

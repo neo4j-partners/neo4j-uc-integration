@@ -43,14 +43,26 @@ This test suite runs on a Databricks cluster and validates:
 Upload the Neo4j JDBC driver JAR to a Unity Catalog Volume:
 
 ```sql
--- Create a volume (if needed)
-CREATE VOLUME IF NOT EXISTS main.default.neo4j;
+-- Create a volume for JDBC drivers
+CREATE SCHEMA IF NOT EXISTS main.jdbc_drivers;
+CREATE VOLUME IF NOT EXISTS main.jdbc_drivers.jars;
 ```
 
-Download and upload the JAR:
-- [neo4j-jdbc-full-bundle-6.0.0.jar](https://repo1.maven.org/maven2/org/neo4j/neo4j-jdbc-full-bundle/6.0.0/neo4j-jdbc-full-bundle-6.0.0.jar)
+**Recommended: Use the custom build with SparkSubqueryCleaningTranslator**
 
-Upload to: `/Volumes/main/default/neo4j/neo4j-jdbc-full-bundle-6.0.0.jar`
+This repository includes a prebuilt JAR with the Spark subquery cleaner module for better Spark compatibility:
+
+```
+../neo4j_jdbc_spark_cleaning/neo4j-jdbc-full-bundle-6.10.4-SNAPSHOT.jar
+```
+
+Upload to: `/Volumes/main/jdbc_drivers/jars/neo4j-jdbc-full-bundle-6.10.4-SNAPSHOT.jar`
+
+**Alternative: Official release (without SparkCleaner)**
+
+- [neo4j-jdbc-full-bundle-6.10.3.jar](https://repo1.maven.org/maven2/org/neo4j/neo4j-jdbc-full-bundle/6.10.3/neo4j-jdbc-full-bundle-6.10.3.jar)
+
+See [CLEANER_USER.md](../CLEANER_USER.md) for details on the SparkSubqueryCleaningTranslator and build instructions.
 
 ### 2. Databricks Secrets
 
@@ -296,5 +308,7 @@ The test notebooks demonstrate these practices:
 
 ### Driver Downloads
 
-- [Maven Central: neo4j-jdbc-full-bundle](https://repo1.maven.org/maven2/org/neo4j/neo4j-jdbc-full-bundle/) - Latest full bundle JAR
+- **Recommended**: Use `../neo4j_jdbc_spark_cleaning/neo4j-jdbc-full-bundle-6.10.4-SNAPSHOT.jar` (includes SparkSubqueryCleaningTranslator)
+- [Maven Central: neo4j-jdbc-full-bundle](https://repo1.maven.org/maven2/org/neo4j/neo4j-jdbc-full-bundle/) - Official releases (without SparkCleaner)
+- [CLEANER_USER.md](../CLEANER_USER.md) - Build instructions for custom JAR with SparkCleaner
 
