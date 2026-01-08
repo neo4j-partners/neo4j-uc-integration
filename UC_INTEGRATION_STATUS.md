@@ -1,46 +1,61 @@
-# Neo4j Databricks JDBC Federation - Testing Status
+# Neo4j Databricks JDBC Federation Testing Status
 
-**Last Updated**: 2026-01-04
-**Databricks Runtime**: 17.3 LTS
-**Neo4j Instance**: Aura (3f1f827a.databases.neo4j.io)
+## Overview
+
+I created a JDBC Unity Catalog connection to test the Neo4j JDBC driver with Unity Catalog. I uploaded the Neo4j JDBC driver JAR to a Unity Catalog Volume, created a connection using `CREATE CONNECTION`, and attempted to query Neo4j using both the Spark Data Source API (with the `databricks.connection` option) and the Remote Query SQL API (`remote_query()` function).
+
+The Neo4j JDBC driver works when I load it directly into Spark and bypass Unity Catalog. SELECT queries, COUNT aggregates, and NATURAL JOINs all translate correctly from SQL to Cypher and return expected results. The driver, the network, and the credentials are all working.
+
+The problem occurs when I route queries through the JDBC Unity Catalog connection. Both query methods fail with the same error: "Connection was closed before the operation completed." The error stack traces point to `com.databricks.safespark.jdbc.grpc_client.JdbcConnectClient`, which indicates the failure is happening inside Databricks' internal isolation layer for custom JDBC drivers. The connection closes during metadata resolution before any query reaches Neo4j.
 
 ---
 
-## Executive Summary
+## Summary
+
+### Notebooks
+
+The following two Databricks notebooks demonstrate the issue and can be imported to reproduce it:
+
+| Notebook | Status | Description |
+|----------|--------|-------------|
+| [`neo4j_databricks_sql_translation.ipynb`](uc-neo4j-test-suite/neo4j_databricks_sql_translation.ipynb) | **FAIL** | Full test suite (Sections 1-8) covering network, drivers, direct JDBC, and Unity Catalog JDBC |
+| [`neo4j_schema_test.ipynb`](uc-neo4j-test-suite/neo4j_schema_test.ipynb) | **FAIL** | Focused schema testing (Sections 1, 3, 8) for JDBC metadata and UC object creation |
+
+### Component Test Results
 
 | Component | Status | Notes |
 |-----------|--------|-------|
 | Network Connectivity | PASS | TCP to Neo4j port 7687 |
 | Neo4j Python Driver | PASS | Bolt protocol works |
 | Neo4j Spark Connector | PASS | `org.neo4j.spark.DataSource` works |
-| **Neo4j JDBC SQL-to-Cypher** | **PASS** | **Tested & verified** - aggregates, JOINs, dbtable |
+| Neo4j JDBC SQL-to-Cypher | PASS | Aggregates, JOINs, and dbtable all work |
 | Direct JDBC (Non-UC) | PASS | Works with `customSchema` workaround |
-| **Unity Catalog JDBC** | **FAIL** | **SafeSpark incompatibility** |
+| **Unity Catalog JDBC** | **FAIL** | SafeSpark incompatibility |
+| **JDBC Schema Discovery via UC** | **FAIL** | SafeSpark closes connection during metadata resolution |
 
 ### Core Issue: SafeSpark Incompatibility
 
-**The Neo4j JDBC driver is fully functional** - it works with:
-- Direct Spark JDBC (bypassing Unity Catalog)
-- SQL-to-Cypher translation
-- All query patterns (dbtable, aggregates, JOINs)
+**The Neo4j JDBC driver works correctly with Spark.** I verified this by loading the driver directly into the Spark classpath and running queries without Unity Catalog. SELECT queries work. Aggregates like COUNT work. NATURAL JOINs translate to Cypher relationship traversals. The driver's SQL-to-Cypher translation is functioning as expected.
 
-**The failure is isolated to Databricks SafeSpark**, the isolation layer Unity Catalog uses for custom JDBC drivers. When queries are routed through a UC Connection, SafeSpark:
-1. Runs the JDBC driver in a separate sandboxed process
-2. Communicates via gRPC
-3. **Fails during metadata/schema resolution** before any query executes
+**The failure happens inside Databricks' SafeSpark isolation layer.** When I create a JDBC Unity Catalog connection and query through it, the request goes through SafeSpark, which runs custom JDBC drivers in a sandboxed process and communicates with Spark via gRPC. The Neo4j driver never receives the query. Instead, SafeSpark closes the connection during its metadata resolution phase, before any SQL reaches the driver.
 
-**Attempted Fixes That Did Not Resolve SafeSpark Issue:**
-- Adding `customSchema` to bypass Spark schema inference
-- Adding `customSchema` to `externalOptionsAllowList` in connection definition
-- Using `FORCE_CYPHER` hint for native Cypher queries
+**What I tried that did not fix the issue:**
 
-The SafeSpark wrapper still attempts schema resolution via subquery wrapping (`SELECT * FROM (query) WHERE 1=0`) which fails regardless of `customSchema` settings.
+1. **Added `customSchema` to bypass Spark's schema inference.** This works for direct JDBC but does not help with Unity Catalog connections. SafeSpark still attempts its own metadata resolution.
 
-**Conclusion:** This appears to be a compatibility issue between the Neo4j JDBC driver and Databricks SafeSpark that requires Databricks engineering support to resolve.
+2. **Added `customSchema` to `externalOptionsAllowList` in the connection definition.** This allows users to pass the option at query time, but SafeSpark still wraps queries in a subquery (`SELECT * FROM (query) WHERE 1=0`) for schema discovery, which fails.
+
+3. **Used the `FORCE_CYPHER` hint to send native Cypher.** The hint tells the Neo4j driver to skip SQL translation, but the query never reaches the driver because SafeSpark fails first.
+
+**What I believe is happening:** SafeSpark wraps the query to discover its schema before executing it. During this step, something about the Neo4j JDBC driver's response causes SafeSpark to close the connection. The error message "Connection was closed before the operation completed" suggests a timeout, crash, or protocol mismatch in the gRPC communication between Spark and the sandboxed driver process.
+
+**Conclusion:** This appears to be a compatibility issue between the Neo4j JDBC driver and Databricks SafeSpark that requires Databricks engineering support to investigate.
 
 ---
 
-## Environment Setup
+## Environment Setup to Reproduce the Issues
+
+To run the two notebooks above and reproduce the issue, I used the following environment setup on Databricks.
 
 ### Preview Features
 | Feature | Status |
@@ -63,7 +78,9 @@ The SafeSpark wrapper still attempts schema resolution via subquery wrapping (`S
 
 ---
 
-## Test Results
+## Test Results from Notebooks
+
+The following results are from running the Databricks notebooks listed above. Each section corresponds to a cell or group of cells in the notebooks.
 
 ### 1. Network Connectivity (TCP Layer)
 **Status**: PASS
@@ -71,7 +88,7 @@ The SafeSpark wrapper still attempts schema resolution via subquery wrapping (`S
 ```sql
 SELECT connectionTest('3f1f827a.databases.neo4j.io', '7687')
 ```
-**Result**: `SUCCESS` - TCP connectivity to port 7687 is open.
+**Result**: `SUCCESS`. TCP connectivity to port 7687 is open.
 
 ### 2. Neo4j Python Driver Connectivity
 **Status**: PASS
@@ -101,9 +118,9 @@ Tests running the JDBC driver directly in Spark (bypassing the SafeSpark wrapper
 - **SQL JOINs**: PASS
     - `NATURAL JOIN` translates correctly to Cypher relationship patterns.
 
-**Key Finding**: The Neo4j JDBC driver is fully functional within the Spark environment when used directly.
+The Neo4j JDBC driver works within the Spark environment when used directly.
 
-#### SQL-to-Cypher Translation Examples (Verified Working)
+#### SQL-to-Cypher Translation Examples
 
 The Neo4j JDBC driver with `enableSQLTranslation=true` successfully translates SQL to Cypher:
 
@@ -125,10 +142,10 @@ df = spark.read.format("jdbc") \
 ```
 
 **Projects demonstrating SQL translation:**
-- [`pyspark-translation-example/`](./pyspark-translation-example/) - Local PySpark test suite
-- [`sample-sql-translation/`](./sample-sql-translation/) - Spring Boot connectivity test
-- [`neo4j_databricks_sql_translation.ipynb`](uc-neo4j-test-suite/neo4j_databricks_sql_translation.ipynb) - Full Databricks notebook (Sections 1-8)
-- [`neo4j_schema_test.ipynb`](uc-neo4j-test-suite/neo4j_schema_test.ipynb) - Schema testing notebook (Sections 1, 3, 8)
+- [`pyspark-translation-example/`](./pyspark-translation-example/) is a local PySpark test suite
+- [`sample-sql-translation/`](./sample-sql-translation/) is a Spring Boot connectivity test
+- [`neo4j_databricks_sql_translation.ipynb`](uc-neo4j-test-suite/neo4j_databricks_sql_translation.ipynb) is the full Databricks notebook (Sections 1-8)
+- [`neo4j_schema_test.ipynb`](uc-neo4j-test-suite/neo4j_schema_test.ipynb) is the schema testing notebook (Sections 1, 3, 8)
 
 See [Neo4j JDBC SQL2Cypher docs](https://neo4j.com/docs/jdbc-manual/current/sql2cypher/) for full translation rules.
 
@@ -141,7 +158,7 @@ CREATE CONNECTION neo4j_connection TYPE JDBC ...
 **Result**: Connection created successfully. `DESCRIBE CONNECTION` shows correct configuration.
 
 ### 6. Unity Catalog JDBC Read (SafeSpark Wrapper)
-**Status**: FAIL - Connection Closed
+**Status**: FAIL (Connection Closed)
 
 Attempts to use the connection created in Step 5 (which uses Databricks "SafeSpark" isolation).
 
@@ -170,26 +187,26 @@ java.lang.RuntimeException: Connection was closed before the operation completed
 
 ### Isolation to SafeSpark
 
-We have confirmed:
-1.  **Network is fine** (TCP test passed).
-2.  **Credentials are fine** (Python driver passed).
-3.  **Spark <-> Neo4j is fine** (Spark Connector passed).
-4.  **JDBC Driver <-> Spark is fine** (Direct JDBC tests passed).
+I confirmed the following components work correctly:
 
-The failure only occurs when invoking the **Unity Catalog Connection**, which employs the **SafeSpark** architecture (running the JDBC driver in a separate, isolated process communicating via gRPC).
+1. Network connectivity passes the TCP test.
+2. Credentials work with the Python driver.
+3. Spark can exchange data with Neo4j using the Spark Connector.
+4. The JDBC driver works with Spark when loaded directly.
+
+The failure only occurs when using the JDBC Unity Catalog connection. This connection uses SafeSpark, which runs the JDBC driver in a separate sandboxed process and communicates via gRPC.
 
 ### Potential Causes
 
-1.  **SafeSpark Protocol Incompatibility**: The Neo4j JDBC driver might be doing something (e.g., in its metadata retrieval or connection handshake) that the SafeSpark gRPC wrapper doesn't handle or expects differently.
-2.  **Timeout/Race Condition**: The "Connection was closed before the operation completed" suggests the isolated process might be crashing or timing out during initialization.
+The Neo4j JDBC driver might be doing something during metadata retrieval or connection handshake that the SafeSpark gRPC wrapper does not handle correctly. The error message "Connection was closed before the operation completed" suggests the isolated process might be crashing or timing out during initialization.
 
 
 ---
 
-## References & Sources
+## References
 
-- [Spark JDBC Data Sources Documentation](https://spark.apache.org/docs/latest/sql-data-sources-jdbc.html) - `customSchema` option details
-- [Neo4j JDBC Driver Configuration](https://neo4j.com/docs/jdbc-manual/current/configuration/) - Driver options and SQL translation
-- [Databricks Unity Catalog JDBC Connection](https://docs.databricks.com/aws/en/connect/jdbc-connection) - `externalOptionsAllowList` configuration
-- [Neo4j JDBC GitHub](https://github.com/neo4j/neo4j-jdbc) - Driver source and issues
-- [Neo4j Spark Connector Documentation](https://neo4j.com/docs/spark/current/) - Alternative integration method
+- [Spark JDBC Data Sources Documentation](https://spark.apache.org/docs/latest/sql-data-sources-jdbc.html) for `customSchema` option details
+- [Neo4j JDBC Driver Configuration](https://neo4j.com/docs/jdbc-manual/current/configuration/) for driver options and SQL translation
+- [Databricks Unity Catalog JDBC Connection](https://docs.databricks.com/aws/en/connect/jdbc-connection) for `externalOptionsAllowList` configuration
+- [Neo4j JDBC GitHub](https://github.com/neo4j/neo4j-jdbc) for driver source and issues
+- [Neo4j Spark Connector Documentation](https://neo4j.com/docs/spark/current/) for an alternative integration method

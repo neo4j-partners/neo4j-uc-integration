@@ -2,7 +2,7 @@
 
 This project tests the integration of Neo4j as a federated data source within Databricks Unity Catalog using the Neo4j JDBC driver, based on the approach defined in [ Neo4j as a Federated Data Source for Databricks Unity Catalog](./neo4j_databricks_jdbc_federation_proposal.md). The goal is to validate SQL-to-Cypher translation through Unity Catalog's JDBC federation and document what works and what is currently broken.
 
-Two Spark notebooks demonstrate that the Neo4j JDBC driver does not work with the Databricks SafeSpark wrapper. The next step is to work with Databricks to troubleshoot this incompatibility.
+Two Spark notebooks demonstrate the current issue with using the Neo4j JDBC driver through [Unity Catalog JDBC connections](https://docs.databricks.com/aws/en/connect/jdbc-connection). The notebooks show that the Neo4j JDBC driver works when loaded directly into Spark, but fails when routed through Unity Catalog's isolated sandbox environment (SafeSpark). Databricks uses this isolation layer to "install the JDBC driver in an isolated sandbox accessible by Spark compute to ensure Spark security and Unity Catalog governance." The sandbox appears to be breaking the integration because it intercepts JDBC calls through a gRPC wrapper that is incompatible with the Neo4j driver's connection handling. The next step is to work with Databricks to troubleshoot this incompatibility.
 
 ## Current Status Summary
 
@@ -72,6 +72,7 @@ The Neo4j JDBC driver works  when loaded directly into Spark (all Direct JDBC te
 | **Neo4j JDBC SQL-to-Cypher** | **PASS** | **Tested & verified** - SQL translated to Cypher |
 | Direct JDBC | PASS | Works with `customSchema` workaround |
 | **Unity Catalog JDBC** | **FAIL** | **SafeSpark incompatibility - blocked** |
+| **Unity Catalog JDBC Schema** | **FAIL** | **Schema discovery fails through SafeSpark isolation** |
 
 **What Works:**
 - **Neo4j JDBC SQL-to-Cypher translation** - Fully tested and verified with Spark
