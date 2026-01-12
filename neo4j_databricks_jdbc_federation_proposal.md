@@ -138,15 +138,12 @@ For additional details, see the [Databricks Custom JDBC Connection documentation
 
 #### Step 1.1: Obtain the Neo4j JDBC Driver JAR
 
-Use the prebuilt JAR from this repository that includes the **SparkSubqueryCleaningTranslator** module for better Spark compatibility:
+Download the **SparkSubqueryCleaningTranslator** JAR from Maven Central:
 
-```
-neo4j_jdbc_spark_cleaning/neo4j-jdbc-translator-sparkcleaner-6.10.3.jar
-```
+- [neo4j-jdbc-translator-sparkcleaner-6.10.3.jar](https://repo.maven.apache.org/maven2/org/neo4j/neo4j-jdbc-translator-sparkcleaner/6.10.3/neo4j-jdbc-translator-sparkcleaner-6.10.3.jar)
+- [All versions](https://repo.maven.apache.org/maven2/org/neo4j/neo4j-jdbc-translator-sparkcleaner/) (use latest if needed)
 
-This custom build includes:
-- **neo4j-jdbc-full-bundle**: Core driver with SQL-to-Cypher translation
-- **neo4j-jdbc-translator-sparkcleaner**: Handles Spark's schema inference subquery wrapping (`SELECT * FROM (query) SPARK_GEN_SUBQ_0 WHERE 1=0`)
+This JAR handles Spark's schema inference subquery wrapping (`SELECT * FROM (query) SPARK_GEN_SUBQ_0 WHERE 1=0`).
 
 **Important**: The driver class name is `org.neo4j.jdbc.Neo4jDriver`.
 

@@ -48,13 +48,12 @@ CREATE SCHEMA IF NOT EXISTS main.jdbc_drivers;
 CREATE VOLUME IF NOT EXISTS main.jdbc_drivers.jars;
 ```
 
-**Recommended: Use the custom build with SparkSubqueryCleaningTranslator**
+**Recommended: Use the SparkSubqueryCleaningTranslator JAR**
 
-This repository includes a prebuilt JAR with the Spark subquery cleaner module for better Spark compatibility:
+Download the Spark Cleaner JAR from Maven Central:
 
-```
-../neo4j_jdbc_spark_cleaning/neo4j-jdbc-translator-sparkcleaner-6.10.3.jar
-```
+- [neo4j-jdbc-translator-sparkcleaner-6.10.3.jar](https://repo.maven.apache.org/maven2/org/neo4j/neo4j-jdbc-translator-sparkcleaner/6.10.3/neo4j-jdbc-translator-sparkcleaner-6.10.3.jar)
+- [All versions](https://repo.maven.apache.org/maven2/org/neo4j/neo4j-jdbc-translator-sparkcleaner/) (use latest if needed)
 
 Upload to: `/Volumes/main/jdbc_drivers/jars/neo4j-jdbc-translator-sparkcleaner-6.10.3.jar`
 

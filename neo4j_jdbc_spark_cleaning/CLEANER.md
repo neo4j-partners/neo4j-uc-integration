@@ -8,11 +8,10 @@ When Apache Spark uses JDBC to query a database, it wraps the original query in 
 
 ## Installation
 
-Use the pre-built JAR file:
+Download the pre-built JAR from Maven Central:
 
-```
-neo4j-jdbc-translator-sparkcleaner-6.10.3.jar
-```
+- [neo4j-jdbc-translator-sparkcleaner-6.10.3.jar](https://repo.maven.apache.org/maven2/org/neo4j/neo4j-jdbc-translator-sparkcleaner/6.10.3/neo4j-jdbc-translator-sparkcleaner-6.10.3.jar)
+- [All versions](https://repo.maven.apache.org/maven2/org/neo4j/neo4j-jdbc-translator-sparkcleaner/) (use latest if needed)
 
 This is a self-contained "fat JAR" that includes the translator implementation. It provides a `SqlTranslatorFactory` service that can clean/normalize Spark SQL queries before they're sent to Neo4j.
 
