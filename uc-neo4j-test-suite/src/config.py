@@ -35,7 +35,13 @@ class UnityCatalogConfig:
     """Unity Catalog JDBC configuration."""
 
     jdbc_jar_path: str
+    cleaner_jar_path: str
     connection_name: str = "neo4j_connection"
+
+    @property
+    def java_dependencies(self) -> str:
+        """JSON array of JAR paths for java_dependencies in CREATE CONNECTION."""
+        return f'["{self.jdbc_jar_path}", "{self.cleaner_jar_path}"]'
 
 
 # Default schema for Aircraft label (from notebook)
@@ -83,7 +89,8 @@ def get_dbutils():
 
 def load_config(
     secret_scope: str = "neo4j-uc-creds",
-    jdbc_jar_path: str = "/Volumes/main/jdbc_drivers/jars/neo4j-jdbc-translator-sparkcleaner-6.10.3.jar",
+    jdbc_jar_path: str = "/Volumes/main/jdbc_drivers/jars/neo4j-jdbc-full-bundle-6.10.3.jar",
+    cleaner_jar_path: str = "/Volumes/main/jdbc_drivers/jars/neo4j-jdbc-translator-sparkcleaner-6.10.3.jar",
     test_label: str = "Aircraft",
     test_label_schema: str = DEFAULT_AIRCRAFT_SCHEMA,
     timeout_seconds: int = 30,
@@ -94,7 +101,8 @@ def load_config(
     Args:
         secret_scope: Databricks secret scope name.
                       Expected keys: host, user, password, connection_name, database (optional)
-        jdbc_jar_path: Path to Neo4j JDBC JAR in Unity Catalog Volume.
+        jdbc_jar_path: Path to Neo4j JDBC full bundle JAR in Unity Catalog Volume.
+        cleaner_jar_path: Path to Neo4j JDBC Spark cleaner JAR in Unity Catalog Volume.
         test_label: Neo4j node label to use for test queries.
         test_label_schema: Spark schema for the test label (required for Direct JDBC).
         timeout_seconds: Test timeout in seconds.
@@ -124,6 +132,7 @@ def load_config(
 
     unity_catalog = UnityCatalogConfig(
         jdbc_jar_path=jdbc_jar_path,
+        cleaner_jar_path=cleaner_jar_path,
         connection_name=get_secret("connection_name"),
     )
 

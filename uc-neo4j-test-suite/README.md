@@ -38,9 +38,9 @@ This test suite runs on a Databricks cluster and validates:
 
 ## Prerequisites
 
-### 1. Neo4j JDBC Driver
+### 1. Neo4j JDBC Driver JARs
 
-Upload the Neo4j JDBC driver JAR to a Unity Catalog Volume:
+Upload **both** Neo4j JDBC JAR files to a Unity Catalog Volume:
 
 ```sql
 -- Create a volume for JDBC drivers
@@ -48,20 +48,20 @@ CREATE SCHEMA IF NOT EXISTS main.jdbc_drivers;
 CREATE VOLUME IF NOT EXISTS main.jdbc_drivers.jars;
 ```
 
-**Recommended: Use the SparkSubqueryCleaningTranslator JAR**
+**Required: Download both JARs from Maven Central**
 
-Download the Spark Cleaner JAR from Maven Central:
+1. **Full Bundle** (contains the driver class `org.neo4j.jdbc.Neo4jDriver`):
+   - [neo4j-jdbc-full-bundle-6.10.3.jar](https://repo.maven.apache.org/maven2/org/neo4j/neo4j-jdbc-full-bundle/6.10.3/neo4j-jdbc-full-bundle-6.10.3.jar)
+   - Upload to: `/Volumes/main/jdbc_drivers/jars/neo4j-jdbc-full-bundle-6.10.3.jar`
 
-- [neo4j-jdbc-translator-sparkcleaner-6.10.3.jar](https://repo.maven.apache.org/maven2/org/neo4j/neo4j-jdbc-translator-sparkcleaner/6.10.3/neo4j-jdbc-translator-sparkcleaner-6.10.3.jar)
-- [All versions](https://repo.maven.apache.org/maven2/org/neo4j/neo4j-jdbc-translator-sparkcleaner/) (use latest if needed)
+2. **Spark Cleaner** (handles Spark's subquery wrapping):
+   - [neo4j-jdbc-translator-sparkcleaner-6.10.3.jar](https://repo.maven.apache.org/maven2/org/neo4j/neo4j-jdbc-translator-sparkcleaner/6.10.3/neo4j-jdbc-translator-sparkcleaner-6.10.3.jar)
+   - Upload to: `/Volumes/main/jdbc_drivers/jars/neo4j-jdbc-translator-sparkcleaner-6.10.3.jar`
 
-Upload to: `/Volumes/main/jdbc_drivers/jars/neo4j-jdbc-translator-sparkcleaner-6.10.3.jar`
+- [All full-bundle versions](https://repo.maven.apache.org/maven2/org/neo4j/neo4j-jdbc-full-bundle/)
+- [All sparkcleaner versions](https://repo.maven.apache.org/maven2/org/neo4j/neo4j-jdbc-translator-sparkcleaner/)
 
-**Alternative: Official release (without SparkCleaner)**
-
-- [neo4j-jdbc-full-bundle-6.10.3.jar](https://repo1.maven.org/maven2/org/neo4j/neo4j-jdbc-full-bundle/6.10.3/neo4j-jdbc-full-bundle-6.10.3.jar)
-
-See [CLEANER_USER.md](../CLEANER_USER.md) for details on the SparkSubqueryCleaningTranslator and build instructions.
+See [CLEANER.md](../neo4j_jdbc_spark_cleaning/CLEANER.md) for details on the SparkSubqueryCleaningTranslator.
 
 ### 2. Databricks Secrets
 

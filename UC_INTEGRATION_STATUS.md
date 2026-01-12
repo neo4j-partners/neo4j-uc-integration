@@ -68,12 +68,14 @@ To run the two notebooks above and reproduce the issue, I used the following env
 |---------|---------|--------|
 | org.neo4j:neo4j-connector-apache-spark | 5.3.10 (Spark 3) | Installed |
 | neo4j (Python driver) | 6.0.2 | Installed |
-| neo4j-jdbc-full-bundle | 6.x | Installed (Cluster & UC Volume) |
+| neo4j-jdbc-full-bundle | 6.10.3 | Installed (Cluster & UC Volume) |
+| neo4j-jdbc-translator-sparkcleaner | 6.10.3 | Installed (UC Volume) |
 
 ### Unity Catalog Resources
 | Resource | Path/Name | Status |
 |----------|-----------|--------|
-| JDBC Driver JAR | `/Volumes/uc-w-neo4j/jdbc_drivers/jars/neo4j-jdbc-full-bundle.jar` | Uploaded |
+| JDBC Full Bundle JAR | `/Volumes/main/jdbc_drivers/jars/neo4j-jdbc-full-bundle-6.10.3.jar` | Uploaded |
+| JDBC Spark Cleaner JAR | `/Volumes/main/jdbc_drivers/jars/neo4j-jdbc-translator-sparkcleaner-6.10.3.jar` | Uploaded |
 | Connection | `neo4j_connection` | Created |
 
 ---

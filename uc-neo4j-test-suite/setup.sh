@@ -48,6 +48,7 @@ missing=()
 [[ -z "$NEO4J_PASSWORD" ]] && missing+=("NEO4J_PASSWORD")
 [[ -z "$UC_CONNECTION_NAME" ]] && missing+=("UC_CONNECTION_NAME")
 [[ -z "$JDBC_JAR_PATH" ]] && missing+=("JDBC_JAR_PATH")
+[[ -z "$CLEANER_JAR_PATH" ]] && missing+=("CLEANER_JAR_PATH")
 
 if [[ ${#missing[@]} -gt 0 ]]; then
     log_error "Missing required variables in .env: ${missing[*]}"
@@ -76,6 +77,7 @@ set_secret "user" "$NEO4J_USER"
 set_secret "password" "$NEO4J_PASSWORD"
 set_secret "connection_name" "$UC_CONNECTION_NAME"
 set_secret "jdbc_jar_path" "$JDBC_JAR_PATH"
+set_secret "cleaner_jar_path" "$CLEANER_JAR_PATH"
 
 # Set optional database (default is "neo4j")
 if [[ -n "$NEO4J_DATABASE" ]]; then

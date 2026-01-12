@@ -84,7 +84,8 @@ def print_summary(results: list) -> None:
 
 def run(
     secret_scope: str = "neo4j-uc-creds",
-    jdbc_jar_path: str = "/Volumes/main/jdbc_drivers/jars/neo4j-jdbc-translator-sparkcleaner-6.10.3.jar",
+    jdbc_jar_path: str = "/Volumes/main/jdbc_drivers/jars/neo4j-jdbc-full-bundle-6.10.3.jar",
+    cleaner_jar_path: str = "/Volumes/main/jdbc_drivers/jars/neo4j-jdbc-translator-sparkcleaner-6.10.3.jar",
     test_label: str = "Aircraft",
     test_label_schema: str = DEFAULT_AIRCRAFT_SCHEMA,
     timeout_seconds: int = 30,
@@ -95,7 +96,8 @@ def run(
     Args:
         secret_scope: Databricks secret scope containing neo4j credentials
                       and connection_name.
-        jdbc_jar_path: Path to Neo4j JDBC JAR (for reference only).
+        jdbc_jar_path: Path to Neo4j JDBC full bundle JAR.
+        cleaner_jar_path: Path to Neo4j JDBC Spark cleaner JAR.
         test_label: Neo4j node label for test queries.
         test_label_schema: Spark schema for the test label (required for Direct JDBC).
         timeout_seconds: Timeout for each test.
@@ -109,6 +111,7 @@ def run(
     config = load_config(
         secret_scope=secret_scope,
         jdbc_jar_path=jdbc_jar_path,
+        cleaner_jar_path=cleaner_jar_path,
         test_label=test_label,
         test_label_schema=test_label_schema,
         timeout_seconds=timeout_seconds,
