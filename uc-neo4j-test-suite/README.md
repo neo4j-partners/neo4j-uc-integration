@@ -53,10 +53,10 @@ CREATE VOLUME IF NOT EXISTS main.jdbc_drivers.jars;
 This repository includes a prebuilt JAR with the Spark subquery cleaner module for better Spark compatibility:
 
 ```
-../neo4j_jdbc_spark_cleaning/neo4j-jdbc-full-bundle-6.10.4-SNAPSHOT.jar
+../neo4j_jdbc_spark_cleaning/neo4j-jdbc-translator-sparkcleaner-6.10.3.jar
 ```
 
-Upload to: `/Volumes/main/jdbc_drivers/jars/neo4j-jdbc-full-bundle-6.10.4-SNAPSHOT.jar`
+Upload to: `/Volumes/main/jdbc_drivers/jars/neo4j-jdbc-translator-sparkcleaner-6.10.3.jar`
 
 **Alternative: Official release (without SparkCleaner)**
 
@@ -308,7 +308,7 @@ The test notebooks demonstrate these practices:
 
 ### Driver Downloads
 
-- **Recommended**: Use `../neo4j_jdbc_spark_cleaning/neo4j-jdbc-full-bundle-6.10.4-SNAPSHOT.jar` (includes SparkSubqueryCleaningTranslator)
+- **Recommended**: Use `../neo4j_jdbc_spark_cleaning/neo4j-jdbc-translator-sparkcleaner-6.10.3.jar` (includes SparkSubqueryCleaningTranslator)
 - [Maven Central: neo4j-jdbc-full-bundle](https://repo1.maven.org/maven2/org/neo4j/neo4j-jdbc-full-bundle/) - Official releases (without SparkCleaner)
 - [CLEANER_USER.md](../CLEANER_USER.md) - Build instructions for custom JAR with SparkCleaner
 

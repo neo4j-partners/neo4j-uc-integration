@@ -83,7 +83,7 @@ def get_dbutils():
 
 def load_config(
     secret_scope: str = "neo4j-uc-creds",
-    jdbc_jar_path: str = "/Volumes/main/jdbc_drivers/jars/neo4j-jdbc-full-bundle-6.10.4-SNAPSHOT.jar",
+    jdbc_jar_path: str = "/Volumes/main/jdbc_drivers/jars/neo4j-jdbc-translator-sparkcleaner-6.10.3.jar",
     test_label: str = "Aircraft",
     test_label_schema: str = DEFAULT_AIRCRAFT_SCHEMA,
     timeout_seconds: int = 30,

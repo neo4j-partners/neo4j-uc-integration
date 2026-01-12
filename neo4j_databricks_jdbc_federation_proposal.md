@@ -141,7 +141,7 @@ For additional details, see the [Databricks Custom JDBC Connection documentation
 Use the prebuilt JAR from this repository that includes the **SparkSubqueryCleaningTranslator** module for better Spark compatibility:
 
 ```
-neo4j_jdbc_spark_cleaning/neo4j-jdbc-full-bundle-6.10.4-SNAPSHOT.jar
+neo4j_jdbc_spark_cleaning/neo4j-jdbc-translator-sparkcleaner-6.10.3.jar
 ```
 
 This custom build includes:
@@ -180,9 +180,9 @@ After creating the volume, upload the JAR file:
 1. Navigate to **Catalog** in the Databricks workspace
 2. Browse to `main` > `jdbc_drivers` > `jars`
 3. Click **Upload to this volume**
-4. Select `neo4j-jdbc-full-bundle-6.10.4-SNAPSHOT.jar` from `neo4j_jdbc_spark_cleaning/`
+4. Select `neo4j-jdbc-translator-sparkcleaner-6.10.3.jar` from `neo4j_jdbc_spark_cleaning/`
 
-The driver will be available at path: `/Volumes/main/jdbc_drivers/jars/neo4j-jdbc-full-bundle-6.10.4-SNAPSHOT.jar`
+The driver will be available at path: `/Volumes/main/jdbc_drivers/jars/neo4j-jdbc-translator-sparkcleaner-6.10.3.jar`
 
 #### Step 1.3: Create Databricks Secrets (Recommended)
 
@@ -210,7 +210,7 @@ DROP CONNECTION IF EXISTS neo4j_connection;
 -- Create the Neo4j JDBC connection with SQL translation enabled
 CREATE CONNECTION neo4j_connection TYPE JDBC
 ENVIRONMENT (
-  java_dependencies '["/Volumes/main/jdbc_drivers/jars/neo4j-jdbc-full-bundle-6.10.4-SNAPSHOT.jar"]'
+  java_dependencies '["/Volumes/main/jdbc_drivers/jars/neo4j-jdbc-translator-sparkcleaner-6.10.3.jar"]'
 )
 OPTIONS (
   url 'jdbc:neo4j://your-neo4j-host:7687/neo4j?enableSQLTranslation=true',
@@ -242,7 +242,7 @@ OPTIONS (
 ```sql
 CREATE CONNECTION neo4j_connection_test TYPE JDBC
 ENVIRONMENT (
-  java_dependencies '["/Volumes/main/jdbc_drivers/jars/neo4j-jdbc-full-bundle-6.10.4-SNAPSHOT.jar"]'
+  java_dependencies '["/Volumes/main/jdbc_drivers/jars/neo4j-jdbc-translator-sparkcleaner-6.10.3.jar"]'
 )
 OPTIONS (
   url 'jdbc:neo4j://your-neo4j-host:7687/neo4j?enableSQLTranslation=true',
@@ -503,7 +503,7 @@ DROP CONNECTION IF EXISTS neo4j_connection;
 
 CREATE CONNECTION neo4j_connection TYPE JDBC
 ENVIRONMENT (
-  java_dependencies '["/Volumes/main/jdbc_drivers/jars/neo4j-jdbc-full-bundle-6.10.4-SNAPSHOT.jar"]'
+  java_dependencies '["/Volumes/main/jdbc_drivers/jars/neo4j-jdbc-translator-sparkcleaner-6.10.3.jar"]'
 )
 OPTIONS (
   url 'jdbc:neo4j://your-neo4j-host:7687/neo4j?enableSQLTranslation=true&cacheSQLTranslations=true',
