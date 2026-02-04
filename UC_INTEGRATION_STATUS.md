@@ -221,12 +221,15 @@ SELECT COUNT(*) AS flight_count FROM Flight
 SELECT COUNT(*) FROM Flight f NATURAL JOIN DEPARTS_FROM r NATURAL JOIN Airport a
 ```
 Translates to Cypher: `MATCH (f:Flight)-[:DEPARTS_FROM]->(a:Airport) RETURN count(*)`
+Result: 11,200 matching relationships
 
-**Test 5: SQL Filtering and Sorting** - PASS
+**Test 5: SQL Filtering (WHERE/LIMIT)** - PASS
 ```sql
 SELECT aircraft_id, tail_number, manufacturer, model FROM Aircraft
-WHERE manufacturer = 'Boeing' ORDER BY aircraft_id LIMIT 5
+WHERE manufacturer = 'Boeing' LIMIT 5
 ```
+
+**Note on ORDER BY:** `ORDER BY` is not supported through Unity Catalog because Spark wraps queries in a subquery for schema resolution, and `ORDER BY` inside subqueries is invalid SQL.
 
 **Note**: Without the memory configuration, these tests fail with "Connection was closed before the operation completed" due to metaspace exhaustion in the SafeSpark sandbox.
 
