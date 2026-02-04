@@ -223,16 +223,20 @@ SELECT COUNT(*) FROM Flight f NATURAL JOIN DEPARTS_FROM r NATURAL JOIN Airport a
 Translates to Cypher: `MATCH (f:Flight)-[:DEPARTS_FROM]->(a:Airport) RETURN count(*)`
 Result: 11,200 matching relationships
 
-**Test 5: SQL Filtering (WHERE)** - PASS
+**Test 5: SQL Filtering with Aggregate** - PASS
 ```sql
-SELECT aircraft_id, tail_number, manufacturer, model FROM Aircraft
-WHERE manufacturer = 'Boeing'
+SELECT COUNT(*) AS boeing_count FROM Aircraft WHERE manufacturer = 'Boeing'
 ```
 
-**Note on ORDER BY and LIMIT:** These clauses are not supported through Unity Catalog because Spark wraps queries in a subquery for schema resolution, and `ORDER BY`/`LIMIT` inside subqueries cause syntax errors. Use Spark DataFrame methods instead:
-```python
-df.orderBy("column").limit(10).show()
-```
+**Supported Query Patterns through UC:**
+- Simple expressions: `SELECT 1 AS test`
+- Aggregates: `SELECT COUNT(*) FROM Label`
+- Aggregates with WHERE: `SELECT COUNT(*) FROM Label WHERE prop = 'value'`
+- Aggregates with JOIN: `SELECT COUNT(*) FROM A NATURAL JOIN REL NATURAL JOIN B`
+
+**Unsupported through UC (use Neo4j Spark Connector or Direct JDBC instead):**
+- Non-aggregate SELECT with columns (Spark wraps in subquery, Neo4j SQL translator doesn't support subqueries)
+- ORDER BY and LIMIT clauses
 
 **Note**: Without the memory configuration, these tests fail with "Connection was closed before the operation completed" due to metaspace exhaustion in the SafeSpark sandbox.
 

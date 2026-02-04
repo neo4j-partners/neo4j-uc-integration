@@ -32,19 +32,21 @@ All of the connectivity tests can be viewed, run, and tested from this GitHub re
 
 ## Test Results Summary
 
-- Network Connectivity (TCP Layer): **PASS** - Verified using the [Databricks connectivity test](https://docs.databricks.com/aws/en/connect/jdbc-connection#connectivity-test); TCP connection to Neo4j port 7687 confirmed working
-- Neo4j Python Driver: **PASS** - Bolt protocol connection and authentication verified
-- Neo4j Spark Connector: **PASS** - `org.neo4j.spark.DataSource` reads data successfully
-- Direct JDBC - dbtable option: **PASS** - Reads Neo4j labels as tables with `customSchema`
-- Direct JDBC - SQL Translation: **PASS** - SQL queries translate to Cypher and execute
-- Direct JDBC - SQL Aggregate (COUNT): **PASS** - `SELECT COUNT(*)` translates to Cypher `count()`
-- Direct JDBC - SQL JOIN Translation: **PASS** - `NATURAL JOIN` translates to Cypher relationship patterns
-- Unity Catalog Connection Setup: **PASS** - `CREATE CONNECTION` succeeds with JDBC driver JARs
-- Unity Catalog - Spark DataFrame API: **PASS** - Works with SafeSpark memory configuration
-- Unity Catalog - remote_query() Function: **PASS** - Works with SafeSpark memory configuration
-- Unity Catalog - SQL Aggregate (COUNT): **PASS** - `SELECT COUNT(*)` works through UC connection
-- Unity Catalog - SQL JOIN Translation: **PASS** - `NATURAL JOIN` translates to Cypher via UC (11,200 relationships)
-- Unity Catalog - SQL Filtering (WHERE): **PASS** - `WHERE` works through UC (use Spark `.limit()` for row limiting)
+| Test | Status | Notes |
+|------|--------|-------|
+| Network Connectivity (TCP Layer) | **PASS** | Verified using the [Databricks connectivity test](https://docs.databricks.com/aws/en/connect/jdbc-connection#connectivity-test); TCP connection to Neo4j port 7687 confirmed working |
+| Neo4j Python Driver | **PASS** | Bolt protocol connection and authentication verified |
+| Neo4j Spark Connector | **PASS** | `org.neo4j.spark.DataSource` reads data successfully |
+| Direct JDBC - dbtable option | **PASS** | Reads Neo4j labels as tables with `customSchema` |
+| Direct JDBC - SQL Translation | **PASS** | SQL queries translate to Cypher and execute |
+| Direct JDBC - SQL Aggregate (COUNT) | **PASS** | `SELECT COUNT(*)` translates to Cypher `count()` |
+| Direct JDBC - SQL JOIN Translation | **PASS** | `NATURAL JOIN` translates to Cypher relationship patterns |
+| Unity Catalog Connection Setup | **PASS** | `CREATE CONNECTION` succeeds with JDBC driver JARs |
+| Unity Catalog - Spark DataFrame API | **PASS** | Works with SafeSpark memory configuration |
+| Unity Catalog - remote_query() Function | **PASS** | Works with SafeSpark memory configuration |
+| Unity Catalog - SQL Aggregate (COUNT) | **PASS** | `SELECT COUNT(*)` works through UC connection |
+| Unity Catalog - SQL JOIN Translation | **PASS** | `NATURAL JOIN` translates to Cypher via UC (11,200 relationships) |
+| Unity Catalog - SQL Filtering with Aggregate | **PASS** | `WHERE` with `COUNT()` works through UC |
 
 ## Root Cause (Resolved)
 
@@ -354,7 +356,7 @@ Connection Configuration:
 - **remote_query() Function**: Tests Spark SQL `remote_query()` function - **PASS**
 - **SQL Aggregate (COUNT)**: Tests COUNT query through UC connection - **PASS**
 - **SQL JOIN Translation**: Tests NATURAL JOIN to Cypher relationship patterns via UC - **PASS** (11,200 relationships)
-- **SQL Filtering (WHERE)**: Tests WHERE through UC connection - **PASS**
+- **SQL Filtering with Aggregate**: Tests WHERE with COUNT through UC connection - **PASS**
 
 **Required Spark Configuration:**
 ```
@@ -365,12 +367,20 @@ spark.databricks.safespark.jdbcSandbox.size.default.mib 512
 
 With these settings, Unity Catalog JDBC queries to Neo4j work correctly.
 
-**Note on ORDER BY and LIMIT:** These clauses are not supported through Unity Catalog because Spark wraps queries in a subquery for schema resolution (`SELECT * FROM (query) WHERE 1=0`), and `ORDER BY`/`LIMIT` inside subqueries cause syntax errors. Use Spark DataFrame methods instead:
-```python
-df.orderBy("column").limit(10).show()  # Apply sorting/limiting in Spark
-```
+**Supported Query Patterns through UC:**
+- Simple expressions: `SELECT 1 AS test`
+- Aggregates: `SELECT COUNT(*) FROM Label`
+- Aggregates with WHERE: `SELECT COUNT(*) FROM Label WHERE prop = 'value'`
+- Aggregates with JOIN: `SELECT COUNT(*) FROM A NATURAL JOIN REL NATURAL JOIN B`
+
+**Unsupported Query Patterns through UC:**
+- Non-aggregate SELECT with columns: `SELECT col1, col2 FROM Label` - fails because Spark wraps in subquery
+- ORDER BY and LIMIT clauses - fail inside subqueries
+
+For non-aggregate queries, use the Neo4j Spark Connector or Direct JDBC (Section 5) instead.
 
 ## Known Limitations
 - Neo4j JDBC returns `NullType()` during schema inference; `customSchema` is required
 - SafeSpark sandbox requires increased memory allocation for the Neo4j JDBC driver
-- `ORDER BY` and `LIMIT` are not supported through UC (Spark wraps queries in subqueries for schema resolution; use Spark DataFrame methods instead)
+- **UC JDBC only supports aggregate queries** (COUNT, SUM, etc.) because Spark wraps queries in subqueries for schema resolution, and Neo4j SQL translator doesn't support subqueries
+- For non-aggregate queries (selecting rows/columns), use the Neo4j Spark Connector or Direct JDBC
