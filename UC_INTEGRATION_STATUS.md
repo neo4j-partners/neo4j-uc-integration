@@ -1,12 +1,32 @@
 # Neo4j Databricks JDBC Federation Testing Status
 
+## SUCCESS: Issue Resolved with Databricks Support
+
+**We worked with Databricks engineering and successfully resolved the SafeSpark compatibility issue!**
+
+The root cause was identified as **metaspace running out of memory inside the SafeSpark sandbox**. The Neo4j JDBC driver requires more memory for class loading than the default sandbox allocation provides.
+
+### Solution
+
+Add the following Spark configuration settings to your cluster:
+
+```
+spark.databricks.safespark.jdbcSandbox.jvm.maxMetaspace.mib 128
+spark.databricks.safespark.jdbcSandbox.jvm.xmx.mib 300
+spark.databricks.safespark.jdbcSandbox.size.default.mib 512
+```
+
+With these settings, the Unity Catalog JDBC connection to Neo4j works correctly.
+
+---
+
 ## Overview
 
-I created a JDBC Unity Catalog connection to test the Neo4j JDBC driver with Unity Catalog. I uploaded the Neo4j JDBC driver JAR to a Unity Catalog Volume, created a connection using `CREATE CONNECTION`, and attempted to query Neo4j using both the Spark Data Source API (with the `databricks.connection` option) and the Remote Query SQL API (`remote_query()` function).
+I created a JDBC Unity Catalog connection to test the Neo4j JDBC driver with Unity Catalog. I uploaded the Neo4j JDBC driver JAR to a Unity Catalog Volume, created a connection using `CREATE CONNECTION`, and queried Neo4j using both the Spark Data Source API (with the `databricks.connection` option) and the Remote Query SQL API (`remote_query()` function).
 
 The Neo4j JDBC driver works when I load it directly into Spark and bypass Unity Catalog. SELECT queries, COUNT aggregates, and NATURAL JOINs all translate correctly from SQL to Cypher and return expected results. The driver, the network, and the credentials are all working.
 
-The problem occurs when I route queries through the JDBC Unity Catalog connection. Both query methods fail with the same error: "Connection was closed before the operation completed." The error stack traces point to `com.databricks.safespark.jdbc.grpc_client.JdbcConnectClient`, which indicates the failure is happening inside Databricks' internal isolation layer for custom JDBC drivers. The connection closes during metadata resolution before any query reaches Neo4j.
+Previously, without the memory configuration settings above, queries through the JDBC Unity Catalog connection failed with the error: "Connection was closed before the operation completed." This was caused by metaspace memory exhaustion in the SafeSpark sandbox during driver initialization.
 
 ---
 
@@ -14,12 +34,14 @@ The problem occurs when I route queries through the JDBC Unity Catalog connectio
 
 ### Notebooks
 
-The following two Databricks notebooks demonstrate the issue and can be imported to reproduce it:
+The following two Databricks notebooks demonstrate the integration and can be imported to test it:
 
 | Notebook | Status | Description |
 |----------|--------|-------------|
-| [`neo4j_databricks_sql_translation.ipynb`](uc-neo4j-test-suite/neo4j_databricks_sql_translation.ipynb) | **FAIL** | Full test suite (Sections 1-8) covering network, drivers, direct JDBC, and Unity Catalog JDBC |
-| [`neo4j_schema_test.ipynb`](uc-neo4j-test-suite/neo4j_schema_test.ipynb) | **FAIL** | Focused schema testing (Sections 1, 3, 8) for JDBC metadata and UC object creation |
+| [`neo4j_databricks_sql_translation.ipynb`](uc-neo4j-test-suite/neo4j_databricks_sql_translation.ipynb) | **PASS** | Full test suite (Sections 1-8) covering network, drivers, direct JDBC, and Unity Catalog JDBC |
+| [`neo4j_schema_test.ipynb`](uc-neo4j-test-suite/neo4j_schema_test.ipynb) | **PASS** | Focused schema testing (Sections 1, 3, 8) for JDBC metadata and UC object creation |
+
+**Note:** Ensure the SafeSpark memory configuration settings are applied to your cluster before running these notebooks.
 
 ### Component Test Results
 
@@ -30,32 +52,40 @@ The following two Databricks notebooks demonstrate the issue and can be imported
 | Neo4j Spark Connector | PASS | `org.neo4j.spark.DataSource` works |
 | Neo4j JDBC SQL-to-Cypher | PASS | Aggregates, JOINs, and dbtable all work |
 | Direct JDBC (Non-UC) | PASS | Works with `customSchema` workaround |
-| **Unity Catalog JDBC** | **FAIL** | SafeSpark incompatibility |
-| **JDBC Schema Discovery via UC** | **FAIL** | SafeSpark closes connection during metadata resolution |
+| **Unity Catalog JDBC** | **PASS** | Works with SafeSpark memory configuration |
+| **JDBC Schema Discovery via UC** | **PASS** | Works with SafeSpark memory configuration |
 
-### Core Issue: SafeSpark Incompatibility
+### Root Cause and Resolution
 
 **The Neo4j JDBC driver works correctly with Spark.** I verified this by loading the driver directly into the Spark classpath and running queries without Unity Catalog. SELECT queries work. Aggregates like COUNT work. NATURAL JOINs translate to Cypher relationship traversals. The driver's SQL-to-Cypher translation is functioning as expected.
 
-**The failure happens inside Databricks' SafeSpark isolation layer.** When I create a JDBC Unity Catalog connection and query through it, the request goes through SafeSpark, which runs custom JDBC drivers in a sandboxed process and communicates with Spark via gRPC. The Neo4j driver never receives the query. Instead, SafeSpark closes the connection during its metadata resolution phase, before any SQL reaches the driver.
+**The root cause was metaspace memory exhaustion in the SafeSpark sandbox.** When using a JDBC Unity Catalog connection, SafeSpark runs custom JDBC drivers in a sandboxed process with limited memory. The Neo4j JDBC driver requires more metaspace for class loading than the default allocation provides, causing the connection to close during initialization.
 
-**What I tried that did not fix the issue:**
+**The fix:** Increase the SafeSpark sandbox memory by adding these Spark configuration settings to your cluster:
 
-1. **Added `customSchema` to bypass Spark's schema inference.** This works for direct JDBC but does not help with Unity Catalog connections. SafeSpark still attempts its own metadata resolution.
+```
+spark.databricks.safespark.jdbcSandbox.jvm.maxMetaspace.mib 128
+spark.databricks.safespark.jdbcSandbox.jvm.xmx.mib 300
+spark.databricks.safespark.jdbcSandbox.size.default.mib 512
+```
 
-2. **Added `customSchema` to `externalOptionsAllowList` in the connection definition.** This allows users to pass the option at query time, but SafeSpark still wraps queries in a subquery (`SELECT * FROM (query) WHERE 1=0`) for schema discovery, which fails.
-
-3. **Used the `FORCE_CYPHER` hint to send native Cypher.** The hint tells the Neo4j driver to skip SQL translation, but the query never reaches the driver because SafeSpark fails first.
-
-**What I believe is happening:** SafeSpark wraps the query to discover its schema before executing it. During this step, something about the Neo4j JDBC driver's response causes SafeSpark to close the connection. The error message "Connection was closed before the operation completed" suggests a timeout, crash, or protocol mismatch in the gRPC communication between Spark and the sandboxed driver process.
-
-**Conclusion:** This appears to be a compatibility issue between the Neo4j JDBC driver and Databricks SafeSpark that requires Databricks engineering support to investigate.
+With these settings, all Unity Catalog JDBC tests pass, including SQL aggregates, JOINs, filtering, and sorting.
 
 ---
 
-## Environment Setup to Reproduce the Issues
+## Environment Setup
 
-To run the two notebooks above and reproduce the issue, I used the following environment setup on Databricks.
+To run the two notebooks above, use the following environment setup on Databricks.
+
+### Required Spark Configuration
+
+**Critical:** Add these settings to your cluster to provide sufficient memory for the Neo4j JDBC driver in the SafeSpark sandbox:
+
+```
+spark.databricks.safespark.jdbcSandbox.jvm.maxMetaspace.mib 128
+spark.databricks.safespark.jdbcSandbox.jvm.xmx.mib 300
+spark.databricks.safespark.jdbcSandbox.size.default.mib 512
+```
 
 ### Preview Features
 | Feature | Status |
@@ -160,47 +190,67 @@ CREATE CONNECTION neo4j_connection TYPE JDBC ...
 **Result**: Connection created successfully. `DESCRIBE CONNECTION` shows correct configuration.
 
 ### 6. Unity Catalog JDBC Read (SafeSpark Wrapper)
-**Status**: FAIL (Connection Closed)
+**Status**: PASS (with memory configuration)
 
-Attempts to use the connection created in Step 5 (which uses Databricks "SafeSpark" isolation).
+Uses the connection created in Step 5 (which uses Databricks "SafeSpark" isolation).
 
-**Test 1: Spark DataFrame**
+**Required Configuration:** Add these Spark settings to your cluster:
+```
+spark.databricks.safespark.jdbcSandbox.jvm.maxMetaspace.mib 128
+spark.databricks.safespark.jdbcSandbox.jvm.xmx.mib 300
+spark.databricks.safespark.jdbcSandbox.size.default.mib 512
+```
+
+**Test 1: Spark DataFrame API** - PASS
 ```python
 df = spark.read.format("jdbc").option("databricks.connection", "neo4j_connection")...
 ```
 
-**Test 2: remote_query()**
+**Test 2: remote_query()** - PASS
 ```sql
 SELECT * FROM remote_query('neo4j_connection', query => 'SELECT 1')
 ```
 
-**Error (Both Tests)**:
-```
-java.lang.RuntimeException: Connection was closed before the operation completed.
-    at com.databricks.safespark.jdbc.grpc_client.JdbcConnectClient.awaitWhileConnected(JdbcConnectClient.scala:96)
-    at com.databricks.safespark.jdbc.grpc_client.JdbcGetRowsClient.fetchMetadata(JdbcGetRowsClient.scala:102)
+**Test 3: SQL Aggregate (COUNT)** - PASS
+```sql
+SELECT COUNT(*) AS flight_count FROM Flight
 ```
 
-**Observation**: The error originates entirely within the Databricks SafeSpark JDBC gRPC client. Since Direct JDBC (Step 4) works, the issue is specific to how SafeSpark wraps or interacts with the Neo4j JDBC driver.
+**Test 4: SQL JOIN Translation** - PASS
+```sql
+SELECT COUNT(*) FROM Flight f NATURAL JOIN DEPARTS_FROM r NATURAL JOIN Airport a
+```
+Translates to Cypher: `MATCH (f:Flight)-[:DEPARTS_FROM]->(a:Airport) RETURN count(*)`
+
+**Test 5: SQL Filtering and Sorting** - PASS
+```sql
+SELECT aircraft_id, tail_number, manufacturer, model FROM Aircraft
+WHERE manufacturer = 'Boeing' ORDER BY aircraft_id LIMIT 5
+```
+
+**Note**: Without the memory configuration, these tests fail with "Connection was closed before the operation completed" due to metaspace exhaustion in the SafeSpark sandbox.
 
 ---
 
-## Error Analysis
+## Resolution Details
 
-### Isolation to SafeSpark
+### Root Cause Analysis
 
-I confirmed the following components work correctly:
+Working with Databricks engineering, we identified that the "Connection was closed before the operation completed" error was caused by **metaspace running out of memory inside the SafeSpark sandbox**.
 
-1. Network connectivity passes the TCP test.
-2. Credentials work with the Python driver.
-3. Spark can exchange data with Neo4j using the Spark Connector.
-4. The JDBC driver works with Spark when loaded directly.
+The Neo4j JDBC driver requires more memory for class loading during initialization than the default SafeSpark sandbox allocation provides. When metaspace is exhausted, the JVM in the sandbox crashes, causing SafeSpark to report the connection as closed.
 
-The failure only occurs when using the JDBC Unity Catalog connection. This connection uses SafeSpark, which runs the JDBC driver in a separate sandboxed process and communicates via gRPC.
+### Fix Applied
 
-### Potential Causes
+The following Spark configuration settings increase the SafeSpark sandbox memory allocation:
 
-The Neo4j JDBC driver might be doing something during metadata retrieval or connection handshake that the SafeSpark gRPC wrapper does not handle correctly. The error message "Connection was closed before the operation completed" suggests the isolated process might be crashing or timing out during initialization.
+```
+spark.databricks.safespark.jdbcSandbox.jvm.maxMetaspace.mib 128
+spark.databricks.safespark.jdbcSandbox.jvm.xmx.mib 300
+spark.databricks.safespark.jdbcSandbox.size.default.mib 512
+```
+
+With these settings, the Neo4j JDBC driver initializes successfully and Unity Catalog JDBC connections work as expected.
 
 
 ---
