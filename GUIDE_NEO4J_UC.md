@@ -2,6 +2,26 @@
 
 This guide explains how to connect to Neo4j from Databricks using a Unity Catalog JDBC connection, including required configuration, supported query patterns, and best practices.
 
+---
+
+## Overview
+
+This integration was validated by working with Databricks engineering to resolve a SafeSpark compatibility issue. The root cause was **metaspace memory exhaustion** in the SafeSpark sandbox during Neo4j JDBC driver initialization. With the correct Spark configuration, Unity Catalog JDBC connections to Neo4j work correctly.
+
+### Component Test Results
+
+| Component | Status | Notes |
+|-----------|--------|-------|
+| Network Connectivity | **PASS** | TCP to Neo4j port 7687 |
+| Neo4j Python Driver | **PASS** | Bolt protocol works |
+| Neo4j Spark Connector | **PASS** | `org.neo4j.spark.DataSource` works |
+| Neo4j JDBC SQL-to-Cypher | **PASS** | Aggregates, JOINs, dbtable all work |
+| Direct JDBC (Non-UC) | **PASS** | Works with `customSchema` workaround |
+| **Unity Catalog JDBC** | **PASS** | Works with SafeSpark memory configuration |
+| **UC Schema Discovery** | **PASS** | Works with SafeSpark memory configuration |
+
+---
+
 ## Prerequisites
 
 ### 1. Databricks Preview Features
@@ -24,9 +44,17 @@ Upload these JARs to a Unity Catalog Volume:
 
 Example path: `/Volumes/catalog/schema/jars/`
 
-### 3. Cluster Libraries (for Direct JDBC)
+### 3. Cluster Libraries
 
-If using Direct JDBC (bypassing UC), install the JDBC JAR as a cluster library.
+For comprehensive testing, install these libraries on your cluster:
+
+| Library | Version | Purpose |
+|---------|---------|---------|
+| org.neo4j:neo4j-connector-apache-spark | 5.3.10 (Spark 3) | Neo4j Spark Connector |
+| neo4j (Python) | 6.0.2 | Neo4j Python Driver |
+| neo4j-jdbc-full-bundle | 6.10.3 | JDBC driver (cluster library for Direct JDBC) |
+
+For UC JDBC only, the cluster libraries are optional—the JARs are loaded from the UC Volume.
 
 ---
 
@@ -98,18 +126,43 @@ SELECT * FROM remote_query(
 
 ---
 
+## Validated Test Results
+
+The following results are from running `full_uc_tests.py` against a Neo4j Aura instance:
+
+| Test | Status | Result |
+|------|--------|--------|
+| Basic Query (`SELECT 1`) | **PASS** | 1 |
+| COUNT Aggregate | **PASS** | 2,400 flights |
+| Multiple Aggregates (COUNT, MIN, MAX) | **PASS** | 60 total, AC1001-AC1020 |
+| COUNT DISTINCT | **PASS** | 3 unique manufacturers |
+| Aggregate with WHERE (equals) | **PASS** | 15 Boeing aircraft |
+| Aggregate with WHERE (IN clause) | **PASS** | 45 Boeing+Airbus aircraft |
+| Aggregate with WHERE (AND) | **PASS** | 15 Boeing with model |
+| Aggregate with WHERE (IS NOT NULL) | **PASS** | 60 aircraft with icao24 |
+| JOIN with Aggregate (2-hop) | **PASS** | 11,200 relationships |
+| GROUP BY | **EXPECTED FAIL** | Subquery limitation |
+| Non-aggregate SELECT | **EXPECTED FAIL** | Subquery limitation |
+| ORDER BY | **EXPECTED FAIL** | Subquery limitation |
+
+**Success Rate: 100%** (9/9 supported patterns passed, 3 expected failures documented)
+
+---
+
 ## Supported Query Patterns
 
-These SQL patterns work through Unity Catalog JDBC:
+These SQL patterns have been validated to work through Unity Catalog JDBC:
 
 ### Simple Expressions
 ```sql
 SELECT 1 AS test
+-- Result: 1
 ```
 
 ### Aggregates (COUNT, MIN, MAX, SUM, AVG)
 ```sql
 SELECT COUNT(*) AS total FROM Flight
+-- Result: 2,400
 ```
 
 ### Multiple Aggregates
@@ -118,18 +171,40 @@ SELECT COUNT(*) AS total,
        MIN(aircraft_id) AS first_id,
        MAX(aircraft_id) AS last_id
 FROM Aircraft
+-- Result: {total: 60, first_id: 'AC1001', last_id: 'AC1020'}
 ```
 
 ### COUNT DISTINCT
 ```sql
 SELECT COUNT(DISTINCT manufacturer) AS unique_manufacturers FROM Aircraft
+-- Result: 3
 ```
 
-### Aggregates with WHERE
+### Aggregates with WHERE (Multiple Patterns)
 ```sql
+-- Equals
 SELECT COUNT(*) AS boeing_count
 FROM Aircraft
 WHERE manufacturer = 'Boeing'
+-- Result: 15
+
+-- IN clause
+SELECT COUNT(*) AS cnt
+FROM Aircraft
+WHERE manufacturer IN ('Boeing', 'Airbus')
+-- Result: 45
+
+-- AND with IS NOT NULL
+SELECT COUNT(*) AS cnt
+FROM Aircraft
+WHERE manufacturer = 'Boeing' AND model IS NOT NULL
+-- Result: 15
+
+-- IS NOT NULL
+SELECT COUNT(*) AS cnt
+FROM Aircraft
+WHERE icao24 IS NOT NULL
+-- Result: 60
 ```
 
 ### Aggregates with JOIN (Graph Traversal)
@@ -138,6 +213,7 @@ SELECT COUNT(*) AS relationship_count
 FROM Flight f
 NATURAL JOIN DEPARTS_FROM r
 NATURAL JOIN Airport a
+-- Result: 11,200
 ```
 
 This translates to Cypher: `MATCH (f:Flight)-[:DEPARTS_FROM]->(a:Airport) RETURN count(*)`
@@ -306,10 +382,63 @@ spark.databricks.safespark.jdbcSandbox.size.default.mib 512
 
 ---
 
+## Running the Test Suite
+
+A comprehensive test suite is available to validate your UC JDBC setup:
+
+```python
+# In Databricks notebook
+%run ./full_uc_tests
+
+# Or execute directly
+exec(open("/Workspace/path/to/full_uc_tests.py").read())
+```
+
+The test suite:
+- Loads configuration from Databricks Secrets
+- Creates/recreates the UC JDBC connection
+- Runs 12 tests covering all supported and unsupported patterns
+- Wraps all tests in try/except to prevent crashes
+- Provides detailed timing and results summary
+
+**Expected output:**
+```
+============================================================
+SUMMARY
+============================================================
+
+Total Tests: 12
+  Passed: 9
+  Failed: 0
+  Expected Failures: 3
+
+Success Rate: 100% (excluding expected failures)
+
+Total Execution Time: 194.1s
+```
+
+---
+
 ## References
 
+### Documentation
 - [Neo4j JDBC Driver Documentation](https://neo4j.com/docs/jdbc-manual/current/)
 - [Neo4j SQL2Cypher Translation](https://neo4j.com/docs/jdbc-manual/current/sql2cypher/)
 - [Neo4j Spark Connector](https://neo4j.com/docs/spark/current/)
 - [Databricks Unity Catalog JDBC](https://docs.databricks.com/aws/en/connect/jdbc-connection)
 - [Spark JDBC Data Sources](https://spark.apache.org/docs/latest/sql-data-sources-jdbc.html)
+
+### Test Suite Files
+
+| File | Description |
+|------|-------------|
+| `uc-neo4j-test-suite/full_uc_tests.py` | Standalone Python test suite for Databricks |
+| `uc-neo4j-test-suite/neo4j_databricks_sql_translation.ipynb` | Full test notebook (Sections 1-8) |
+| `uc-neo4j-test-suite/neo4j_schema_test.ipynb` | Schema testing notebook (Sections 1, 3, 8) |
+
+### Additional Examples
+
+| Directory | Description |
+|-----------|-------------|
+| `pyspark-translation-example/` | Local PySpark tests for SQL-to-Cypher translation |
+| `sample-sql-translation/` | Spring Boot app for JDBC connectivity testing |
