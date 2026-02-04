@@ -46,7 +46,9 @@ All of the connectivity tests can be viewed, run, and tested from this GitHub re
 | Unity Catalog - remote_query() Function | **PASS** | Works with SafeSpark memory configuration |
 | Unity Catalog - SQL Aggregate (COUNT) | **PASS** | `SELECT COUNT(*)` works through UC connection |
 | Unity Catalog - SQL JOIN Translation | **PASS** | `NATURAL JOIN` translates to Cypher via UC (11,200 relationships) |
-| Unity Catalog - SQL Filtering with Aggregate | **PASS** | `WHERE` with `COUNT()` works through UC |
+| Unity Catalog - SQL Filtering with Aggregate | **PASS** | `WHERE` with `COUNT()` works (15 Boeing aircraft) |
+| Unity Catalog - Multiple Aggregates | **PASS** | `COUNT`, `MIN`, `MAX` in single query (60 total, AC1001-AC1020) |
+| Unity Catalog - COUNT DISTINCT | **PASS** | `COUNT(DISTINCT col)` works (3 unique manufacturers) |
 
 ## Root Cause (Resolved)
 
@@ -356,7 +358,9 @@ Connection Configuration:
 - **remote_query() Function**: Tests Spark SQL `remote_query()` function - **PASS**
 - **SQL Aggregate (COUNT)**: Tests COUNT query through UC connection - **PASS**
 - **SQL JOIN Translation**: Tests NATURAL JOIN to Cypher relationship patterns via UC - **PASS** (11,200 relationships)
-- **SQL Filtering with Aggregate**: Tests WHERE with COUNT through UC connection - **PASS**
+- **SQL Filtering with Aggregate**: Tests WHERE with COUNT through UC connection - **PASS** (15 Boeing aircraft)
+- **Multiple Aggregates**: Tests COUNT, MIN, MAX in single query - **PASS** (60 total, AC1001-AC1020)
+- **COUNT DISTINCT**: Tests COUNT(DISTINCT col) - **PASS** (3 unique manufacturers)
 
 **Required Spark Configuration:**
 ```
@@ -372,15 +376,20 @@ With these settings, Unity Catalog JDBC queries to Neo4j work correctly.
 - Aggregates: `SELECT COUNT(*) FROM Label`
 - Aggregates with WHERE: `SELECT COUNT(*) FROM Label WHERE prop = 'value'`
 - Aggregates with JOIN: `SELECT COUNT(*) FROM A NATURAL JOIN REL NATURAL JOIN B`
+- Multiple aggregates: `SELECT COUNT(*), MIN(col), MAX(col) FROM Label`
+- COUNT DISTINCT: `SELECT COUNT(DISTINCT col) FROM Label`
 
 **Unsupported Query Patterns through UC:**
 - Non-aggregate SELECT with columns: `SELECT col1, col2 FROM Label` - fails because Spark wraps in subquery
+- GROUP BY: `SELECT col, COUNT(*) FROM Label GROUP BY col` - fails inside subquery
+- HAVING: `SELECT col, COUNT(*) FROM Label GROUP BY col HAVING COUNT(*) > n` - fails inside subquery
 - ORDER BY and LIMIT clauses - fail inside subqueries
 
-For non-aggregate queries, use the Neo4j Spark Connector or Direct JDBC (Section 5) instead.
+For unsupported patterns, use the Neo4j Spark Connector or Direct JDBC (Section 5) instead.
 
 ## Known Limitations
 - Neo4j JDBC returns `NullType()` during schema inference; `customSchema` is required
 - SafeSpark sandbox requires increased memory allocation for the Neo4j JDBC driver
-- **UC JDBC only supports aggregate queries** (COUNT, SUM, etc.) because Spark wraps queries in subqueries for schema resolution, and Neo4j SQL translator doesn't support subqueries
-- For non-aggregate queries (selecting rows/columns), use the Neo4j Spark Connector or Direct JDBC
+- **UC JDBC only supports aggregate queries without GROUP BY** because Spark wraps queries in subqueries for schema resolution, and Neo4j SQL translator doesn't support subqueries or GROUP BY inside subqueries
+- Unsupported through UC: non-aggregate SELECT, GROUP BY, HAVING, ORDER BY, LIMIT
+- For unsupported patterns, use the Neo4j Spark Connector or Direct JDBC

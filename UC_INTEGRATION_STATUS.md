@@ -227,15 +227,31 @@ Result: 11,200 matching relationships
 ```sql
 SELECT COUNT(*) AS boeing_count FROM Aircraft WHERE manufacturer = 'Boeing'
 ```
+Result: 15 Boeing aircraft
+
+**Test 6: Multiple Aggregates (COUNT, MIN, MAX)** - PASS
+```sql
+SELECT COUNT(*) AS total, MIN(aircraft_id) AS first_id, MAX(aircraft_id) AS last_id FROM Aircraft
+```
+Result: 60 total, AC1001-AC1020
+
+**Test 7: COUNT DISTINCT** - PASS
+```sql
+SELECT COUNT(DISTINCT manufacturer) AS unique_manufacturers FROM Aircraft
+```
+Result: 3 unique manufacturers
 
 **Supported Query Patterns through UC:**
 - Simple expressions: `SELECT 1 AS test`
 - Aggregates: `SELECT COUNT(*) FROM Label`
 - Aggregates with WHERE: `SELECT COUNT(*) FROM Label WHERE prop = 'value'`
 - Aggregates with JOIN: `SELECT COUNT(*) FROM A NATURAL JOIN REL NATURAL JOIN B`
+- Multiple aggregates: `SELECT COUNT(*), MIN(col), MAX(col) FROM Label`
+- COUNT DISTINCT: `SELECT COUNT(DISTINCT col) FROM Label`
 
 **Unsupported through UC (use Neo4j Spark Connector or Direct JDBC instead):**
-- Non-aggregate SELECT with columns (Spark wraps in subquery, Neo4j SQL translator doesn't support subqueries)
+- Non-aggregate SELECT with columns (Spark wraps in subquery)
+- GROUP BY and HAVING clauses (fail inside subqueries)
 - ORDER BY and LIMIT clauses
 
 **Note**: Without the memory configuration, these tests fail with "Connection was closed before the operation completed" due to metaspace exhaustion in the SafeSpark sandbox.
