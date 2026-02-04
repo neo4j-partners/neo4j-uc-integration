@@ -44,7 +44,7 @@ All of the connectivity tests can be viewed, run, and tested from this GitHub re
 - Unity Catalog - remote_query() Function: **PASS** - Works with SafeSpark memory configuration
 - Unity Catalog - SQL Aggregate (COUNT): **PASS** - `SELECT COUNT(*)` works through UC connection
 - Unity Catalog - SQL JOIN Translation: **PASS** - `NATURAL JOIN` translates to Cypher via UC (11,200 relationships)
-- Unity Catalog - SQL Filtering (WHERE/LIMIT): **PASS** - `WHERE` and `LIMIT` work through UC
+- Unity Catalog - SQL Filtering (WHERE): **PASS** - `WHERE` works through UC (use Spark `.limit()` for row limiting)
 
 ## Root Cause (Resolved)
 
@@ -354,7 +354,7 @@ Connection Configuration:
 - **remote_query() Function**: Tests Spark SQL `remote_query()` function - **PASS**
 - **SQL Aggregate (COUNT)**: Tests COUNT query through UC connection - **PASS**
 - **SQL JOIN Translation**: Tests NATURAL JOIN to Cypher relationship patterns via UC - **PASS** (11,200 relationships)
-- **SQL Filtering (WHERE/LIMIT)**: Tests WHERE and LIMIT through UC connection - **PASS**
+- **SQL Filtering (WHERE)**: Tests WHERE through UC connection - **PASS**
 
 **Required Spark Configuration:**
 ```
@@ -365,9 +365,12 @@ spark.databricks.safespark.jdbcSandbox.size.default.mib 512
 
 With these settings, Unity Catalog JDBC queries to Neo4j work correctly.
 
-**Note on ORDER BY:** `ORDER BY` is not supported through Unity Catalog because Spark wraps queries in a subquery for schema resolution (`SELECT * FROM (query) WHERE 1=0`), and `ORDER BY` inside subqueries is invalid SQL.
+**Note on ORDER BY and LIMIT:** These clauses are not supported through Unity Catalog because Spark wraps queries in a subquery for schema resolution (`SELECT * FROM (query) WHERE 1=0`), and `ORDER BY`/`LIMIT` inside subqueries cause syntax errors. Use Spark DataFrame methods instead:
+```python
+df.orderBy("column").limit(10).show()  # Apply sorting/limiting in Spark
+```
 
 ## Known Limitations
 - Neo4j JDBC returns `NullType()` during schema inference; `customSchema` is required
 - SafeSpark sandbox requires increased memory allocation for the Neo4j JDBC driver
-- `ORDER BY` is not supported through UC (Spark wraps queries in subqueries for schema resolution)
+- `ORDER BY` and `LIMIT` are not supported through UC (Spark wraps queries in subqueries for schema resolution; use Spark DataFrame methods instead)
