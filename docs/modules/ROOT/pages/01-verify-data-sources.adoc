@@ -34,22 +34,27 @@ FROM aircraft LIMIT 5
 ----
 
 .Expected Output
-[cols="1,1,1,1,1"]
-|===
-|aircraft_id |tail_number |model |manufacturer |operator
+[listing]
+....
+============================================================
+DELTA LAKEHOUSE TABLES
+============================================================
+  aircraft: 20 rows
+  systems: 80 rows
+  sensors: 160 rows
+  sensor_readings: 345,600 rows
 
-|AC-001
-|N7001X
-|737-800
-|Boeing
-|United Airlines
-
-|AC-002
-|N7002X
-|A320neo
-|Airbus
-|Delta Air Lines
-|===
+Sample aircraft data:
++-----------+-----------+--------+------------+-----------+
+|aircraft_id|tail_number|model   |manufacturer|operator   |
++-----------+-----------+--------+------------+-----------+
+|AC1001     |N95040A    |B737-800|Boeing      |ExampleAir |
+|AC1002     |N30268B    |A320-200|Airbus      |SkyWays    |
+|AC1003     |N54980C    |A321neo |Airbus      |RegionalCo |
+|AC1004     |N37272D    |E190    |Embraer     |NorthernJet|
+|AC1005     |N53032E    |B737-800|Boeing      |ExampleAir |
++-----------+-----------+--------+------------+-----------+
+....
 
 == Verify Neo4j UC JDBC Connection
 

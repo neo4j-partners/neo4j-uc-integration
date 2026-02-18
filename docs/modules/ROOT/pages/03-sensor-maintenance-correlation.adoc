@@ -90,36 +90,58 @@ ORDER BY m.total_events DESC NULLS LAST
 * **Delta** (4-table join): Aggregates sensor readings per aircraft, computing avg/max for EGT and vibration
 * **Federation**: LEFT JOINs both summaries on `aircraft_id` so every aircraft appears even without maintenance events
 
-== Sample Output
+== Expected Output
 
-[cols="1,1,1,1,1,1,1,1,1,1,1"]
-|===
-|tail_number |model |operator |maint_events |critical |major |minor |avg_egt_c |max_egt_c |avg_vib_ips |max_vib_ips
+[listing]
+....
+Loaded 300 maintenance events from Neo4j
 
-|N7001X
-|737-800
-|United Airlines
-|12
-|3
-|5
-|4
-|545.2
-|612.8
-|0.0315
-|0.0489
+Sample maintenance events:
++-----------+---------------+--------+----------------------------+
+|aircraft_id|fault          |severity|corrective_action           |
++-----------+---------------+--------+----------------------------+
+|AC1002     |Contamination  |CRITICAL|Adjusted tolerance          |
+|AC1017     |Sensor drift   |MINOR   |Replaced component          |
+|AC1003     |Leak           |MAJOR   |Replaced component          |
+|AC1009     |Fuel starvation|CRITICAL|Inspected and found no fault|
+|AC1008     |Bearing wear   |MINOR   |Replaced component          |
++-----------+---------------+--------+----------------------------+
+only showing top 5 rows
+....
 
-|N7002X
-|A320neo
-|Delta Air Lines
-|10
-|2
-|4
-|4
-|538.7
-|598.3
-|0.0298
-|0.0442
-|===
+== Federated Query Output
+
+[listing]
+....
+Sensor Health + Maintenance Correlation
+Delta: sensor_readings, sensors, systems, aircraft
+Neo4j: MaintenanceEvent nodes (Spark Connector)
+====================================================================================================
++-----------+--------+-----------+------------+--------+-----+-----+---------+---------+-----------+-----------+
+|tail_number|model   |operator   |maint_events|critical|major|minor|avg_egt_c|max_egt_c|avg_vib_ips|max_vib_ips|
++-----------+--------+-----------+------------+--------+-----+-----+---------+---------+-----------+-----------+
+|N76758N    |A320-200|SkyWays    |26          |7       |13   |6    |671.6    |698.2    |0.2659     |0.4911     |
+|N53032E    |B737-800|ExampleAir |25          |8       |9    |8    |671.6    |698.4    |0.266      |0.4913     |
+|N54980C    |A321neo |RegionalCo |20          |8       |6    |6    |671.6    |697.8    |0.266      |0.4898     |
+|N46224T    |E190    |NorthernJet|18          |4       |9    |5    |671.6    |697.1    |0.2661     |0.4922     |
+|N30268B    |A320-200|SkyWays    |18          |6       |8    |4    |671.6    |697.2    |0.2659     |0.4907     |
+|N86057G    |A321neo |RegionalCo |18          |6       |4    |8    |671.6    |698.5    |0.2659     |0.4874     |
+|N84110I    |B737-800|ExampleAir |17          |6       |4    |7    |671.6    |699.3    |0.2659     |0.4912     |
+|N37272D    |E190    |NorthernJet|15          |6       |4    |5    |671.6    |698.3    |0.266      |0.4875     |
+|N96107S    |A321neo |RegionalCo |15          |3       |3    |9    |671.6    |697.6    |0.2659     |0.4922     |
+|N81338F    |A320-200|SkyWays    |14          |6       |3    |5    |671.6    |698.8    |0.2659     |0.4943     |
+|N15332P    |E190    |NorthernJet|14          |2       |4    |8    |671.6    |697.3    |0.2658     |0.4901     |
+|N13211H    |E190    |NorthernJet|13          |6       |3    |4    |671.6    |699.1    |0.266      |0.4897     |
+|N26760M    |B737-800|ExampleAir |13          |6       |5    |2    |671.6    |697.0    |0.2659     |0.4884     |
+|N44342Q    |B737-800|ExampleAir |13          |5       |2    |6    |671.6    |697.9    |0.2658     |0.4953     |
+|N32276J    |A320-200|SkyWays    |12          |3       |4    |5    |671.6    |698.9    |0.266      |0.4929     |
+|N89365K    |A321neo |RegionalCo |12          |5       |2    |5    |671.6    |696.9    |0.2659     |0.4898     |
+|N95040A    |B737-800|ExampleAir |11          |5       |4    |2    |671.6    |697.8    |0.2659     |0.4886     |
+|N84703L    |E190    |NorthernJet|10          |5       |1    |4    |671.6    |698.3    |0.2659     |0.4976     |
+|N65164O    |A321neo |RegionalCo |9           |3       |2    |4    |671.7    |697.3    |0.2659     |0.4902     |
+|N63098R    |A320-200|SkyWays    |7           |1       |4    |2    |671.6    |699.3    |0.2658     |0.4959     |
++-----------+--------+-----------+------------+--------+-----+-----+---------+---------+-----------+-----------+
+....
 
 == Why Spark Connector Here
 

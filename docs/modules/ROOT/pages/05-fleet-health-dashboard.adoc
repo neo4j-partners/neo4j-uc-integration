@@ -91,45 +91,41 @@ ORDER BY COALESCE(m.critical, 0) DESC, COALESCE(m.events, 0) DESC
 * **Delta tables**: Per-aircraft sensor aggregates across all sensor types (EGT, vibration, fuel flow)
 * **Federation**: LEFT JOINs everything on `aircraft_id`, sorted by critical maintenance events descending
 
-== Sample Output
+== Expected Output
 
-[cols="1,1,1,1,1,1,1,1,1,1"]
-|===
-|tail_number |model |operator |flights |maint_events |critical |egt_c |vib_ips |fuel_kgs |readings
+[listing]
+....
+Graph traversal (Flight)-[:DEPARTS_FROM]->(Airport): 800 connections
 
-|N7003X
-|777-300ER
-|United Airlines
-|18
-|14
-|4
-|551.8
-|0.0328
-|1.95
-|17,280
-
-|N7001X
-|737-800
-|United Airlines
-|25
-|12
-|3
-|545.2
-|0.0315
-|1.88
-|17,280
-
-|N7005X
-|A350-900
-|Delta Air Lines
-|20
-|8
-|1
-|532.4
-|0.0291
-|1.76
-|17,280
-|===
+Fleet Health Dashboard
+Delta: sensor_readings, sensors, systems, aircraft
+Neo4j: MaintenanceEvent + Flight (Spark Connector), graph traversal (remote_query)
+====================================================================================================
++-----------+--------+-----------+-------+------------+--------+-----+-------+--------+--------+
+|tail_number|model   |operator   |flights|maint_events|critical|egt_c|vib_ips|fuel_kgs|readings|
++-----------+--------+-----------+-------+------------+--------+-----+-------+--------+--------+
+|N53032E    |B737-800|ExampleAir |27     |25          |8       |671.6|0.266  |1.39    |17280   |
+|N54980C    |A321neo |RegionalCo |34     |20          |8       |671.6|0.266  |1.39    |17280   |
+|N76758N    |A320-200|SkyWays    |46     |26          |7       |671.6|0.2659 |1.39    |17280   |
+|N30268B    |A320-200|SkyWays    |41     |18          |6       |671.6|0.2659 |1.39    |17280   |
+|N86057G    |A321neo |RegionalCo |51     |18          |6       |671.6|0.2659 |1.39    |17280   |
+|N84110I    |B737-800|ExampleAir |43     |17          |6       |671.6|0.2659 |1.39    |17280   |
+|N37272D    |E190    |NorthernJet|30     |15          |6       |671.6|0.266  |1.39    |17280   |
+|N81338F    |A320-200|SkyWays    |45     |14          |6       |671.6|0.2659 |1.39    |17280   |
+|N13211H    |E190    |NorthernJet|39     |13          |6       |671.6|0.266  |1.39    |17280   |
+|N26760M    |B737-800|ExampleAir |30     |13          |6       |671.6|0.2659 |1.39    |17280   |
+|N44342Q    |B737-800|ExampleAir |41     |13          |5       |671.6|0.2658 |1.39    |17280   |
+|N89365K    |A321neo |RegionalCo |48     |12          |5       |671.6|0.2659 |1.39    |17280   |
+|N95040A    |B737-800|ExampleAir |47     |11          |5       |671.6|0.2659 |1.39    |17280   |
+|N84703L    |E190    |NorthernJet|40     |10          |5       |671.6|0.2659 |1.39    |17280   |
+|N46224T    |E190    |NorthernJet|40     |18          |4       |671.6|0.2661 |1.39    |17280   |
+|N96107S    |A321neo |RegionalCo |41     |15          |3       |671.6|0.2659 |1.39    |17280   |
+|N32276J    |A320-200|SkyWays    |33     |12          |3       |671.6|0.266  |1.39    |17280   |
+|N65164O    |A321neo |RegionalCo |30     |9           |3       |671.7|0.2659 |1.39    |17280   |
+|N15332P    |E190    |NorthernJet|46     |14          |2       |671.6|0.2658 |1.39    |17280   |
+|N63098R    |A320-200|SkyWays    |48     |7           |1       |671.6|0.2658 |1.39    |17280   |
++-----------+--------+-----------+-------+------------+--------+-----+-------+--------+--------+
+....
 
 == Why This Pattern Matters
 

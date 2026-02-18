@@ -73,22 +73,19 @@ CROSS JOIN (
 * **Delta side** (1 subquery): Computes fleet-wide sensor averages across all 345K+ readings by sensor type
 * **CROSS JOIN**: Combines the single-row results from both sides into one unified fleet summary
 
-== Sample Output
+== Expected Output
 
-[cols="1,1,1,1,1,1,1,1,1"]
-|===
-|maint_events |critical |flights |airport_conns |avg_egt_c |avg_vib_ips |avg_fuel_kgs |avg_n1_rpm |readings
-
-|200
-|45
-|400
-|400
-|542.3
-|0.0312
-|1.85
-|9500
-|345,600
-|===
+[listing]
+....
+Fleet Summary — Neo4j Graph Metrics + Delta Sensor Analytics
+Neo4j: remote_query() via UC JDBC | Delta: sensor_readings + sensors
+================================================================================
++------------------------+---------------+-------------+--------------------------+---------------+-----------------+-----------------+----------------+--------------+
+|total_maintenance_events|critical_events|total_flights|flight_airport_connections|avg_egt_celsius|avg_vibration_ips|avg_fuel_flow_kgs|avg_n1_speed_rpm|total_readings|
++------------------------+---------------+-------------+--------------------------+---------------+-----------------+-----------------+----------------+--------------+
+|300                     |0              |800          |800                       |671.6          |0.2659           |1.39             |4768.0          |345600        |
++------------------------+---------------+-------------+--------------------------+---------------+-----------------+-----------------+----------------+--------------+
+....
 
 == Key Pattern
 

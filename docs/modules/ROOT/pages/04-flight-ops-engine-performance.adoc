@@ -87,32 +87,58 @@ ORDER BY f.total_flights DESC
 * **Delta** (3-table join): Aggregates engine-specific sensor readings (filtered to `sys.type = 'Engine'`) per aircraft
 * **Federation**: INNER JOINs both on `aircraft_id` — only aircraft with both flights and engine data appear
 
-== Sample Output
+== Expected Output — Load Flights
 
-[cols="1,1,1,1,1,1,1,1,1"]
-|===
-|tail_number |model |operator |flights |origins |destinations |avg_egt_c |fuel_kgs |n1_rpm
+[listing]
+....
+Loaded 800 flights from Neo4j
 
-|N7001X
-|737-800
-|United Airlines
-|25
-|8
-|12
-|548.3
-|1.92
-|9520
+Sample flight data:
++-----------+-------------+-----------+------+-----------+
+|aircraft_id|flight_number|operator   |origin|destination|
++-----------+-------------+-----------+------+-----------+
+|AC1013     |EX370        |ExampleAir |PHX   |SEA        |
+|AC1014     |SK739        |SkyWays    |SEA   |SFO        |
+|AC1012     |NO833        |NorthernJet|ATL   |LAX        |
+|AC1008     |NO234        |NorthernJet|DFW   |LAX        |
+|AC1001     |EX199        |ExampleAir |MIA   |SFO        |
++-----------+-------------+-----------+------+-----------+
+only showing top 5 rows
+....
 
-|N7002X
-|A320neo
-|Delta Air Lines
-|22
-|7
-|10
-|535.1
-|1.78
-|9480
-|===
+== Expected Output — Federated Query
+
+[listing]
+....
+Flight Operations + Engine Performance
+Delta: sensor_readings (Engine sensors), sensors, systems, aircraft
+Neo4j: Flight nodes (Spark Connector)
+==========================================================================================
++-----------+--------+-----------+-------------+-------+------------+---------+--------+------+
+|tail_number|model   |operator   |total_flights|origins|destinations|avg_egt_c|fuel_kgs|n1_rpm|
++-----------+--------+-----------+-------------+-------+------------+---------+--------+------+
+|N86057G    |A321neo |RegionalCo |51           |12     |12          |671.6    |1.39    |4768.0|
+|N63098R    |A320-200|SkyWays    |48           |11     |12          |671.6    |1.39    |4768.0|
+|N89365K    |A321neo |RegionalCo |48           |12     |12          |671.6    |1.39    |4768.0|
+|N95040A    |B737-800|ExampleAir |47           |12     |12          |671.6    |1.39    |4768.0|
+|N76758N    |A320-200|SkyWays    |46           |12     |12          |671.6    |1.39    |4768.0|
+|N15332P    |E190    |NorthernJet|46           |10     |11          |671.6    |1.39    |4768.0|
+|N81338F    |A320-200|SkyWays    |45           |12     |12          |671.6    |1.39    |4768.0|
+|N84110I    |B737-800|ExampleAir |43           |12     |12          |671.6    |1.39    |4768.0|
+|N30268B    |A320-200|SkyWays    |41           |12     |12          |671.6    |1.39    |4768.0|
+|N96107S    |A321neo |RegionalCo |41           |12     |12          |671.6    |1.39    |4768.0|
+|N44342Q    |B737-800|ExampleAir |41           |12     |12          |671.6    |1.39    |4768.0|
+|N46224T    |E190    |NorthernJet|40           |12     |10          |671.6    |1.39    |4768.0|
+|N84703L    |E190    |NorthernJet|40           |12     |12          |671.6    |1.39    |4768.0|
+|N13211H    |E190    |NorthernJet|39           |9      |12          |671.6    |1.39    |4768.0|
+|N54980C    |A321neo |RegionalCo |34           |12     |11          |671.6    |1.39    |4768.0|
+|N32276J    |A320-200|SkyWays    |33           |12     |12          |671.6    |1.39    |4768.0|
+|N37272D    |E190    |NorthernJet|30           |11     |10          |671.6    |1.39    |4768.0|
+|N65164O    |A321neo |RegionalCo |30           |12     |12          |671.7    |1.39    |4768.0|
+|N26760M    |B737-800|ExampleAir |30           |11     |12          |671.6    |1.39    |4769.0|
+|N53032E    |B737-800|ExampleAir |27           |10     |12          |671.6    |1.39    |4768.0|
++-----------+--------+-----------+-------------+-------+------------+---------+--------+------+
+....
 
 == Key Difference from Query 3
 
