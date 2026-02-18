@@ -249,8 +249,8 @@
     {
       "id": "left_inner_box",
       "type": "rectangle",
-      "x": 80.68359375,
-      "y": 186.38671875,
+      "x": 80,
+      "y": 185,
       "width": 290,
       "height": 150,
       "angle": 0,
@@ -268,8 +268,8 @@
         "type": 3
       },
       "seed": 100007,
-      "version": 11,
-      "versionNonce": 2090066383,
+      "version": 2,
+      "versionNonce": 100007,
       "isDeleted": false,
       "boundElements": [
         {
@@ -277,15 +277,15 @@
           "type": "text"
         }
       ],
-      "updated": 1771393930575,
+      "updated": 1700000000000,
       "link": null,
       "locked": false
     },
     {
       "id": "left_inner_text",
       "type": "text",
-      "x": 90.68359375,
-      "y": 198.38671875,
+      "x": 90,
+      "y": 197,
       "width": 270,
       "height": 126,
       "angle": 0,
@@ -301,11 +301,11 @@
       "index": "a7",
       "roundness": null,
       "seed": 100008,
-      "version": 11,
-      "versionNonce": 779407343,
+      "version": 2,
+      "versionNonce": 100008,
       "isDeleted": false,
       "boundElements": [],
-      "updated": 1771393930575,
+      "updated": 1700000000000,
       "link": null,
       "locked": false,
       "text": "sensor_readings (345,600 rows)\nsensors (160)\nsystems (80)\naircraft (20)",
@@ -358,8 +358,8 @@
     {
       "id": "left_bestfor_items",
       "type": "text",
-      "x": 80.6875,
-      "y": 371.5546875,
+      "x": 80,
+      "y": 372,
       "width": 290,
       "height": 60,
       "angle": 0,
@@ -375,11 +375,11 @@
       "index": "a9",
       "roundness": null,
       "seed": 100010,
-      "version": 6,
-      "versionNonce": 1797913231,
+      "version": 2,
+      "versionNonce": 100010,
       "isDeleted": false,
       "boundElements": [],
-      "updated": 1771393931409,
+      "updated": 1700000000000,
       "link": null,
       "locked": false,
       "text": "- Time-series analytics\n- Statistical aggregates\n- Sensor trend analysis",
@@ -499,8 +499,8 @@
     {
       "id": "right_inner_box",
       "type": "rectangle",
-      "x": 430.484375,
-      "y": 184.9609375,
+      "x": 430,
+      "y": 185,
       "width": 290,
       "height": 150,
       "angle": 0,
@@ -518,8 +518,8 @@
         "type": 3
       },
       "seed": 100013,
-      "version": 39,
-      "versionNonce": 935726575,
+      "version": 2,
+      "versionNonce": 100013,
       "isDeleted": false,
       "boundElements": [
         {
@@ -527,15 +527,15 @@
           "type": "text"
         }
       ],
-      "updated": 1771393929810,
+      "updated": 1700000000000,
       "link": null,
       "locked": false
     },
     {
       "id": "right_inner_text",
       "type": "text",
-      "x": 440.484375,
-      "y": 196.9609375,
+      "x": 440,
+      "y": 197,
       "width": 270,
       "height": 126,
       "angle": 0,
@@ -551,11 +551,11 @@
       "index": "b3",
       "roundness": null,
       "seed": 100014,
-      "version": 39,
-      "versionNonce": 1993111567,
+      "version": 2,
+      "versionNonce": 100014,
       "isDeleted": false,
       "boundElements": [],
-      "updated": 1771393929810,
+      "updated": 1700000000000,
       "link": null,
       "locked": false,
       "text": "MaintenanceEvent nodes\nFlight nodes\nComponent topology\nAirport relationships\nDelay events",

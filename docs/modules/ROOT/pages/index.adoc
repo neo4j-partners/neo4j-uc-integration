@@ -138,6 +138,10 @@ Comprehensive fleet health view combining all data sources using both federation
 
 **Method:** Hybrid — `remote_query()` + Spark Connector + Delta tables
 
+== xref:06-uc-integration-setup.adoc[Deep Dive: UC Integration Setup]
+
+How the Neo4j JDBC connection to Unity Catalog was built, including the SafeSpark memory fix, SQL-to-Cypher translation details, the `customSchema` requirement, validated query patterns, and workarounds for unsupported SQL constructs.
+
 == Prerequisites
 
 1. Lakehouse tables in Unity Catalog: `aircraft`, `systems`, `sensors`, `sensor_readings`

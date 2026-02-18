@@ -1,0 +1,410 @@
+= Deep Dive: Setting Up the Neo4j UC JDBC Integration
+:description: Step-by-step walkthrough of connecting Neo4j to Databricks Unity Catalog via JDBC, including the SafeSpark fix, SQL-to-Cypher translation, and validated query patterns
+
+[.lead]
+The federated queries in this guide depend on a Unity Catalog JDBC connection to Neo4j. Getting that connection working required solving a SafeSpark sandbox memory issue in collaboration with Databricks engineering. This section walks through the full setup, from uploading JARs to running validated queries, so the integration can be reproduced in any Databricks workspace.
+
+== The Problem
+
+Databricks Unity Catalog supports JDBC connections to external databases through https://docs.databricks.com/query-federation/[Lakehouse Federation]. In theory, any database with a JDBC driver can participate. In practice, connecting Neo4j hit a wall.
+
+The Neo4j Python driver worked. The Neo4j Spark Connector worked. Direct JDBC outside of Unity Catalog worked. The UC JDBC connection failed every time with the same error:
+
+[source,text]
+----
+Connection was closed before the operation completed
+----
+
+The error originated in `com.databricks.safespark.jdbc.grpc_client.JdbcConnectClient.awaitWhileConnected`, which pointed to the SafeSpark sandbox, not Neo4j itself. SafeSpark is the isolation layer Databricks uses to run JDBC drivers in a sandboxed JVM, preventing untrusted driver code from accessing cluster internals. The Neo4j JDBC driver, with its built-in SQL-to-Cypher translator, loads more classes during initialization than most JDBC drivers. The default SafeSpark sandbox allocated too little metaspace memory for that class loading, so the sandboxed JVM crashed silently.
+
+== The Fix: SafeSpark Memory Configuration
+
+Three Spark configuration properties control the SafeSpark sandbox memory allocation. Adding these to the Databricks cluster configuration resolves the issue:
+
+[source,properties]
+----
+spark.databricks.safespark.jdbcSandbox.jvm.maxMetaspace.mib 128
+spark.databricks.safespark.jdbcSandbox.jvm.xmx.mib 300
+spark.databricks.safespark.jdbcSandbox.size.default.mib 512
+----
+
+These go in the cluster's **Advanced Options > Spark > Spark Config** section. Without them, every UC JDBC query to Neo4j will fail with the "Connection was closed" error, regardless of whether the query itself is valid.
+
+== Prerequisites
+
+Before creating the connection, three things need to be in place.
+
+=== Databricks Preview Features
+
+Two preview features must be enabled in the Databricks workspace:
+
+[cols="1,2"]
+|===
+|Feature |Purpose
+
+|Custom JDBC on UC Compute
+|Allows loading custom JDBC driver JARs in UC connections
+
+|`remote_query` table-valued function
+|Enables the `remote_query()` SQL function for querying external sources
+|===
+
+=== JDBC Driver JARs
+
+The Neo4j JDBC driver ships as two JARs that need to be uploaded to a Unity Catalog Volume:
+
+[cols="1,2"]
+|===
+|JAR |Purpose
+
+|`neo4j-jdbc-full-bundle-6.10.3.jar`
+|The JDBC driver itself, including the SQL-to-Cypher translation engine
+
+|`neo4j-jdbc-translator-sparkcleaner-6.10.3.jar`
+|Cleans Spark-generated SQL artifacts before translation (removes `SPARK_GEN_SUBQ` wrappers and similar constructs)
+|===
+
+Upload both to a UC Volume path, for example `/Volumes/catalog/schema/jars/`. The `CREATE CONNECTION` statement references these paths directly, so the Volume must be accessible from the cluster.
+
+=== Credentials in Databricks Secrets
+
+Store Neo4j credentials in a Databricks secret scope rather than hardcoding them. The test suite uses a scope called `neo4j-uc-creds` with these keys:
+
+[source,python]
+----
+SCOPE_NAME = "neo4j-uc-creds"
+
+NEO4J_HOST = dbutils.secrets.get(SCOPE_NAME, "host")
+NEO4J_USER = dbutils.secrets.get(SCOPE_NAME, "user")
+NEO4J_PASSWORD = dbutils.secrets.get(SCOPE_NAME, "password")
+JDBC_JAR_PATH = dbutils.secrets.get(SCOPE_NAME, "jdbc_jar_path")
+CLEANER_JAR_PATH = dbutils.secrets.get(SCOPE_NAME, "cleaner_jar_path")
+UC_CONNECTION_NAME = dbutils.secrets.get(SCOPE_NAME, "connection_name")
+----
+
+A `setup.sh` script in the test suite reads from a `.env` file and configures these secrets automatically using the Databricks CLI.
+
+== Creating the UC Connection
+
+With the prerequisites in place, the connection is a single SQL statement:
+
+[source,sql]
+----
+CREATE CONNECTION neo4j_connection TYPE JDBC
+ENVIRONMENT (
+  java_dependencies '[
+    "/Volumes/catalog/schema/jars/neo4j-jdbc-full-bundle-6.10.3.jar",
+    "/Volumes/catalog/schema/jars/neo4j-jdbc-translator-sparkcleaner-6.10.3.jar"
+  ]'
+)
+OPTIONS (
+  url 'jdbc:neo4j+s://your-host:7687/neo4j?enableSQLTranslation=true',
+  user secret('neo4j-uc-creds', 'user'),
+  password secret('neo4j-uc-creds', 'password'),
+  driver 'org.neo4j.jdbc.Neo4jDriver',
+  externalOptionsAllowList 'dbtable,query,customSchema'
+)
+----
+
+A few things to note about this statement.
+
+The `ENVIRONMENT` block uses `java_dependencies` to load the two JARs from the UC Volume. This is how the SafeSpark sandbox gets the driver classes. Both JARs are required. The spark cleaner JAR preprocesses Spark-generated SQL before the main driver translates it to Cypher.
+
+The JDBC URL includes `enableSQLTranslation=true` as a query parameter. This activates the driver's built-in SQL-to-Cypher translator, which is what makes the whole federation approach work. Without it, the driver expects native Cypher and Spark's SQL queries would fail.
+
+The `externalOptionsAllowList` property is significant. By default, UC JDBC connections only allow connection-level options. Adding `customSchema` to the allow list lets individual queries specify their own schema, which turns out to be mandatory for Neo4j (explained in the next section).
+
+To verify the connection was created correctly:
+
+[source,sql]
+----
+DESCRIBE CONNECTION neo4j_connection
+----
+
+== How SQL-to-Cypher Translation Works
+
+The Neo4j JDBC driver translates standard SQL into Cypher automatically. Neo4j labels become SQL tables, relationship types become JOIN targets, and node properties become columns. This translation is what allows Databricks to treat Neo4j as a SQL-compatible data source.
+
+Here are the translations validated against the test suite:
+
+[cols="1,1"]
+|===
+|SQL |Cypher
+
+|`SELECT COUNT(*) FROM Flight`
+|`MATCH (n:Flight) RETURN count(n)`
+
+|`SELECT COUNT(*) FROM Aircraft WHERE manufacturer = 'Boeing'`
+|`MATCH (n:Aircraft) WHERE n.manufacturer = 'Boeing' RETURN count(n)`
+
+|`SELECT COUNT(DISTINCT manufacturer) FROM Aircraft`
+|`MATCH (n:Aircraft) RETURN count(DISTINCT n.manufacturer)`
+
+|`FROM Flight f NATURAL JOIN DEPARTS_FROM r NATURAL JOIN Airport a`
+|`MATCH (f:Flight)-[:DEPARTS_FROM]->(a:Airport)`
+|===
+
+The `NATURAL JOIN` syntax maps to Cypher relationship traversals. The first table is the source node label, the middle "table" is the relationship type, and the last table is the target node label. This is the mechanism behind the graph traversal counts in the federated queries.
+
+== The customSchema Requirement
+
+Spark's JDBC reader runs a schema inference step before executing any query. It sends a modified version of the query with `WHERE 1=0` to get column metadata without fetching actual data. Neo4j's JDBC driver returns `NullType()` for all columns during this inference step, which causes Spark to fail with a `No column has been read prior to this call` error.
+
+The fix is to always provide an explicit `customSchema` option that tells Spark the column names and types, bypassing inference entirely:
+
+[source,python]
+----
+# This fails - Spark can't infer the schema from Neo4j
+df = spark.read.format("jdbc") \
+    .option("databricks.connection", "neo4j_connection") \
+    .option("query", "SELECT COUNT(*) AS cnt FROM Flight") \
+    .load()
+
+# This works - schema is specified explicitly
+df = spark.read.format("jdbc") \
+    .option("databricks.connection", "neo4j_connection") \
+    .option("query", "SELECT COUNT(*) AS cnt FROM Flight") \
+    .option("customSchema", "cnt LONG") \
+    .load()
+----
+
+Every query through the UC JDBC connection needs `customSchema`. There are no exceptions. The column names in the schema must match the aliases in the SQL query, and the types must match what Neo4j returns (typically `LONG` for counts, `STRING` for text properties, `DOUBLE` for floating-point values).
+
+== Two Ways to Query
+
+Once the connection exists, there are two ways to use it.
+
+=== Spark DataFrame API
+
+The DataFrame API uses `spark.read.format("jdbc")` with the `databricks.connection` option pointing to the UC connection name:
+
+[source,python]
+----
+df = spark.read.format("jdbc") \
+    .option("databricks.connection", "neo4j_connection") \
+    .option("query", "SELECT COUNT(*) AS cnt FROM Flight") \
+    .option("customSchema", "cnt LONG") \
+    .load()
+
+df.show()
+# +----+
+# | cnt|
+# +----+
+# |2400|
+# +----+
+----
+
+This returns a standard Spark DataFrame that can be joined with Delta tables, registered as a temp view, or used in any Spark operation.
+
+=== remote_query() SQL Function
+
+The `remote_query()` function lets SQL queries reference the connection directly, without PySpark:
+
+[source,sql]
+----
+SELECT * FROM remote_query(
+    'neo4j_connection',
+    query => 'SELECT COUNT(*) AS cnt FROM Flight'
+)
+----
+
+This is pure SQL, which makes it useful for dashboards, SQL notebooks, and cases where the query result can be used directly without further DataFrame transformations. It also handles schema inference internally, so `customSchema` is not required.
+
+== What Works and What Doesn't
+
+Spark wraps JDBC queries in subqueries for schema resolution. The wrapping looks like `SELECT * FROM (your_query) SPARK_GEN_SUBQ_0 WHERE 1=0`. The spark cleaner JAR strips most of these artifacts, but certain SQL constructs break when nested inside a subquery on the Neo4j side.
+
+=== Supported Patterns
+
+These SQL patterns have been validated through UC JDBC with 100% pass rate:
+
+[cols="2,1,2"]
+|===
+|Pattern |Status |Example
+
+|Simple expressions
+|PASS
+|`SELECT 1 AS test`
+
+|COUNT aggregate
+|PASS
+|`SELECT COUNT(*) AS cnt FROM Flight`
+
+|Multiple aggregates
+|PASS
+|`SELECT COUNT(*), MIN(aircraft_id), MAX(aircraft_id) FROM Aircraft`
+
+|COUNT DISTINCT
+|PASS
+|`SELECT COUNT(DISTINCT manufacturer) FROM Aircraft`
+
+|Aggregate with WHERE (equals)
+|PASS
+|`WHERE manufacturer = 'Boeing'`
+
+|Aggregate with WHERE (IN)
+|PASS
+|`WHERE manufacturer IN ('Boeing', 'Airbus')`
+
+|Aggregate with WHERE (AND)
+|PASS
+|`WHERE manufacturer = 'Boeing' AND model IS NOT NULL`
+
+|Aggregate with WHERE (IS NOT NULL)
+|PASS
+|`WHERE icao24 IS NOT NULL`
+
+|JOIN with aggregate
+|PASS
+|`FROM Flight NATURAL JOIN DEPARTS_FROM NATURAL JOIN Airport`
+|===
+
+=== Unsupported Patterns
+
+These patterns fail because the SQL constructs are invalid inside the subquery wrapper that Spark generates:
+
+[cols="1,2"]
+|===
+|Pattern |Failure Reason
+
+|`GROUP BY`
+|GROUP BY inside a subquery is invalid in the Neo4j SQL translator
+
+|`ORDER BY`
+|ORDER BY inside a subquery is invalid
+
+|`LIMIT`
+|LIMIT inside a subquery is invalid
+
+|`HAVING`
+|HAVING inside a subquery is invalid
+
+|Non-aggregate `SELECT`
+|`SELECT col1, col2 FROM Label` fails in the subquery context
+|===
+
+The practical implication: UC JDBC works well for aggregate analytics (counts, sums, averages, min/max) with optional WHERE filters and JOINs. For row-level data access, GROUP BY queries, or anything requiring ORDER BY, use the Neo4j Spark Connector instead. The federated queries in this guide use both methods, choosing whichever fits the query pattern.
+
+=== Workarounds for Unsupported Patterns
+
+For GROUP BY or row-level access, the Neo4j Spark Connector bypasses UC entirely and speaks Cypher natively:
+
+[source,python]
+----
+df = spark.read.format("org.neo4j.spark.DataSource") \
+    .option("url", "neo4j+s://your-host") \
+    .option("authentication.type", "basic") \
+    .option("authentication.basic.username", user) \
+    .option("authentication.basic.password", password) \
+    .option("query", "MATCH (a:Aircraft) RETURN a.aircraft_id, a.manufacturer LIMIT 10") \
+    .load()
+----
+
+For ORDER BY and LIMIT, run the aggregate through UC JDBC and apply sorting in Spark after:
+
+[source,python]
+----
+df = spark.read.format("jdbc") \
+    .option("databricks.connection", "neo4j_connection") \
+    .option("query", "SELECT COUNT(*) AS cnt FROM Flight") \
+    .option("customSchema", "cnt LONG") \
+    .load()
+
+df.orderBy("cnt", ascending=False).limit(10).show()
+----
+
+== Validated Test Results
+
+The full test suite (`full_uc_tests.py`) runs 12 tests against a live Neo4j Aura instance through the UC JDBC connection:
+
+[cols="2,1,2"]
+|===
+|Test |Status |Result
+
+|Basic Query (`SELECT 1`)
+|PASS
+|1
+
+|COUNT Aggregate
+|PASS
+|2,400 flights
+
+|Multiple Aggregates (COUNT, MIN, MAX)
+|PASS
+|60 aircraft, AC1001-AC1020
+
+|COUNT DISTINCT
+|PASS
+|3 unique manufacturers
+
+|Aggregate with WHERE (equals)
+|PASS
+|15 Boeing aircraft
+
+|Aggregate with WHERE (IN clause)
+|PASS
+|45 Boeing+Airbus aircraft
+
+|Aggregate with WHERE (AND)
+|PASS
+|15 Boeing with model
+
+|Aggregate with WHERE (IS NOT NULL)
+|PASS
+|60 aircraft with icao24
+
+|JOIN with Aggregate (2-hop)
+|PASS
+|11,200 relationships
+
+|GROUP BY
+|EXPECTED FAIL
+|Subquery limitation
+
+|Non-aggregate SELECT
+|EXPECTED FAIL
+|Subquery limitation
+
+|ORDER BY
+|EXPECTED FAIL
+|Subquery limitation
+|===
+
+9 of 9 supported patterns passed. 3 expected failures confirmed. Total execution time across all tests was approximately 194 seconds, with most of the time spent on connection initialization rather than query execution.
+
+== Choosing the Right Method
+
+Both federation methods have a place. The right choice depends on the query pattern:
+
+[cols="2,2"]
+|===
+|Use Case |Recommended Method
+
+|Aggregate analytics (COUNT, SUM, AVG, MIN, MAX)
+|UC JDBC via `remote_query()` or DataFrame API
+
+|Graph traversal counts (flights per airport, maintenance per system)
+|UC JDBC with NATURAL JOIN
+
+|Row-level data access (list all aircraft, all flights)
+|Neo4j Spark Connector
+
+|Complex Cypher (variable-length paths, graph algorithms)
+|Neo4j Spark Connector
+
+|GROUP BY analytics
+|Neo4j Spark Connector
+
+|Ad-hoc graph exploration
+|Neo4j Python Driver
+|===
+
+The federated queries in this guide use UC JDBC for aggregate counts and the Spark Connector for row-level data, combining both in a single analysis when needed. Query 5 (Fleet Health Dashboard) demonstrates this hybrid approach.
+
+== References
+
+* https://github.com/neo4j-field/neo4j-uc-integration/blob/main/GUIDE_NEO4J_UC.md[Neo4j UC JDBC Setup Guide] - Full configuration reference
+* https://neo4j.com/docs/jdbc-manual/current/[Neo4j JDBC Driver Documentation]
+* https://neo4j.com/docs/jdbc-manual/current/sql2cypher/[Neo4j SQL2Cypher Translation Rules]
+* https://docs.databricks.com/query-federation/[Databricks Lakehouse Federation]
+* https://docs.databricks.com/sql/language-manual/functions/remote_query[Databricks remote_query() Reference]
