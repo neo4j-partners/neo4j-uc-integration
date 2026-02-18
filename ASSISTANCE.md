@@ -8,20 +8,22 @@
 
 Hi team,
 
-I need your help surfacing customers who run both Neo4j and Databricks and would be interested in Neo4j integration into Unity Catalog. We have a working integration that lets Databricks users query Neo4j through Unity Catalog using the Neo4j JDBC driver, and we're requesting Databricks to add official support. They prioritize based on customer demand, so even a brief description of the use case would help. Customer names can be anonymous. For example, one customer in the defense industry needs to enforce fine-grained security across all their data sources through Unity Catalog rather than managing access controls separately in each system. Another has dozens of data sources and wants Unity Catalog to create unified views joining graph data from Neo4j with lakehouse tables without building custom pipelines for each source. Another has graph data in Neo4j that their Databricks analysts need to access alongside lakehouse data. Any customers expressing interest would move the needle s0 any assistance would be greatly appreciated.
+I need your help surfacing customers who run both Neo4j and Databricks and would be interested in Neo4j integration into Unity Catalog. We have a working integration that lets Databricks users query Neo4j through Unity Catalog using the Neo4j JDBC driver, and we're requesting Databricks to add official support. They prioritize based on customer demand, so even a brief description of the use case would help. Customer names can be anonymous. More details on the integration can be found here: https://neo4j-partners.github.io/neo4j-uc-integration/neo4j-uc-integration-docs/1.0/index.html
+
+For example, one customer in the defense industry needs unified security enforcement across all data sources through Unity Catalog. Another wants to join Neo4j graph data with lakehouse tables without building custom pipelines for each source. Another has graph data their Databricks analysts need alongside lakehouse data. Any customers expressing interest would move the needle so any assistance would be greatly appreciated.
 
 
-Some background on how the integration works: the Neo4j JDBC driver plugs into Databricks Unity Catalog's custom JDBC support to enable federated queries against Neo4j from inside Databricks. SQL queries get translated to Cypher automatically, so analysts can query graph data without learning a new language. Results come back as standard Spark DataFrames and can be joined with Delta tables, Iceberg tables, lakehouse relational data, or any other UC data source. All connections run under Unity Catalog governance with access controls, audit logging, and credentials stored in Databricks Secrets.
+Some background: the Neo4j JDBC driver plugs into Unity Catalog's custom JDBC support for federated queries against Neo4j from inside Databricks. SQL queries get translated to Cypher automatically, and results come back as standard Spark DataFrames that can be joined with Delta tables, Iceberg tables, or any other UC data source. All connections run under Unity Catalog governance with access controls and audit logging.
 
 ## Example Use Cases
 
-- **Fraud detection** — A fraud detection team with transaction data in Delta tables and entity relationships (accounts, devices, shared identifiers) in Neo4j. Today, combining those datasets requires custom ETL or duplicate copies. With this integration, a single Databricks notebook joins Neo4j graph traversal results with Delta table aggregations in one query. No data movement, no pipeline to maintain. The integration supports aggregates, filtered queries, COUNT DISTINCT, and multi-hop traversals expressed as SQL JOINs, with aggregation pushed down to Neo4j so only results travel over the network.
+- **Fraud detection** — Join transaction data in Delta tables with entity relationships in Neo4j in a single notebook query. No data movement, no pipeline to maintain.
 
-- **Knowledge graph-enriched ML pipelines** — Data science teams training models on lakehouse data can pull graph-derived features (node centrality, community detection scores, relationship counts) directly from Neo4j without building separate ETL to extract and materialize those features into Delta tables.
+- **Knowledge graph-enriched ML** — Pull graph-derived features (centrality, community scores, relationship counts) directly from Neo4j into model training without separate ETL.
 
-- **Supply chain visibility** — Organizations modeling supplier networks and dependencies in Neo4j can join that graph data with inventory and logistics data in Delta tables for real-time risk assessment and disruption analysis, all from a single Databricks notebook.
+- **Supply chain visibility** — Join supplier network data in Neo4j with inventory and logistics in Delta tables for risk assessment and disruption analysis.
 
-- **Ad hoc exploration before ETL investment** — Analysts can prototype cross-system queries joining Neo4j graph data with lakehouse tables before committing to building a full ingestion pipeline. This is exactly the proof-of-concept scenario Databricks recommends federation for.
+- **Ad hoc exploration** — Prototype cross-system queries joining Neo4j with lakehouse tables before committing to a full ingestion pipeline.
 
 Thanks for any leads you can surface.
 
