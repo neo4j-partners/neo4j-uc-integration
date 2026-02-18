@@ -351,7 +351,119 @@ display(conn_info)
 
 ---
 
-## 7. What UC JDBC Does NOT Provide (Gaps)
+## 7. Enabling System Tables
+
+System tables (`system.access.audit`, `system.query.history`, etc.) must be enabled
+and granted before they can be queried. This requires **account admin** or **metastore admin**
+privileges — workspace admin is not sufficient.
+
+### Prerequisites
+
+- **Account admin** or **metastore admin** role (workspace admin alone cannot enable or grant)
+- Metastore on UC Privilege Model Version 1.0
+- At least one UC-enabled workspace
+
+### Step 1: Enable System Schemas
+
+Each schema under the `system` catalog must be enabled individually.
+
+**Using the Databricks CLI:**
+
+```bash
+# Find your metastore ID
+databricks --profile <PROFILE> metastores summary
+
+# Enable the schemas
+databricks --profile <PROFILE> system-schemas enable <METASTORE_ID> access
+databricks --profile <PROFILE> system-schemas enable <METASTORE_ID> query
+databricks --profile <PROFILE> system-schemas enable <METASTORE_ID> lineage
+databricks --profile <PROFILE> system-schemas enable <METASTORE_ID> billing
+```
+
+**Using the REST API:**
+
+```bash
+# PUT with no body — just the schema name in the path
+PUT https://<workspace-url>/api/2.0/unity-catalog/metastores/<metastore-id>/systemschemas/access
+```
+
+A convenience script is provided at `uc-neo4j-test-suite/enable_system_tables.sh`:
+
+```bash
+./enable_system_tables.sh <databricks-profile>
+```
+
+### Step 2: Grant Access to Users
+
+Once enabled, account admins have access by default. For other users:
+
+```sql
+GRANT USE CATALOG ON CATALOG system TO `account users`;
+GRANT USE SCHEMA ON SCHEMA system.access TO `account users`;
+GRANT USE SCHEMA ON SCHEMA system.query TO `account users`;
+GRANT SELECT ON SCHEMA system.access TO `account users`;
+GRANT SELECT ON SCHEMA system.query TO `account users`;
+```
+
+### Step 3: Verify
+
+```sql
+SELECT COUNT(*) FROM system.access.audit
+WHERE event_date >= CURRENT_DATE - INTERVAL 1 DAY;
+```
+
+You can also verify from the CLI using the Statement Execution API:
+
+```bash
+databricks --profile <PROFILE> api post /api/2.0/sql/statements --json '{
+  "warehouse_id": "<WAREHOUSE_ID>",
+  "statement": "SELECT COUNT(*) FROM system.access.audit WHERE event_date >= CURRENT_DATE - INTERVAL 1 DAY",
+  "wait_timeout": "30s"
+}'
+```
+
+### Azure Databricks: Account Console Access
+
+On Azure, the Account Console is at [https://accounts.azuredatabricks.net](https://accounts.azuredatabricks.net).
+Accessing it for the first time requires special attention:
+
+**Common issue: redirect to workspace instead of Account Console.** This happens when
+no account admin has been established yet — especially on auto-provisioned workspaces
+(created after November 2023) where the metastore owner is `"System user"` with no
+human metastore admin assigned.
+
+**To initialize the Account Console (first time):**
+
+1. You must be a **Microsoft Entra ID (Azure AD) Global Administrator** for the first login
+2. Open an **incognito/private browser window**
+3. Go to [https://accounts.azuredatabricks.net](https://accounts.azuredatabricks.net)
+4. Sign in and **consent** to the Databricks Enterprise App when prompted
+5. You'll land in the Account Console and automatically become the first Account Admin
+6. From there, assign yourself (or others) as **metastore admin**
+
+**To check if you're an Azure AD Global Admin:**
+- [Azure Portal](https://portal.azure.com) > **Microsoft Entra ID** > **Roles and administrators** > **Global Administrator**
+
+**If you're not a Global Admin:**
+- Ask your organization's Azure Global Admin to do the first login at `accounts.azuredatabricks.net`
+- They can then assign you the Account Admin role
+
+**How to check the current metastore owner:**
+
+```bash
+databricks --profile <PROFILE> metastores summary -o json | jq '{owner, name, metastore_id}'
+# If owner is "System user", no human admin has been assigned
+```
+
+**Once you have account/metastore admin access**, you can:
+1. Enable system schemas (Step 1 above)
+2. Grant access to users and groups (Step 2 above)
+3. Assign metastore admin to other users via the Account Console
+
+---
+
+## 8. What UC JDBC Does NOT Provide (Gaps)
+
 
 | Gap | Workaround |
 |---|---|
@@ -371,7 +483,7 @@ For a complete audit trail, enable Neo4j's own query logging:
 
 ---
 
-## 8. Recommended Demo Flow
+## 9. Recommended Demo Flow
 
 For presenting the security story to stakeholders:
 
