@@ -8,10 +8,10 @@
 
 Hi team,
 
-I need your help surfacing customers who run both Neo4j and Databricks. We have a working integration that lets Databricks users query Neo4j through Unity Catalog using the Neo4j JDBC driver, and we are requesting Databricks to add official support. They prioritize based on customer demand, so even a brief snippet of the customer use case for why Unity Catalog would be useful. And the customer name can be anonymous. For example we have one use case of a customer who is in the defense industry and wants Unity Catalog to federate queries for to security. They are also interested because they want to enforce security at the unity catalog layer.  There are a lot of use cases for Federate Unity Catalog.  One is for teams with graph data in Neo4j that their Databricks analysts want to access for combining lakehouse data with knowledge graph data. So any customers expressing interest would move the needle. Any assistance would be greatly appreciated.
+I need your help surfacing customers who run both Neo4j and Databricks. We have a working integration that lets Databricks users query Neo4j through Unity Catalog using the Neo4j JDBC driver, and we are requesting Databricks to add official support. They prioritize based on customer demand, so even a brief snippet of the customer use case would be helpful. The customer name can be anonymous. For example, we have one use case of a customer in the defense industry who wants Unity Catalog to federate queries for security. They are also interested because they want to enforce security at the Unity Catalog layer. There are a lot of use cases for federated Unity Catalog. Another is for teams with graph data in Neo4j that their Databricks analysts want to access, combining lakehouse data with knowledge graph data. Any customers expressing interest would move the needle. Any assistance would be greatly appreciated.
 
 
-Some background on how the integration works is The Neo4j JDBC driver plugs into Databricks Unity Catalog's custom JDBC support to enable federated queries against Neo4j from inside Databricks. SQL queries get translated to Cypher automatically, so analysts can query graph data without learning a new language. Results come back as standard Spark DataFrames and can be joined with Delta tables, Iceberg tables, or any other UC data source. All connections run under Unity Catalog governance with access controls, audit logging, and credentials stored in Databricks Secrets.
+Some background on how the integration works: the Neo4j JDBC driver plugs into Databricks Unity Catalog's custom JDBC support to enable federated queries against Neo4j from inside Databricks. SQL queries get translated to Cypher automatically, so analysts can query graph data without learning a new language. Results come back as standard Spark DataFrames and can be joined with Delta tables, Iceberg tables, or any other UC data source. All connections run under Unity Catalog governance with access controls, audit logging, and credentials stored in Databricks Secrets.
 
 ## What this means in practice
 
@@ -21,3 +21,4 @@ Thanks for any leads you can surface.
 
 Best,
 Ryan
+

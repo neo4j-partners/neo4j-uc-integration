@@ -100,6 +100,8 @@ image::architecture-overview.png[Federated Lakehouse Architecture,700]
 
 == Query Examples
 
+The source for all the examples below is in the https://github.com/neo4j-partners/neo4j-uc-integration/blob/main/uc-neo4j-test-suite/federated_lakehouse_query.ipynb[federated_lakehouse_query.ipynb] notebook. The https://github.com/neo4j-partners/neo4j-uc-integration[neo4j-uc-integration repo] has more info on setup, configuration, and running the queries end-to-end.
+
 === xref:01-verify-data-sources.adoc[Query 1: Verify Data Sources]
 
 Confirm both Delta lakehouse tables and the Neo4j UC JDBC connection are accessible.
