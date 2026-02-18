@@ -7,17 +7,7 @@ Aircraft utilization (flight frequency, route coverage) correlated with engine h
 
 == Data Flow
 
-[listing]
-....
-Neo4j ──(Spark Connector)──► neo4j_flights temp view
-                                    │
-                                JOIN
-                                    │
-Delta ── sensor_readings ─┐         │
-         sensors ─────────┤ WHERE sys.type = 'Engine'
-         systems ─────────┤ GROUP BY aircraft_id
-         aircraft ────────┘    JOIN on aircraft_id
-....
+image::04-flight-ops-flow.png[Flight Operations + Engine Performance Flow,700]
 
 == Load Neo4j Data
 

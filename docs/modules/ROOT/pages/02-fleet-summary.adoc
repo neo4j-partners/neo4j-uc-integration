@@ -7,15 +7,7 @@ Fleet-wide overview combining Neo4j graph metrics with Delta sensor analytics in
 
 == Data Flow
 
-[listing]
-....
-                    ┌─ remote_query() ──► Neo4j: COUNT MaintenanceEvent
-                    ├─ remote_query() ──► Neo4j: COUNT critical events
-Spark SQL ── CROSS JOIN ─┤
-                    ├─ remote_query() ──► Neo4j: COUNT Flight
-                    ├─ remote_query() ──► Neo4j: COUNT Flight→Airport
-                    └─ Delta SQL ───────► sensor_readings + sensors (aggregates)
-....
+image::02-fleet-summary-flow.png[Fleet Summary Data Flow,700]
 
 == SQL Query
 

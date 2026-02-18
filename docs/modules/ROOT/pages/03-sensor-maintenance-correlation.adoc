@@ -7,17 +7,7 @@ Per-aircraft correlation of sensor health metrics (EGT, vibration) with maintena
 
 == Data Flow
 
-[listing]
-....
-Neo4j ──(Spark Connector)──► neo4j_maintenance temp view
-                                    │
-                              LEFT JOIN
-                                    │
-Delta ── sensor_readings ─┐         │
-         sensors ─────────┤ GROUP BY aircraft_id
-         systems ─────────┤         │
-         aircraft ────────┘    JOIN on aircraft_id
-....
+image::03-sensor-maintenance-flow.png[Sensor Health + Maintenance Correlation Flow,700]
 
 == Load Neo4j Data
 

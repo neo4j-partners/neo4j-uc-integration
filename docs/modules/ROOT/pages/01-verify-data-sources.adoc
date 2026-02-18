@@ -7,12 +7,7 @@ Confirm both the Delta lakehouse tables and the Neo4j UC JDBC connection are acc
 
 == Data Flow
 
-[listing]
-....
-Spark SQL ──► Delta Lakehouse ──► SELECT COUNT(*) FROM each table
-    │
-    └──────► Neo4j (UC JDBC) ──► remote_query() ──► SELECT COUNT(*) per node label
-....
+image::01-verify-data-flow.png[Verify Data Sources Flow,700]
 
 == Verify Delta Lakehouse Tables
 

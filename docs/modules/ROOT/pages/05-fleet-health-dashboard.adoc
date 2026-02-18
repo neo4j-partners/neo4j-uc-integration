@@ -7,18 +7,7 @@ The most comprehensive federated query, combining all data sources into a single
 
 == Data Flow
 
-[listing]
-....
-remote_query() ──► Neo4j: COUNT Flight→Airport (graph traversal metric)
-
-Neo4j ──(Spark Connector)──► neo4j_maintenance temp view ──┐
-Neo4j ──(Spark Connector)──► neo4j_flights temp view ──────┤
-                                                           LEFT JOIN
-Delta ── sensor_readings ─┐                                │
-         sensors ─────────┤ GROUP BY aircraft_id ──────────┤
-         systems ─────────┤                                │
-         aircraft ────────┘────────────────────────────────┘
-....
+image::05-fleet-health-flow.png[Fleet Health Dashboard Data Flow,800]
 
 == Graph Traversal Metric (remote_query)
 

@@ -6,29 +6,7 @@ This guide demonstrates federated query patterns that combine Neo4j graph data w
 
 == Architecture
 
-[listing]
-....
-┌─────────────────────────────────────────────────────────────────────┐
-│                        Spark SQL Engine                            │
-│                     (Federated Query Layer)                        │
-├────────────────────────────┬────────────────────────────────────────┤
-│    Delta Lakehouse         │         Neo4j Knowledge Graph         │
-│    (Unity Catalog)         │         (UC JDBC / Spark Connector)   │
-│                            │                                       │
-│  ┌──────────────────┐      │     ┌───────────────────────────┐     │
-│  │ sensor_readings   │      │     │ MaintenanceEvent nodes    │     │
-│  │ (345,600 rows)   │      │     │ Flight nodes              │     │
-│  │ sensors (160)    │      │     │ Component topology        │     │
-│  │ systems (80)     │      │     │ Airport relationships     │     │
-│  │ aircraft (20)    │      │     │ Delay events              │     │
-│  └──────────────────┘      │     └───────────────────────────┘     │
-│                            │                                       │
-│  Best for:                 │     Best for:                         │
-│  - Time-series analytics   │     - Relationship traversals         │
-│  - Statistical aggregates  │     - Maintenance correlation         │
-│  - Sensor trend analysis   │     - Flight/route topology           │
-└────────────────────────────┴────────────────────────────────────────┘
-....
+image::architecture-overview.png[Federated Lakehouse Architecture,700]
 
 == Federation Methods
 

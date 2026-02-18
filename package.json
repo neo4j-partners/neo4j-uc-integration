@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Neo4j UC Integration - Federated Query Patterns Documentation",
   "scripts": {
+    "convert-diagrams": "node docs/scripts/convert-excalidraw.js",
     "build": "antora antora-playbook.yml",
     "serve": "npx http-server build/site -p 8080 -o"
   },
@@ -10,6 +11,7 @@
   "devDependencies": {
     "@antora/cli": "^3.1.7",
     "@antora/site-generator": "^3.1.7",
-    "http-server": "^14.1.1"
+    "http-server": "^14.1.1",
+    "puppeteer": "^24.37.3"
   }
 }
