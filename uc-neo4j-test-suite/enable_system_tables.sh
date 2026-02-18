@@ -59,25 +59,36 @@ log_info "Metastore ID: $METASTORE_ID"
 
 # List current schema statuses
 log_info "Current system schema statuses:"
-$DB system-schemas list "$METASTORE_ID" 2>/dev/null | jq -r '.schemas[]? | "  \(.schema) — \(.state)"' || true
+LIST_OUTPUT=$($DB system-schemas list "$METASTORE_ID" 2>&1) && \
+    echo "$LIST_OUTPUT" | jq -r '.schemas[]? | "  \(.schema) — \(.state)"' || \
+    log_error "$LIST_OUTPUT"
 echo ""
 
 # Schemas to enable
 SCHEMAS=("access" "query" "lineage" "billing")
+FAILED=0
 
 for schema in "${SCHEMAS[@]}"; do
     log_info "Enabling system schema: $schema"
-    if $DB system-schemas enable "$METASTORE_ID" "$schema" 2>/dev/null; then
-        log_info "  $schema enabled"
-    else
-        log_warn "  $schema already enabled or not available"
-    fi
+    OUTPUT=$($DB system-schemas enable "$METASTORE_ID" "$schema" 2>&1) && \
+        log_info "  $schema enabled" || \
+        { log_error "  $schema: $OUTPUT"; FAILED=1; }
 done
+
+if [[ $FAILED -eq 1 ]]; then
+    echo ""
+    log_warn "Some schemas failed to enable. Common causes:"
+    echo "  - You need account admin privileges (not just workspace admin)"
+    echo "  - Grant account admin at: https://accounts.azuredatabricks.net > User management"
+    echo "  - Or ask an existing account admin to run this script"
+fi
 
 # Verify
 echo ""
 log_info "Final system schema statuses:"
-$DB system-schemas list "$METASTORE_ID" 2>/dev/null | jq -r '.schemas[]? | "  \(.schema) — \(.state)"' || true
+LIST_OUTPUT=$($DB system-schemas list "$METASTORE_ID" 2>&1) && \
+    echo "$LIST_OUTPUT" | jq -r '.schemas[]? | "  \(.schema) — \(.state)"' || \
+    log_error "$LIST_OUTPUT"
 
 echo ""
 log_info "Done! Verify with:"
