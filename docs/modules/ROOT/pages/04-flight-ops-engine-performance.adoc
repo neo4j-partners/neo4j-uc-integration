@@ -77,7 +77,9 @@ ORDER BY f.total_flights DESC
 * **Delta** (3-table join): Aggregates engine-specific sensor readings (filtered to `sys.type = 'Engine'`) per aircraft
 * **Federation**: INNER JOINs both on `aircraft_id` — only aircraft with both flights and engine data appear
 
-== Expected Output — Load Flights
+== Actual Output — Load Flights (Databricks Runtime 17.3 LTS)
+
+The following output was captured from a live Databricks cluster using the Neo4j Spark Connector against Neo4j Aura:
 
 [listing]
 ....
@@ -96,7 +98,9 @@ Sample flight data:
 only showing top 5 rows
 ....
 
-== Expected Output — Federated Query
+== Actual Output — Federated Query (Databricks Runtime 17.3 LTS)
+
+This federated result was produced live on Databricks, JOINing Neo4j flight data with Delta engine sensor readings:
 
 [listing]
 ....

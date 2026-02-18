@@ -65,7 +65,9 @@ CROSS JOIN (
 * **Delta side** (1 subquery): Computes fleet-wide sensor averages across all 345K+ readings by sensor type
 * **CROSS JOIN**: Combines the single-row results from both sides into one unified fleet summary
 
-== Expected Output
+== Actual Output (Databricks Runtime 17.3 LTS)
+
+The following output was captured from a live Databricks cluster running against Neo4j Aura and Delta lakehouse tables:
 
 [listing]
 ....

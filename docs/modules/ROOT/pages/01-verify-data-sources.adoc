@@ -28,7 +28,7 @@ SELECT `:ID(Aircraft)` AS aircraft_id, tail_number, model, manufacturer, operato
 FROM aircraft LIMIT 5
 ----
 
-.Expected Output
+.Actual Output (from Databricks cluster)
 [listing]
 ....
 ============================================================

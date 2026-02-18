@@ -80,7 +80,9 @@ ORDER BY m.total_events DESC NULLS LAST
 * **Delta** (4-table join): Aggregates sensor readings per aircraft, computing avg/max for EGT and vibration
 * **Federation**: LEFT JOINs both summaries on `aircraft_id` so every aircraft appears even without maintenance events
 
-== Expected Output
+== Actual Output — Load Maintenance Events (Databricks Runtime 17.3 LTS)
+
+The following output was captured from a live Databricks cluster using the Neo4j Spark Connector against Neo4j Aura:
 
 [listing]
 ....
@@ -99,7 +101,9 @@ Sample maintenance events:
 only showing top 5 rows
 ....
 
-== Federated Query Output
+== Actual Output — Federated Query (Databricks Runtime 17.3 LTS)
+
+This federated result was produced live on Databricks, JOINing Neo4j maintenance events with Delta sensor readings:
 
 [listing]
 ....

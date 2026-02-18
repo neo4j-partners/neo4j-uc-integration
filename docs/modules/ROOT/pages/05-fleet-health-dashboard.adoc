@@ -80,7 +80,9 @@ ORDER BY COALESCE(m.critical, 0) DESC, COALESCE(m.events, 0) DESC
 * **Delta tables**: Per-aircraft sensor aggregates across all sensor types (EGT, vibration, fuel flow)
 * **Federation**: LEFT JOINs everything on `aircraft_id`, sorted by critical maintenance events descending
 
-== Expected Output
+== Actual Output (Databricks Runtime 17.3 LTS)
+
+The following output was captured from a live Databricks cluster, combining `remote_query()` graph traversals, Spark Connector temp views, and Delta lakehouse tables in a single federated query:
 
 [listing]
 ....
