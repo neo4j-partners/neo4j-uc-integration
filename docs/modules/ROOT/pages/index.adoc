@@ -98,6 +98,60 @@ image::architecture-overview.png[Federated Lakehouse Architecture,700]
 |Requires cluster library, no UC governance
 |===
 
+== UC JDBC: Supported and Unsupported Query Patterns
+
+Spark wraps UC JDBC queries in a subquery for schema inference, which limits what SQL constructs the Neo4j driver can translate. The following patterns were validated against a live Neo4j Aura instance (see the full test results in the https://github.com/neo4j-field/neo4j-uc-integration/blob/main/GUIDE_NEO4J_UC.md[Neo4j UC JDBC Guide]).
+
+=== Supported Patterns
+
+All of these passed through UC JDBC with `remote_query()` or the Spark DataFrame JDBC reader:
+
+[cols="2,1"]
+|===
+|Pattern |Example
+
+|Simple expressions
+|`SELECT 1 AS test`
+
+|COUNT, MIN, MAX, SUM, AVG aggregates
+|`SELECT COUNT(*) AS cnt FROM Flight`
+
+|Multiple aggregates in one query
+|`SELECT COUNT(*) AS total, MIN(aircraft_id) AS first_id, MAX(aircraft_id) AS last_id FROM Aircraft`
+
+|COUNT DISTINCT
+|`SELECT COUNT(DISTINCT manufacturer) AS unique_manufacturers FROM Aircraft`
+
+|Aggregates with WHERE (equals, IN, AND, IS NOT NULL)
+|`SELECT COUNT(*) AS cnt FROM Aircraft WHERE manufacturer = 'Boeing'`
+
+|JOIN with aggregate (graph traversal)
+|`SELECT COUNT(*) AS cnt FROM Flight f NATURAL JOIN DEPARTS_FROM r NATURAL JOIN Airport a`
+|===
+
+=== Unsupported Patterns
+
+These patterns fail because Spark's subquery wrapping conflicts with the Neo4j SQL translator:
+
+[cols="1,2"]
+|===
+|Pattern |Workaround
+
+|`GROUP BY`
+|Use the Neo4j Spark Connector to load row-level data, then aggregate in Spark SQL
+
+|`ORDER BY` / `LIMIT`
+|Apply sorting and limiting in Spark after the query returns
+
+|`HAVING`
+|Use the Spark Connector with Spark SQL filtering
+
+|Non-aggregate `SELECT col1, col2`
+|Use the Neo4j Spark Connector with a Cypher query
+|===
+
+The federated query examples in this guide use `remote_query()` for aggregate metrics and the Spark Connector for row-level data that requires GROUP BY, combining both methods where needed.
+
 == Query Examples
 
 The source for all the examples below is in the https://github.com/neo4j-partners/neo4j-uc-integration/blob/main/uc-neo4j-test-suite/federated_lakehouse_query.ipynb[federated_lakehouse_query.ipynb] notebook. The https://github.com/neo4j-partners/neo4j-uc-integration[neo4j-uc-integration repo] has more info on setup, configuration, and running the queries end-to-end.
@@ -139,6 +193,12 @@ Aircraft utilization (flight frequency, route coverage) correlated with engine h
 Comprehensive fleet health view combining all data sources using both federation methods.
 
 **Method:** Hybrid using `remote_query()` + Spark Connector + Delta tables
+
+---
+
+=== xref:07-example-use-cases.adoc[Example Use Cases]
+
+Real-world use cases for Neo4j + Databricks Unity Catalog federated queries, including fraud detection, knowledge graph-enriched ML, supply chain visibility, customer 360, and ad hoc exploration.
 
 == xref:06-uc-integration-setup.adoc[Deep Dive: UC Integration Setup]
 

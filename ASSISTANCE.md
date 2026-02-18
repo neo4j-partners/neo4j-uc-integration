@@ -13,11 +13,9 @@ I need your help surfacing customers who run both Neo4j and Databricks. We have 
 
 Some background on how the integration works: the Neo4j JDBC driver plugs into Databricks Unity Catalog's custom JDBC support to enable federated queries against Neo4j from inside Databricks. SQL queries get translated to Cypher automatically, so analysts can query graph data without learning a new language. Results come back as standard Spark DataFrames and can be joined with Delta tables, Iceberg tables, lakehouse relational data, or any other UC data source. All connections run under Unity Catalog governance with access controls, audit logging, and credentials stored in Databricks Secrets.
 
-## What this means in practice
+## Example Use Cases
 
-Consider a fraud detection team with transaction data in Delta tables and entity relationships (accounts, devices, shared identifiers) in Neo4j. Today, combining those datasets requires custom ETL or duplicate copies. With this integration, a single Databricks notebook joins Neo4j graph traversal results with Delta table aggregations in one query. No data movement, no pipeline to maintain. The integration supports aggregates, filtered queries, COUNT DISTINCT, and multi-hop traversals expressed as SQL JOINs, with aggregation pushed down to Neo4j so only results travel over the network.
-
-## Other use cases
+- **Fraud detection** — A fraud detection team with transaction data in Delta tables and entity relationships (accounts, devices, shared identifiers) in Neo4j. Today, combining those datasets requires custom ETL or duplicate copies. With this integration, a single Databricks notebook joins Neo4j graph traversal results with Delta table aggregations in one query. No data movement, no pipeline to maintain. The integration supports aggregates, filtered queries, COUNT DISTINCT, and multi-hop traversals expressed as SQL JOINs, with aggregation pushed down to Neo4j so only results travel over the network.
 
 - **Knowledge graph-enriched ML pipelines** — Data science teams training models on lakehouse data can pull graph-derived features (node centrality, community detection scores, relationship counts) directly from Neo4j without building separate ETL to extract and materialize those features into Delta tables.
 

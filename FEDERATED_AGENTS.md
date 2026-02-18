@@ -35,39 +35,33 @@ Every layer is UC-governed. The LLM never sees Cypher, the user never writes SQL
 
 ## How It Works
 
-### Step 1: UC Views Encapsulate `remote_query()` with `dbtable`
+### Step 1: Materialize Neo4j Data as UC Delta Tables
 
-The `remote_query()` function with the `query` option breaks for non-aggregate queries because Spark wraps them in subqueries for schema inference (`SELECT * FROM (your_query) alias WHERE 1=0`), which Neo4j's SQL translator cannot parse.
+Live `CREATE VIEW` over `remote_query()` doesn't work due to two Neo4j JDBC limitations:
+1. **`query` option**: Spark wraps in subquery for schema inference → Neo4j can't parse it
+2. **`dbtable` option**: Avoids subquery but Neo4j returns `NullType` → requires `customSchema` (DataFrame API only, not available in `remote_query()`)
 
-The workaround: use the **`dbtable`** parameter instead of `query`. With `dbtable`, Spark issues a flat `SELECT * FROM Label WHERE 1=0` for schema inference, which Neo4j handles correctly. Each view selects specific columns from the full label read:
+The workaround: use the **DataFrame API** with `dbtable` + `customSchema` to read Neo4j labels, then **materialize as managed Delta tables** via `saveAsTable()`. Re-run the notebook to refresh data from Neo4j.
 
-```sql
--- Neo4j maintenance events exposed as a permanent UC view
-CREATE OR REPLACE VIEW lakehouse.neo4j_maintenance_events AS
-SELECT aircraft_id, fault, severity, corrective_action, reported_at
-FROM remote_query('neo4j_connection', dbtable => 'MaintenanceEvent');
+```python
+# Example: materialize MaintenanceEvent nodes as a Delta table
+MAINTENANCE_SCHEMA = """`v$id` STRING, aircraft_id STRING, system_id STRING,
+    component_id STRING, event_id STRING, severity STRING, fault STRING,
+    corrective_action STRING, reported_at STRING"""
 
--- Neo4j flight operations exposed as a permanent UC view
-CREATE OR REPLACE VIEW lakehouse.neo4j_flights AS
-SELECT aircraft_id, flight_number, operator, origin, destination,
-       scheduled_departure, scheduled_arrival
-FROM remote_query('neo4j_connection', dbtable => 'Flight');
+df = spark.read.format("jdbc") \
+    .option("databricks.connection", UC_CONNECTION_NAME) \
+    .option("dbtable", "MaintenanceEvent") \
+    .option("customSchema", MAINTENANCE_SCHEMA) \
+    .load() \
+    .select("aircraft_id", "fault", "severity", "corrective_action", "reported_at")
 
--- Neo4j airport reference data
-CREATE OR REPLACE VIEW lakehouse.neo4j_airports AS
-SELECT iata, name AS airport_name, city, country, icao, lat, lon
-FROM remote_query('neo4j_connection', dbtable => 'Airport');
-
--- Flight-to-airport mapping (Spark SQL JOIN, not Neo4j NATURAL JOIN)
--- NATURAL JOIN requires the query option which triggers subquery wrapping,
--- so we join the two dbtable views in Spark instead.
-CREATE OR REPLACE VIEW lakehouse.neo4j_flight_airports AS
-SELECT f.flight_number, f.aircraft_id, a.iata AS airport_code, a.airport_name
-FROM lakehouse.neo4j_flights f
-JOIN lakehouse.neo4j_airports a ON f.origin = a.iata;
+df.write.mode("overwrite").saveAsTable("lakehouse.neo4j_maintenance_events")
 ```
 
-Once these views exist, Genie (or any SQL tool) can query them like regular tables -- GROUP BY, ORDER BY, JOINs with Delta tables all work because Spark handles the aggregation after `remote_query()` returns the rows.
+The same pattern is used for `neo4j_flights`, `neo4j_airports`, and `neo4j_flight_airports` (a Spark SQL JOIN of flights + airports). See `federated_views_agent_ready.ipynb` for the complete implementation.
+
+Once these tables exist, Genie (or any SQL tool) can query them like regular tables -- GROUP BY, ORDER BY, JOINs with Delta tables all work because the Neo4j data is materialized as standard Delta tables.
 
 ### Step 2: Genie Space Includes Both Delta Tables and Neo4j Views
 
