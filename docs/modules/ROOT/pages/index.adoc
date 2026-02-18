@@ -16,7 +16,7 @@ Databricks https://docs.databricks.com/query-federation/[Lakehouse Federation] m
 
 The federated queries shown in this guide can also be driven by natural language through https://docs.databricks.com/aws/en/genie/[Databricks AI/BI Genie]. Instead of writing SQL by hand, a user asks a plain-English question and Genie generates the SQL automatically, federating across Neo4j graph data and Delta lakehouse tables, all governed by Unity Catalog.
 
-The key insight is that Neo4j data can be **materialized as managed Delta tables** using the Spark DataFrame JDBC reader with `dbtable` + `customSchema` + `saveAsTable()`. This sidesteps two JDBC schema-inference limitations (`remote_query()` subquery wrapping and `NullType` column inference) by reading Neo4j labels through the DataFrame API and persisting the results as standard Delta tables. Once materialized, Genie sees all tables (Delta and Neo4j-sourced) as regular UC tables and generates SQL that JOINs across them transparently.
+The key insight is that Neo4j data can be **materialized as managed Delta tables** by reading it through the UC JDBC connection and saving the results as regular tables. Once materialized, Genie sees all tables (Delta and Neo4j-sourced) as regular UC tables and generates SQL that JOINs across them transparently.
 
 A Genie space is configured with:
 
@@ -24,7 +24,7 @@ A Genie space is configured with:
 * **Neo4j tables (materialized):** `neo4j_maintenance_events`, `neo4j_flights`, `neo4j_airports`, `neo4j_flight_airports`
 * **Instructions:** domain context, JOIN patterns, and example SQL that teach Genie how to navigate the sensor data model and cross-source joins
 
-The Genie space can then be accessed programmatically via the https://docs.databricks.com/aws/en/generative-ai/mcp/managed-mcp[Genie Managed MCP Server] (for agent integration) or the https://docs.databricks.com/aws/en/genie/conversation-api[Genie Conversation API] (for direct app integration). The full architecture and implementation details are in the https://github.com/neo4j-partners/neo4j-uc-integration/blob/main/FEDERATED_AGENTS.md[Federated Agents guide].
+The Genie space can then use natural language queries to query the data, combining Delta tables and Neo4j tables transparently. The full architecture and implementation details are in the https://github.com/neo4j-partners/neo4j-uc-integration/blob/main/FEDERATED_AGENTS.md[Federated Agents guide].
 
 [source,text]
 ----
@@ -221,7 +221,7 @@ Comprehensive fleet health view combining all data sources using both federation
 
 The federated queries above require hand-written SQL. With https://docs.databricks.com/aws/en/genie/[Databricks AI/BI Genie], the same data can be queried using natural language. Genie generates the SQL automatically, joining across the materialized Neo4j tables and Delta lakehouse tables, all through Unity Catalog.
 
-This works because the Neo4j graph data (maintenance events, flights, airports) has been materialized as managed Delta tables using the Spark DataFrame JDBC reader with `dbtable` + `customSchema` + `saveAsTable()`. Genie sees all 8 tables as regular UC tables and generates federated SQL transparently. A set of Genie instructions teaches the LLM the domain model, sensor data JOIN chain, and cross-source join patterns. See the https://github.com/neo4j-partners/neo4j-uc-integration/blob/main/FEDERATED_AGENTS.md[Federated Agents guide] for the full architecture, materialization approach, agent integration patterns, and implementation checklist.
+This works because the Neo4j graph data (maintenance events, flights, airports) has been materialized as managed Delta tables via the UC JDBC connection. Genie sees all 8 tables as regular UC tables and generates federated SQL transparently. A set of Genie instructions teaches the LLM the domain model, JOIN patterns, and cross-source relationships. See the https://github.com/neo4j-partners/neo4j-uc-integration/blob/main/FEDERATED_AGENTS.md[Federated Agents guide] for the full architecture, materialization approach, agent integration patterns, and implementation checklist.
 
 ==== Example: Fleet Activity and Engine Health
 
