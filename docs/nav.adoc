@@ -1,0 +1,6 @@
+* xref:index.adoc[Home]
+* xref:01-verify-data-sources.adoc[Query 1: Verify Data Sources]
+* xref:02-fleet-summary.adoc[Query 2: Fleet Summary]
+* xref:03-sensor-maintenance-correlation.adoc[Query 3: Sensor + Maintenance]
+* xref:04-flight-ops-engine-performance.adoc[Query 4: Flight Ops + Engine]
+* xref:05-fleet-health-dashboard.adoc[Query 5: Fleet Health Dashboard]

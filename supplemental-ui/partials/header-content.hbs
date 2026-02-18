@@ -1,0 +1,31 @@
+<header class="header">
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <a class="navbar-item" href="{{{or site.url (or siteRootUrl siteRootPath)}}}">{{site.title}}</a>
+      <button class="navbar-burger" data-target="topbar-nav" aria-controls="topbar-nav" aria-label="Toggle main menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+    <div id="topbar-nav" class="navbar-menu">
+      <div class="navbar-end">
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link" href="#">Queries</a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="{{{relativize './01-verify-data-sources.html'}}}">Query 1: Verify Data Sources</a>
+            <a class="navbar-item" href="{{{relativize './02-fleet-summary.html'}}}">Query 2: Fleet Summary</a>
+            <a class="navbar-item" href="{{{relativize './03-sensor-maintenance-correlation.html'}}}">Query 3: Sensor + Maintenance</a>
+            <a class="navbar-item" href="{{{relativize './04-flight-ops-engine-performance.html'}}}">Query 4: Flight Ops + Engine</a>
+            <a class="navbar-item" href="{{{relativize './05-fleet-health-dashboard.html'}}}">Query 5: Fleet Health Dashboard</a>
+          </div>
+        </div>
+        <div class="navbar-item">
+          <span class="control">
+            <a class="button is-primary" href="https://neo4j.com">Neo4j.com</a>
+          </span>
+        </div>
+      </div>
+    </div>
+  </nav>
+</header>

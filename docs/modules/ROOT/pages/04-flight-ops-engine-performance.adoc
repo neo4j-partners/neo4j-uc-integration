@@ -1,0 +1,119 @@
+= Query 4: Flight Operations + Engine Performance
+:description: Aircraft utilization correlated with engine health metrics using Neo4j Spark Connector
+
+Aircraft utilization (flight frequency, route coverage) correlated with engine health metrics (EGT, fuel flow, N1 speed). Shows how heavily-used aircraft perform from an engine perspective.
+
+**Federation Method:** Neo4j Spark Connector → temp view → JOIN with Delta tables
+
+== Data Flow
+
+[listing]
+....
+Neo4j ──(Spark Connector)──► neo4j_flights temp view
+                                    │
+                                JOIN
+                                    │
+Delta ── sensor_readings ─┐         │
+         sensors ─────────┤ WHERE sys.type = 'Engine'
+         systems ─────────┤ GROUP BY aircraft_id
+         aircraft ────────┘    JOIN on aircraft_id
+....
+
+== Load Neo4j Data
+
+Load flight nodes from Neo4j into a Spark temp view:
+
+[source,python]
+----
+neo4j_flights = spark.read.format("org.neo4j.spark.DataSource") \
+    .option("url", NEO4J_BOLT_URI) \
+    .option("authentication.type", "basic") \
+    .option("authentication.basic.username", NEO4J_USER) \
+    .option("authentication.basic.password", NEO4J_PASSWORD) \
+    .option("labels", "Flight") \
+    .load()
+
+neo4j_flights.createOrReplaceTempView("neo4j_flights")
+----
+
+== Federated SQL Query
+
+[source,sql]
+----
+WITH aircraft_ref AS (
+    SELECT `:ID(Aircraft)` AS aircraft_id, tail_number, model, operator
+    FROM aircraft
+),
+flight_activity AS (
+    SELECT
+        aircraft_id,
+        COUNT(*) AS total_flights,
+        COUNT(DISTINCT origin) AS unique_origins,
+        COUNT(DISTINCT destination) AS unique_destinations
+    FROM neo4j_flights
+    GROUP BY aircraft_id
+),
+engine_health AS (
+    SELECT
+        sys.aircraft_id,
+        ROUND(AVG(CASE WHEN sen.type = 'EGT' THEN r.value END), 1) AS avg_egt,
+        ROUND(AVG(CASE WHEN sen.type = 'FuelFlow' THEN r.value END), 2) AS avg_fuel_flow,
+        ROUND(AVG(CASE WHEN sen.type = 'N1Speed' THEN r.value END), 0) AS avg_n1_speed
+    FROM sensor_readings r
+    JOIN sensors sen ON r.sensor_id = sen.`:ID(Sensor)`
+    JOIN systems sys ON sen.system_id = sys.`:ID(System)`
+    WHERE sys.type = 'Engine'
+    GROUP BY sys.aircraft_id
+)
+SELECT
+    a.tail_number,
+    a.model,
+    a.operator,
+    f.total_flights,
+    f.unique_origins AS origins,
+    f.unique_destinations AS destinations,
+    e.avg_egt AS avg_egt_c,
+    e.avg_fuel_flow AS fuel_kgs,
+    e.avg_n1_speed AS n1_rpm
+FROM aircraft_ref a
+JOIN flight_activity f ON a.aircraft_id = f.aircraft_id
+JOIN engine_health e ON a.aircraft_id = e.aircraft_id
+ORDER BY f.total_flights DESC
+----
+
+== What This Query Does
+
+* **Neo4j** (Spark Connector): Loads `Flight` nodes, groups by aircraft to compute flight counts and unique origin/destination airports
+* **Delta** (3-table join): Aggregates engine-specific sensor readings (filtered to `sys.type = 'Engine'`) per aircraft
+* **Federation**: INNER JOINs both on `aircraft_id` — only aircraft with both flights and engine data appear
+
+== Sample Output
+
+[cols="1,1,1,1,1,1,1,1,1"]
+|===
+|tail_number |model |operator |flights |origins |destinations |avg_egt_c |fuel_kgs |n1_rpm
+
+|N7001X
+|737-800
+|United Airlines
+|25
+|8
+|12
+|548.3
+|1.92
+|9520
+
+|N7002X
+|A320neo
+|Delta Air Lines
+|22
+|7
+|10
+|535.1
+|1.78
+|9480
+|===
+
+== Key Difference from Query 3
+
+This query filters Delta sensor data to **engine systems only** (`WHERE sys.type = 'Engine'`), while Query 3 includes all sensor types. It also uses INNER JOINs instead of LEFT JOINs since we only want aircraft with both flight and engine data.

@@ -1,0 +1,142 @@
+= Query 5: Fleet Health Dashboard
+:description: Comprehensive fleet health view combining all data sources using both federation methods
+
+The most comprehensive federated query, combining all data sources into a single fleet health view using both federation methods simultaneously.
+
+**Federation Method:** Hybrid — `remote_query()` + Spark Connector + Delta tables
+
+== Data Flow
+
+[listing]
+....
+remote_query() ──► Neo4j: COUNT Flight→Airport (graph traversal metric)
+
+Neo4j ──(Spark Connector)──► neo4j_maintenance temp view ──┐
+Neo4j ──(Spark Connector)──► neo4j_flights temp view ──────┤
+                                                           LEFT JOIN
+Delta ── sensor_readings ─┐                                │
+         sensors ─────────┤ GROUP BY aircraft_id ──────────┤
+         systems ─────────┤                                │
+         aircraft ────────┘────────────────────────────────┘
+....
+
+== Graph Traversal Metric (remote_query)
+
+A standalone `remote_query()` call provides a fleet-wide graph metric:
+
+[source,sql]
+----
+SELECT * FROM remote_query('neo4j_uc_connection',
+    query => 'SELECT COUNT(*) AS cnt
+              FROM Flight f
+              NATURAL JOIN DEPARTS_FROM r
+              NATURAL JOIN Airport a')
+----
+
+== Full Dashboard Query
+
+Uses the `neo4j_maintenance` and `neo4j_flights` temp views loaded via Spark Connector in previous queries:
+
+[source,sql]
+----
+WITH aircraft_ref AS (
+    SELECT `:ID(Aircraft)` AS aircraft_id, tail_number, model, manufacturer, operator
+    FROM aircraft
+),
+sensor_stats AS (
+    SELECT
+        sys.aircraft_id,
+        ROUND(AVG(CASE WHEN sen.type = 'EGT' THEN r.value END), 1) AS avg_egt,
+        ROUND(AVG(CASE WHEN sen.type = 'Vibration' THEN r.value END), 4) AS avg_vib,
+        ROUND(AVG(CASE WHEN sen.type = 'FuelFlow' THEN r.value END), 2) AS avg_fuel,
+        COUNT(*) AS reading_count
+    FROM sensor_readings r
+    JOIN sensors sen ON r.sensor_id = sen.`:ID(Sensor)`
+    JOIN systems sys ON sen.system_id = sys.`:ID(System)`
+    GROUP BY sys.aircraft_id
+),
+maint AS (
+    SELECT aircraft_id, COUNT(*) AS events,
+           SUM(CASE WHEN severity = 'CRITICAL' THEN 1 ELSE 0 END) AS critical
+    FROM neo4j_maintenance
+    GROUP BY aircraft_id
+),
+flights AS (
+    SELECT aircraft_id, COUNT(*) AS flight_count
+    FROM neo4j_flights
+    GROUP BY aircraft_id
+)
+SELECT
+    a.tail_number,
+    a.model,
+    a.operator,
+    COALESCE(f.flight_count, 0) AS flights,
+    COALESCE(m.events, 0) AS maint_events,
+    COALESCE(m.critical, 0) AS critical,
+    s.avg_egt AS egt_c,
+    s.avg_vib AS vib_ips,
+    s.avg_fuel AS fuel_kgs,
+    s.reading_count AS readings
+FROM aircraft_ref a
+LEFT JOIN flights f ON a.aircraft_id = f.aircraft_id
+LEFT JOIN maint m ON a.aircraft_id = m.aircraft_id
+LEFT JOIN sensor_stats s ON a.aircraft_id = s.aircraft_id
+ORDER BY COALESCE(m.critical, 0) DESC, COALESCE(m.events, 0) DESC
+----
+
+== What This Query Does
+
+* **remote_query()**: Graph traversal counting Flight→DEPARTS_FROM→Airport connections (fleet-wide metric)
+* **Spark Connector temp views**: Per-aircraft maintenance events (with severity breakdown) and flight counts from Neo4j
+* **Delta tables**: Per-aircraft sensor aggregates across all sensor types (EGT, vibration, fuel flow)
+* **Federation**: LEFT JOINs everything on `aircraft_id`, sorted by critical maintenance events descending
+
+== Sample Output
+
+[cols="1,1,1,1,1,1,1,1,1,1"]
+|===
+|tail_number |model |operator |flights |maint_events |critical |egt_c |vib_ips |fuel_kgs |readings
+
+|N7003X
+|777-300ER
+|United Airlines
+|18
+|14
+|4
+|551.8
+|0.0328
+|1.95
+|17,280
+
+|N7001X
+|737-800
+|United Airlines
+|25
+|12
+|3
+|545.2
+|0.0315
+|1.88
+|17,280
+
+|N7005X
+|A350-900
+|Delta Air Lines
+|20
+|8
+|1
+|532.4
+|0.0291
+|1.76
+|17,280
+|===
+
+== Why This Pattern Matters
+
+This query demonstrates that both federation methods can coexist in a single analysis:
+
+* **`remote_query()`** for fleet-wide graph traversal metrics (no cluster library needed)
+* **Spark Connector** for row-level Neo4j data that needs GROUP BY aggregation
+* **Delta tables** as the foundation for time-series sensor analytics
+
+The same dual-source pattern used in AgentBricks (Lab 6) works directly in SQL without AI agent routing.

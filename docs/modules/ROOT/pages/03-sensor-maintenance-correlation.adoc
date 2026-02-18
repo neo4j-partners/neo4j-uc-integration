@@ -1,0 +1,126 @@
+= Query 3: Sensor Health + Maintenance Correlation
+:description: Per-aircraft correlation of sensor health with maintenance events using Neo4j Spark Connector
+
+Per-aircraft correlation of sensor health metrics (EGT, vibration) with maintenance event frequency. Aircraft with higher sensor readings may correlate with more frequent maintenance — this query reveals that relationship.
+
+**Federation Method:** Neo4j Spark Connector → temp view → JOIN with Delta tables
+
+== Data Flow
+
+[listing]
+....
+Neo4j ──(Spark Connector)──► neo4j_maintenance temp view
+                                    │
+                              LEFT JOIN
+                                    │
+Delta ── sensor_readings ─┐         │
+         sensors ─────────┤ GROUP BY aircraft_id
+         systems ─────────┤         │
+         aircraft ────────┘    JOIN on aircraft_id
+....
+
+== Load Neo4j Data
+
+Load maintenance events from Neo4j into a Spark temp view:
+
+[source,python]
+----
+neo4j_maintenance = spark.read.format("org.neo4j.spark.DataSource") \
+    .option("url", NEO4J_BOLT_URI) \
+    .option("authentication.type", "basic") \
+    .option("authentication.basic.username", NEO4J_USER) \
+    .option("authentication.basic.password", NEO4J_PASSWORD) \
+    .option("labels", "MaintenanceEvent") \
+    .load()
+
+neo4j_maintenance.createOrReplaceTempView("neo4j_maintenance")
+----
+
+== Federated SQL Query
+
+[source,sql]
+----
+WITH aircraft_ref AS (
+    SELECT `:ID(Aircraft)` AS aircraft_id, tail_number, model, manufacturer, operator
+    FROM aircraft
+),
+sensor_health AS (
+    SELECT
+        sys.aircraft_id,
+        ROUND(AVG(CASE WHEN sen.type = 'EGT' THEN r.value END), 1) AS avg_egt,
+        ROUND(MAX(CASE WHEN sen.type = 'EGT' THEN r.value END), 1) AS max_egt,
+        ROUND(AVG(CASE WHEN sen.type = 'Vibration' THEN r.value END), 4) AS avg_vibration,
+        ROUND(MAX(CASE WHEN sen.type = 'Vibration' THEN r.value END), 4) AS max_vibration
+    FROM sensor_readings r
+    JOIN sensors sen ON r.sensor_id = sen.`:ID(Sensor)`
+    JOIN systems sys ON sen.system_id = sys.`:ID(System)`
+    GROUP BY sys.aircraft_id
+),
+maintenance_summary AS (
+    SELECT
+        aircraft_id,
+        COUNT(*) AS total_events,
+        SUM(CASE WHEN severity = 'CRITICAL' THEN 1 ELSE 0 END) AS critical,
+        SUM(CASE WHEN severity = 'MAJOR' THEN 1 ELSE 0 END) AS major,
+        SUM(CASE WHEN severity = 'MINOR' THEN 1 ELSE 0 END) AS minor
+    FROM neo4j_maintenance
+    GROUP BY aircraft_id
+)
+SELECT
+    a.tail_number,
+    a.model,
+    a.operator,
+    COALESCE(m.total_events, 0) AS maint_events,
+    COALESCE(m.critical, 0) AS critical,
+    COALESCE(m.major, 0) AS major,
+    COALESCE(m.minor, 0) AS minor,
+    s.avg_egt AS avg_egt_c,
+    s.max_egt AS max_egt_c,
+    s.avg_vibration AS avg_vib_ips,
+    s.max_vibration AS max_vib_ips
+FROM aircraft_ref a
+LEFT JOIN maintenance_summary m ON a.aircraft_id = m.aircraft_id
+LEFT JOIN sensor_health s ON a.aircraft_id = s.aircraft_id
+ORDER BY m.total_events DESC NULLS LAST
+----
+
+== What This Query Does
+
+* **Neo4j** (Spark Connector): Loads all `MaintenanceEvent` nodes with their properties, grouped by aircraft and severity
+* **Delta** (4-table join): Aggregates sensor readings per aircraft, computing avg/max for EGT and vibration
+* **Federation**: LEFT JOINs both summaries on `aircraft_id` so every aircraft appears even without maintenance events
+
+== Sample Output
+
+[cols="1,1,1,1,1,1,1,1,1,1,1"]
+|===
+|tail_number |model |operator |maint_events |critical |major |minor |avg_egt_c |max_egt_c |avg_vib_ips |max_vib_ips
+
+|N7001X
+|737-800
+|United Airlines
+|12
+|3
+|5
+|4
+|545.2
+|612.8
+|0.0315
+|0.0489
+
+|N7002X
+|A320neo
+|Delta Air Lines
+|10
+|2
+|4
+|4
+|538.7
+|598.3
+|0.0298
+|0.0442
+|===
+
+== Why Spark Connector Here
+
+UC JDBC's `remote_query()` wraps queries in subqueries for schema inference, which prevents GROUP BY. The Spark Connector loads row-level data that Spark SQL can freely aggregate and JOIN — essential for per-aircraft grouping.

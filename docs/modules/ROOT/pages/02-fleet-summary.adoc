@@ -1,0 +1,95 @@
+= Query 2: Fleet Summary
+:description: Fleet-wide overview combining Neo4j graph metrics with Delta sensor analytics via remote_query()
+
+Fleet-wide overview combining Neo4j graph metrics with Delta sensor analytics in a single SQL statement. No Spark Connector needed — pure SQL federation via UC JDBC.
+
+**Federation Method:** `remote_query()` (UC JDBC) with CROSS JOINs
+
+== Data Flow
+
+[listing]
+....
+                    ┌─ remote_query() ──► Neo4j: COUNT MaintenanceEvent
+                    ├─ remote_query() ──► Neo4j: COUNT critical events
+Spark SQL ── CROSS JOIN ─┤
+                    ├─ remote_query() ──► Neo4j: COUNT Flight
+                    ├─ remote_query() ──► Neo4j: COUNT Flight→Airport
+                    └─ Delta SQL ───────► sensor_readings + sensors (aggregates)
+....
+
+== SQL Query
+
+[source,sql]
+----
+SELECT
+    neo4j.total_maintenance_events,
+    neo4j.critical_events,
+    neo4j.total_flights,
+    neo4j.flight_airport_connections,
+    ROUND(sensor.avg_egt, 1) AS avg_egt_celsius,
+    ROUND(sensor.avg_vibration, 4) AS avg_vibration_ips,
+    ROUND(sensor.avg_fuel_flow, 2) AS avg_fuel_flow_kgs,
+    ROUND(sensor.avg_n1_speed, 0) AS avg_n1_speed_rpm,
+    sensor.total_readings
+FROM (
+    SELECT
+        maint.cnt AS total_maintenance_events,
+        crit.cnt AS critical_events,
+        flights.cnt AS total_flights,
+        deps.cnt AS flight_airport_connections
+    FROM
+        remote_query('neo4j_uc_connection',
+            query => 'SELECT COUNT(*) AS cnt FROM MaintenanceEvent') AS maint
+    CROSS JOIN
+        remote_query('neo4j_uc_connection',
+            query => 'SELECT COUNT(*) AS cnt
+                      FROM MaintenanceEvent
+                      WHERE severity = ''CRITICAL''') AS crit
+    CROSS JOIN
+        remote_query('neo4j_uc_connection',
+            query => 'SELECT COUNT(*) AS cnt FROM Flight') AS flights
+    CROSS JOIN
+        remote_query('neo4j_uc_connection',
+            query => 'SELECT COUNT(*) AS cnt
+                      FROM Flight f
+                      NATURAL JOIN DEPARTS_FROM r
+                      NATURAL JOIN Airport a') AS deps
+) neo4j
+CROSS JOIN (
+    SELECT
+        AVG(CASE WHEN sen.type = 'EGT' THEN r.value END) AS avg_egt,
+        AVG(CASE WHEN sen.type = 'Vibration' THEN r.value END) AS avg_vibration,
+        AVG(CASE WHEN sen.type = 'FuelFlow' THEN r.value END) AS avg_fuel_flow,
+        AVG(CASE WHEN sen.type = 'N1Speed' THEN r.value END) AS avg_n1_speed,
+        COUNT(*) AS total_readings
+    FROM sensor_readings r
+    JOIN sensors sen ON r.sensor_id = sen.`:ID(Sensor)`
+) sensor
+----
+
+== What This Query Does
+
+* **Neo4j side** (4 `remote_query()` calls): Counts maintenance events (total + critical), flights, and flight→airport graph traversals
+* **Delta side** (1 subquery): Computes fleet-wide sensor averages across all 345K+ readings by sensor type
+* **CROSS JOIN**: Combines the single-row results from both sides into one unified fleet summary
+
+== Sample Output
+
+[cols="1,1,1,1,1,1,1,1,1"]
+|===
+|maint_events |critical |flights |airport_conns |avg_egt_c |avg_vib_ips |avg_fuel_kgs |avg_n1_rpm |readings
+
+|200
+|45
+|400
+|400
+|542.3
+|0.0312
+|1.85
+|9500
+|345,600
+|===
+
+== Key Pattern
+
+`remote_query()` returns a single-row table per call, making CROSS JOINs natural for combining multiple aggregate metrics. This avoids the GROUP BY limitation of UC JDBC while keeping the query entirely in SQL.

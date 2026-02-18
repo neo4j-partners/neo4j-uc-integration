@@ -1,0 +1,100 @@
+= Neo4j + Databricks UC: Federated Query Patterns
+:description: Federated query examples combining Neo4j graph data with Databricks Delta lakehouse tables via Unity Catalog
+
+[.lead]
+This guide demonstrates federated query patterns that combine Neo4j graph data with Databricks Delta lakehouse tables using Unity Catalog. Each example is drawn from a real aerospace IoT scenario with sensor telemetry, maintenance events, and flight operations.
+
+== Architecture
+
+[listing]
+....
+┌─────────────────────────────────────────────────────────────────────┐
+│                        Spark SQL Engine                            │
+│                     (Federated Query Layer)                        │
+├────────────────────────────┬────────────────────────────────────────┤
+│    Delta Lakehouse         │         Neo4j Knowledge Graph         │
+│    (Unity Catalog)         │         (UC JDBC / Spark Connector)   │
+│                            │                                       │
+│  ┌──────────────────┐      │     ┌───────────────────────────┐     │
+│  │ sensor_readings   │      │     │ MaintenanceEvent nodes    │     │
+│  │ (345,600 rows)   │      │     │ Flight nodes              │     │
+│  │ sensors (160)    │      │     │ Component topology        │     │
+│  │ systems (80)     │      │     │ Airport relationships     │     │
+│  │ aircraft (20)    │      │     │ Delay events              │     │
+│  └──────────────────┘      │     └───────────────────────────┘     │
+│                            │                                       │
+│  Best for:                 │     Best for:                         │
+│  - Time-series analytics   │     - Relationship traversals         │
+│  - Statistical aggregates  │     - Maintenance correlation         │
+│  - Sensor trend analysis   │     - Flight/route topology           │
+└────────────────────────────┴────────────────────────────────────────┘
+....
+
+== Federation Methods
+
+[cols="1,2,2"]
+|===
+|Method |Pros |Cons
+
+|`remote_query()`
+|Pure SQL, no cluster library, UC governed
+|Aggregate-only (no GROUP BY, ORDER BY)
+
+|Spark Connector
+|Full Cypher support, row-level data
+|Requires cluster library, no UC governance
+|===
+
+== Query Examples
+
+=== xref:01-verify-data-sources.adoc[Query 1: Verify Data Sources]
+
+Confirm both Delta lakehouse tables and the Neo4j UC JDBC connection are accessible.
+
+**Method:** `remote_query()` + Delta SQL
+
+---
+
+=== xref:02-fleet-summary.adoc[Query 2: Fleet Summary]
+
+Fleet-wide overview combining Neo4j graph metrics with Delta sensor analytics in a single SQL statement.
+
+**Method:** `remote_query()` with CROSS JOINs
+
+---
+
+=== xref:03-sensor-maintenance-correlation.adoc[Query 3: Sensor Health + Maintenance Correlation]
+
+Per-aircraft correlation of sensor health metrics (EGT, vibration) with maintenance event frequency.
+
+**Method:** Neo4j Spark Connector → temp view → JOIN with Delta tables
+
+---
+
+=== xref:04-flight-ops-engine-performance.adoc[Query 4: Flight Operations + Engine Performance]
+
+Aircraft utilization (flight frequency, route coverage) correlated with engine health metrics.
+
+**Method:** Neo4j Spark Connector → temp view → JOIN with Delta tables
+
+---
+
+=== xref:05-fleet-health-dashboard.adoc[Query 5: Fleet Health Dashboard]
+
+Comprehensive fleet health view combining all data sources using both federation methods.
+
+**Method:** Hybrid — `remote_query()` + Spark Connector + Delta tables
+
+== Prerequisites
+
+1. Lakehouse tables in Unity Catalog: `aircraft`, `systems`, `sensors`, `sensor_readings`
+2. Neo4j UC JDBC connection configured
+3. Neo4j Spark Connector installed as cluster library (for queries 3-5)
+4. `neo4j-uc-creds` secret scope configured
+
+== References
+
+* https://neo4j.com/docs/jdbc-manual/current/sql2cypher/[Neo4j JDBC SQL2Cypher]
+* https://docs.databricks.com/sql/language-manual/functions/remote_query[Databricks remote_query()]
+* https://docs.databricks.com/query-federation/[Databricks Lakehouse Federation]
+* https://neo4j.com/docs/spark/current/[Neo4j Spark Connector]

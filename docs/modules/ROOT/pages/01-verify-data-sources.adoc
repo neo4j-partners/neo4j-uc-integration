@@ -1,0 +1,83 @@
+= Query 1: Verify Data Sources
+:description: Verify Delta lakehouse tables and Neo4j UC JDBC connection before running federated queries
+
+Confirm both the Delta lakehouse tables and the Neo4j UC JDBC connection are accessible before running federated queries.
+
+**Federation Method:** `remote_query()` (UC JDBC) + Delta SQL
+
+== Data Flow
+
+[listing]
+....
+Spark SQL ──► Delta Lakehouse ──► SELECT COUNT(*) FROM each table
+    │
+    └──────► Neo4j (UC JDBC) ──► remote_query() ──► SELECT COUNT(*) per node label
+....
+
+== Verify Delta Lakehouse Tables
+
+Count rows in each Delta table to confirm they are populated:
+
+[source,python]
+----
+for table in ["aircraft", "systems", "sensors", "sensor_readings"]:
+    count = spark.sql(f"SELECT COUNT(*) AS cnt FROM {table}").collect()[0]["cnt"]
+    print(f"  {table}: {count:,} rows")
+----
+
+Sample aircraft query:
+
+[source,sql]
+----
+SELECT `:ID(Aircraft)` AS aircraft_id, tail_number, model, manufacturer, operator
+FROM aircraft LIMIT 5
+----
+
+.Expected Output
+[cols="1,1,1,1,1"]
+|===
+|aircraft_id |tail_number |model |manufacturer |operator
+
+|AC-001
+|N7001X
+|737-800
+|Boeing
+|United Airlines
+
+|AC-002
+|N7002X
+|A320neo
+|Airbus
+|Delta Air Lines
+|===
+
+== Verify Neo4j UC JDBC Connection
+
+Use `remote_query()` to count nodes by label:
+
+[source,sql]
+----
+SELECT * FROM remote_query('neo4j_uc_connection',
+    query => 'SELECT COUNT(*) AS cnt FROM MaintenanceEvent')
+
+SELECT * FROM remote_query('neo4j_uc_connection',
+    query => 'SELECT COUNT(*) AS cnt FROM Flight')
+----
+
+Test a graph traversal (Flight→Airport relationships):
+
+[source,sql]
+----
+SELECT * FROM remote_query('neo4j_uc_connection',
+    query => 'SELECT COUNT(*) AS cnt
+              FROM Flight f
+              NATURAL JOIN DEPARTS_FROM r
+              NATURAL JOIN Airport a')
+----
+
+== What This Verifies
+
+* Delta tables are accessible in the current catalog/schema context
+* The Neo4j UC JDBC connection (`remote_query()`) can execute SQL queries against Neo4j
+* Neo4j's SQL2Cypher translation handles `NATURAL JOIN` for relationship traversals
+* Both data sources are ready for federated queries in subsequent examples

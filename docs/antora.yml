@@ -1,0 +1,12 @@
+name: neo4j-uc-integration-docs
+title: Neo4j + Databricks UC Federation
+version: '1.0'
+start_page: ROOT:index.adoc
+nav:
+- nav.adoc
+asciidoc:
+  attributes:
+    source-highlighter: highlight.js
+    icons: font
+    idprefix: ''
+    idseparator: '-'
