@@ -37,9 +37,37 @@ Every layer is UC-governed. The LLM never sees Cypher, the user never writes SQL
 
 ### Step 1: Materialize Neo4j Data as UC Delta Tables
 
-Live `CREATE VIEW` over `remote_query()` doesn't work due to two Neo4j JDBC limitations:
-1. **`query` option**: Spark wraps in subquery for schema inference → Neo4j can't parse it
-2. **`dbtable` option**: Avoids subquery but Neo4j returns `NullType` → requires `customSchema` (DataFrame API only, not available in `remote_query()`)
+Ideally we'd create live UC views over `remote_query()` so Genie queries Neo4j in
+real time. In practice, two Neo4j JDBC schema inference limitations prevent this:
+
+**Approach 1 — `remote_query()` with `query` option (FAILS):**
+Spark wraps the inner query in a subquery for schema inference:
+`SELECT * FROM (your_query) SPARK_GEN_SUBQ_N WHERE 1=0`. Neo4j's SQL-to-Cypher
+translator cannot parse subqueries, so `CREATE VIEW` fails with
+`JDBC_EXTERNAL_ENGINE_SYNTAX_ERROR.DURING_OUTPUT_SCHEMA_RESOLUTION`.
+
+**Approach 2 — `remote_query()` with `dbtable` option (PARTIAL — NullType):**
+The `dbtable` option avoids the subquery wrapping — Spark issues a flat
+`SELECT * FROM Label WHERE 1=0` for schema inference, which Neo4j handles correctly.
+The view creation succeeds, but hits a second known issue documented in Section 5 of
+`neo4j_databricks_sql_translation.ipynb`: Neo4j JDBC returns `NullType` for all columns
+during Spark's schema inference, so all values come back as NULL. The fix is the
+`customSchema` option which explicitly specifies column types — but `customSchema` is
+only available on the DataFrame API (`spark.read.format("jdbc")`), not on `remote_query()`.
+
+**Approach 3 — DataFrame API with `dbtable` + `customSchema` + `saveAsTable()` (WORKS):**
+The DataFrame API supports both `dbtable` (avoids subquery wrapping) and `customSchema`
+(fixes NullType inference). Since this produces a DataFrame rather than a SQL view
+definition, we materialize the results as managed Delta tables via `saveAsTable()`.
+The data is a point-in-time snapshot — re-run the notebook to refresh from Neo4j.
+
+```
+Approach        | Schema Inference | Column Types | Live? | Works?
+----------------|-----------------|--------------|-------|-------
+query option    | Subquery wrap   | N/A (fails)  | N/A   | NO
+dbtable option  | Flat query      | NullType     | Yes   | NO (NULL data)
+dbtable + customSchema + saveAsTable | Flat query | Explicit | Snapshot | YES
+```
 
 The workaround: use the **DataFrame API** with `dbtable` + `customSchema` to read Neo4j labels, then **materialize as managed Delta tables** via `saveAsTable()`. Re-run the notebook to refresh data from Neo4j.
 
@@ -73,7 +101,7 @@ Create a Genie space that includes **all** data sources as a unified catalog:
 - `lakehouse.sensors` -- sensor metadata (EGT, Vibration, FuelFlow, N1Speed)
 - `lakehouse.sensor_readings` -- 345K+ time-series sensor readings
 
-**Neo4j views (via `remote_query()` with `dbtable`):**
+**Neo4j tables (materialized via JDBC `dbtable` + `customSchema`):**
 - `lakehouse.neo4j_maintenance_events` -- maintenance events from the graph
 - `lakehouse.neo4j_flights` -- flight operations from the graph
 - `lakehouse.neo4j_airports` -- airport reference data from the graph
@@ -208,15 +236,15 @@ Poll for results, then extract the generated SQL and result set from the respons
 │   GROUP BY ...                                                          │
 │                                                                         │
 ├────────────────────────────┬─────────────────────────────────────────────┤
-│  Delta Lakehouse (direct)  │  Neo4j (via remote_query dbtable → JDBC)  │
+│  Delta Lakehouse (direct)  │  Neo4j (materialized via JDBC dbtable)    │
 │                            │                                             │
 │  sensor_readings           │  MaintenanceEvent nodes                     │
 │  sensors                   │  Flight nodes                               │
 │  systems                   │  Airport nodes                              │
 │  aircraft                  │                                             │
 │                            │  UC JDBC Connection                         │
-│                            │  enableSQLTranslation=true                  │
-│                            │  dbtable avoids subquery wrapping           │
+│                            │  dbtable + customSchema → saveAsTable()     │
+│                            │  Re-run notebook to refresh                 │
 └────────────────────────────┴─────────────────────────────────────────────┘
 ```
 
@@ -291,7 +319,7 @@ Use Agent Bricks to create a supervisor that coordinates a Genie sub-agent (for 
 - [x] Neo4j JDBC driver JARs uploaded to UC Volume
 
 ### New Work
-- [x] **Create permanent UC views** using `remote_query()` with `dbtable` parameter
+- [x] **Materialize Neo4j data as UC Delta tables** via JDBC `dbtable` + `customSchema`
   - `neo4j_maintenance_events` -- all maintenance events
   - `neo4j_flights` -- all flight operations
   - `neo4j_airports` -- airport reference data
@@ -310,9 +338,9 @@ Use Agent Bricks to create a supervisor that coordinates a Genie sub-agent (for 
 
 | Constraint | Impact | Mitigation |
 |---|---|---|
-| `remote_query()` with `dbtable` returns all rows from a label | Large Neo4j result sets may be slow | Keep Neo4j views focused; use column selection in the view definition |
-| `remote_query()` with `query` option breaks for non-aggregate SELECT | Spark wraps in subquery for schema inference | Use `dbtable` parameter instead; apply column selection and joins in Spark SQL |
-| `remote_query()` is read-only | Cannot write to Neo4j through federation | Write operations handled outside the agent |
+| Neo4j data is materialized (snapshot), not live | Data may be stale if Neo4j is updated | Re-run the materialization notebook to refresh; consider scheduling as a job |
+| `remote_query()` with `query` option breaks for non-aggregate SELECT | Spark wraps in subquery for schema inference | Use DataFrame API with `dbtable` + `customSchema` instead |
+| `remote_query()` with `dbtable` returns NullType for all columns | Live views over `remote_query()` return NULL data | Use `customSchema` (DataFrame API only) and materialize as Delta tables |
 | Neo4j JDBC SQL translation is limited | Complex Cypher patterns (variable-length paths, APOC) may not translate | Use the Neo4j Spark Connector for complex graph patterns |
 | Genie: 30 table/view limit per space | Must choose which views to expose | Focus on the most common Neo4j query patterns |
 | Genie: 5 queries/min/workspace (preview) | Rate-limited for high-throughput use | Suitable for interactive analytics, not batch processing |
