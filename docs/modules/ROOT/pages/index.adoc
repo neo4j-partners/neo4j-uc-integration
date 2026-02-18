@@ -2,19 +2,19 @@
 :description: Federated query examples combining Neo4j graph data with Databricks Delta lakehouse tables via Unity Catalog
 
 [.lead]
-This guide demonstrates federated query patterns that combine Neo4j graph data with Databricks Delta lakehouse tables using Unity Catalog. Every query was executed on a live Databricks cluster (Runtime 17.3 LTS) connected to Neo4j Aura — all output shown is actual production output, not mocked data.
+This guide demonstrates federated query patterns that combine Neo4j graph data with Databricks Delta lakehouse tables using Unity Catalog. Every query was executed on a live Databricks cluster (Runtime 17.3 LTS) connected to Neo4j Aura and all output shown is actual production output, not mocked data.
 
 == What is a Federated Query?
 
-A federated query lets you join data across multiple databases in a single statement — without moving the data first. Instead of ETL-ing everything into one system, you query each database where the data already lives and combine the results at read time.
+A federated query lets you join data across multiple databases in a single statement without moving the data first. Instead of ETL-ing everything into one system, you query each database where the data already lives and combine the results at read time.
 
-This is particularly powerful when different databases serve different strengths. A graph database like Neo4j excels at modeling relationships and topology — component hierarchies, flight routes, maintenance chains. A Delta lakehouse excels at high-volume time-series analytics — sensor readings, aggregations over millions of rows. Federated querying lets you combine both in a single analysis without duplicating data or building custom pipelines.
+This is particularly powerful when different databases serve different strengths. A graph database like Neo4j excels at modeling relationships and topology such as component hierarchies, flight routes, and maintenance chains. A Delta lakehouse excels at high-volume time-series analytics such as sensor readings, aggregations, and trend analysis over millions of rows. Federated querying lets you combine both in a single analysis without duplicating data or building custom pipelines.
 
 Databricks https://docs.databricks.com/query-federation/[Lakehouse Federation] makes this possible through Unity Catalog (UC). UC acts as a single governance layer that can reach into external databases via JDBC connections, letting you write SQL that spans your lakehouse tables and external sources like Neo4j.
 
 == How It Works: Neo4j JDBC + Unity Catalog
 
-The key enabler is the https://neo4j.com/docs/jdbc-manual/current/[Neo4j JDBC driver] with its built-in https://neo4j.com/docs/jdbc-manual/current/sql2cypher/[SQL-to-Cypher translation]. When you send a SQL query through a UC JDBC connection, the Neo4j driver automatically translates it to Cypher — so Databricks can treat Neo4j as just another SQL data source.
+The key enabler is the https://neo4j.com/docs/jdbc-manual/current/[Neo4j JDBC driver] with its built-in https://neo4j.com/docs/jdbc-manual/current/sql2cypher/[SQL-to-Cypher translation]. When you send a SQL query through a UC JDBC connection, the Neo4j driver automatically translates it to Cypher so Databricks can treat Neo4j as just another SQL data source.
 
 For example, this SQL:
 
@@ -54,7 +54,7 @@ OPTIONS (
 )
 ----
 
-Once this connection exists, you can query Neo4j directly from SQL using `remote_query()`, or from PySpark using the Spark DataFrame JDBC reader — all governed by Unity Catalog.
+Once this connection exists, you can query Neo4j directly from SQL using `remote_query()`, or from PySpark using the Spark DataFrame JDBC reader, all governed by Unity Catalog.
 
 NOTE: The Neo4j JDBC driver requires additional memory for class loading in the Databricks SafeSpark sandbox. Without the correct Spark configuration (`spark.databricks.safespark.jdbcSandbox.jvm.maxMetaspace.mib`, etc.), the sandbox JVM will crash with "Connection was closed before the operation completed." See the full setup details in the https://github.com/neo4j-field/neo4j-uc-integration/blob/main/GUIDE_NEO4J_UC.md[Neo4j UC JDBC Guide].
 
@@ -70,14 +70,14 @@ The data is split across two databases, each optimized for what it does best:
 
 |**Databricks Delta Lakehouse**
 |Sensor telemetry (345,600 readings), aircraft metadata, system and sensor catalogs
-|High-volume time-series analytics — aggregations, trend analysis, anomaly detection over millions of rows
+|High-volume time-series analytics including aggregations, trend analysis, and anomaly detection over millions of rows
 
 |**Neo4j Knowledge Graph**
 |Aircraft, flights (800), airports (12), maintenance events (300), component topology, relationships
-|Relationship traversals — "which flights connect to which airports?", "what maintenance events affect this system?", component dependency chains
+|Relationship traversals such as "which flights connect to which airports?", "what maintenance events affect this system?", and component dependency chains
 |===
 
-The federated queries in this guide join both sources to answer questions that neither database could answer alone — for example, correlating sensor health trends from the lakehouse with maintenance event patterns from the knowledge graph.
+The federated queries in this guide join both sources to answer questions that neither database could answer alone, for example correlating sensor health trends from the lakehouse with maintenance event patterns from the knowledge graph.
 
 == Architecture
 
@@ -138,7 +138,7 @@ Aircraft utilization (flight frequency, route coverage) correlated with engine h
 
 Comprehensive fleet health view combining all data sources using both federation methods.
 
-**Method:** Hybrid — `remote_query()` + Spark Connector + Delta tables
+**Method:** Hybrid using `remote_query()` + Spark Connector + Delta tables
 
 == xref:06-uc-integration-setup.adoc[Deep Dive: UC Integration Setup]
 

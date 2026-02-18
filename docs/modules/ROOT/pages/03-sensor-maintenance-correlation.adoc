@@ -1,7 +1,7 @@
 = Query 3: Sensor Health + Maintenance Correlation
 :description: Per-aircraft correlation of sensor health with maintenance events using Neo4j Spark Connector
 
-Per-aircraft correlation of sensor health metrics (EGT, vibration) with maintenance event frequency. Aircraft with higher sensor readings may correlate with more frequent maintenance — this query reveals that relationship.
+Per-aircraft correlation of sensor health metrics (EGT, vibration) with maintenance event frequency. Aircraft with higher sensor readings may correlate with more frequent maintenance and this query reveals that relationship.
 
 **Federation Method:** Neo4j Spark Connector → temp view → JOIN with Delta tables
 
@@ -80,7 +80,7 @@ ORDER BY m.total_events DESC NULLS LAST
 * **Delta** (4-table join): Aggregates sensor readings per aircraft, computing avg/max for EGT and vibration
 * **Federation**: LEFT JOINs both summaries on `aircraft_id` so every aircraft appears even without maintenance events
 
-== Actual Output — Load Maintenance Events (Databricks Runtime 17.3 LTS)
+== Actual Output: Load Maintenance Events (Databricks Runtime 17.3 LTS)
 
 The following output was captured from a live Databricks cluster using the Neo4j Spark Connector against Neo4j Aura:
 
@@ -101,7 +101,7 @@ Sample maintenance events:
 only showing top 5 rows
 ....
 
-== Actual Output — Federated Query (Databricks Runtime 17.3 LTS)
+== Actual Output: Federated Query (Databricks Runtime 17.3 LTS)
 
 This federated result was produced live on Databricks, JOINing Neo4j maintenance events with Delta sensor readings:
 
@@ -139,4 +139,4 @@ Neo4j: MaintenanceEvent nodes (Spark Connector)
 
 == Why Spark Connector Here
 
-UC JDBC's `remote_query()` wraps queries in subqueries for schema inference, which prevents GROUP BY. The Spark Connector loads row-level data that Spark SQL can freely aggregate and JOIN — essential for per-aircraft grouping.
+UC JDBC's `remote_query()` wraps queries in subqueries for schema inference, which prevents GROUP BY. The Spark Connector loads row-level data that Spark SQL can freely aggregate and JOIN, which is essential for per-aircraft grouping.

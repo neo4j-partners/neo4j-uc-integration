@@ -3,7 +3,7 @@
 
 The most comprehensive federated query, combining all data sources into a single fleet health view using both federation methods simultaneously.
 
-**Federation Method:** Hybrid — `remote_query()` + Spark Connector + Delta tables
+**Federation Method:** Hybrid using `remote_query()` + Spark Connector + Delta tables
 
 == Data Flow
 
