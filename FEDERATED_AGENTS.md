@@ -35,33 +35,36 @@ Every layer is UC-governed. The LLM never sees Cypher, the user never writes SQL
 
 ## How It Works
 
-### Step 1: UC Views Encapsulate `remote_query()`
+### Step 1: UC Views Encapsulate `remote_query()` with `dbtable`
 
-The `remote_query()` function is aggregate-only for JDBC connections (Spark wraps queries in subqueries for schema inference, breaking GROUP BY/ORDER BY). The workaround is to create **UC views** that encapsulate each Neo4j query pattern as a stable, queryable table:
+The `remote_query()` function with the `query` option breaks for non-aggregate queries because Spark wraps them in subqueries for schema inference (`SELECT * FROM (your_query) alias WHERE 1=0`), which Neo4j's SQL translator cannot parse.
+
+The workaround: use the **`dbtable`** parameter instead of `query`. With `dbtable`, Spark issues a flat `SELECT * FROM Label WHERE 1=0` for schema inference, which Neo4j handles correctly. Each view selects specific columns from the full label read:
 
 ```sql
--- Neo4j maintenance events exposed as a UC view
+-- Neo4j maintenance events exposed as a permanent UC view
 CREATE OR REPLACE VIEW lakehouse.neo4j_maintenance_events AS
-SELECT * FROM remote_query('neo4j_uc_connection',
-    query => 'SELECT aircraft_id, fault, severity, corrective_action,
-                     event_date, downtime_hours
-              FROM MaintenanceEvent');
+SELECT aircraft_id, fault, severity, corrective_action, reported_at
+FROM remote_query('neo4j_connection', dbtable => 'MaintenanceEvent');
 
--- Neo4j flight operations exposed as a UC view
+-- Neo4j flight operations exposed as a permanent UC view
 CREATE OR REPLACE VIEW lakehouse.neo4j_flights AS
-SELECT * FROM remote_query('neo4j_uc_connection',
-    query => 'SELECT aircraft_id, flight_number, operator,
-                     origin, destination, flight_date
-              FROM Flight');
+SELECT aircraft_id, flight_number, operator, origin, destination,
+       scheduled_departure, scheduled_arrival
+FROM remote_query('neo4j_connection', dbtable => 'Flight');
 
--- Neo4j graph traversal: flight-to-airport connections
+-- Neo4j airport reference data
+CREATE OR REPLACE VIEW lakehouse.neo4j_airports AS
+SELECT iata, name AS airport_name, city, country, icao, lat, lon
+FROM remote_query('neo4j_connection', dbtable => 'Airport');
+
+-- Flight-to-airport mapping (Spark SQL JOIN, not Neo4j NATURAL JOIN)
+-- NATURAL JOIN requires the query option which triggers subquery wrapping,
+-- so we join the two dbtable views in Spark instead.
 CREATE OR REPLACE VIEW lakehouse.neo4j_flight_airports AS
-SELECT * FROM remote_query('neo4j_uc_connection',
-    query => 'SELECT f.flight_number, f.aircraft_id, a.code AS airport_code,
-                     a.name AS airport_name
-              FROM Flight f
-              NATURAL JOIN DEPARTS_FROM r
-              NATURAL JOIN Airport a');
+SELECT f.flight_number, f.aircraft_id, a.iata AS airport_code, a.airport_name
+FROM lakehouse.neo4j_flights f
+JOIN lakehouse.neo4j_airports a ON f.origin = a.iata;
 ```
 
 Once these views exist, Genie (or any SQL tool) can query them like regular tables -- GROUP BY, ORDER BY, JOINs with Delta tables all work because Spark handles the aggregation after `remote_query()` returns the rows.
@@ -76,12 +79,13 @@ Create a Genie space that includes **all** data sources as a unified catalog:
 - `lakehouse.sensors` -- sensor metadata (EGT, Vibration, FuelFlow, N1Speed)
 - `lakehouse.sensor_readings` -- 345K+ time-series sensor readings
 
-**Neo4j views (via `remote_query()`):**
+**Neo4j views (via `remote_query()` with `dbtable`):**
 - `lakehouse.neo4j_maintenance_events` -- maintenance events from the graph
 - `lakehouse.neo4j_flights` -- flight operations from the graph
-- `lakehouse.neo4j_flight_airports` -- flight→airport graph traversals
+- `lakehouse.neo4j_airports` -- airport reference data from the graph
+- `lakehouse.neo4j_flight_airports` -- flight→airport mapping (Spark SQL JOIN)
 
-Genie sees all 7 as regular UC tables. It generates SQL that JOINs across them transparently -- the federation is invisible to the LLM.
+Genie sees all 8 as regular UC tables. It generates SQL that JOINs across them transparently -- the federation is invisible to the LLM.
 
 ### Step 3: Genie Instructions Teach the Join Patterns
 
@@ -192,7 +196,8 @@ Poll for results, then extract the generated SQL and result set from the respons
 ┌──────────────────────────────────────────────────────────────────────────┐
 │                    Genie Space (NL → SQL)                               │
 │   Tables: aircraft, systems, sensors, sensor_readings,                  │
-│           neo4j_maintenance_events, neo4j_flights, neo4j_flight_airports│
+│           neo4j_maintenance_events, neo4j_flights,                      │
+│           neo4j_airports, neo4j_flight_airports                         │
 │   Instructions: domain context + example SQL + JOIN patterns            │
 └─────────────────────────────┬────────────────────────────────────────────┘
                               │ Generated SQL
@@ -209,15 +214,15 @@ Poll for results, then extract the generated SQL and result set from the respons
 │   GROUP BY ...                                                          │
 │                                                                         │
 ├────────────────────────────┬─────────────────────────────────────────────┤
-│  Delta Lakehouse (direct)  │  Neo4j (via remote_query → JDBC → Cypher) │
+│  Delta Lakehouse (direct)  │  Neo4j (via remote_query dbtable → JDBC)  │
 │                            │                                             │
 │  sensor_readings           │  MaintenanceEvent nodes                     │
 │  sensors                   │  Flight nodes                               │
-│  systems                   │  Airport relationships                      │
+│  systems                   │  Airport nodes                              │
 │  aircraft                  │                                             │
 │                            │  UC JDBC Connection                         │
 │                            │  enableSQLTranslation=true                  │
-│                            │  SQL → Cypher automatic translation         │
+│                            │  dbtable avoids subquery wrapping           │
 └────────────────────────────┴─────────────────────────────────────────────┘
 ```
 
@@ -292,12 +297,13 @@ Use Agent Bricks to create a supervisor that coordinates a Genie sub-agent (for 
 - [x] Neo4j JDBC driver JARs uploaded to UC Volume
 
 ### New Work
-- [ ] **Create UC views** wrapping `remote_query()` for each Neo4j access pattern
+- [x] **Create permanent UC views** using `remote_query()` with `dbtable` parameter
   - `neo4j_maintenance_events` -- all maintenance events
   - `neo4j_flights` -- all flight operations
-  - `neo4j_flight_airports` -- flight→airport graph traversals
-  - Additional views as needed for specific graph queries
-- [ ] **Create Genie space** with all 7+ tables/views
+  - `neo4j_airports` -- airport reference data
+  - `neo4j_flight_airports` -- flight→airport mapping (Spark SQL JOIN)
+  - See `federated_views_agent_ready.ipynb` for the working notebook
+- [ ] **Create Genie space** with all 8 tables/views
 - [ ] **Add Genie instructions** -- domain context, JOIN patterns, example SQL
 - [ ] **Add example queries** -- the federated queries from the notebook as Genie examples
 - [ ] **Test NL queries** -- verify Genie generates correct federated SQL
@@ -310,9 +316,10 @@ Use Agent Bricks to create a supervisor that coordinates a Genie sub-agent (for 
 
 | Constraint | Impact | Mitigation |
 |---|---|---|
-| `remote_query()` returns all rows, Spark handles aggregation | Large Neo4j result sets may be slow | Keep Neo4j views focused; add WHERE filters in the view SQL where possible |
+| `remote_query()` with `dbtable` returns all rows from a label | Large Neo4j result sets may be slow | Keep Neo4j views focused; use column selection in the view definition |
+| `remote_query()` with `query` option breaks for non-aggregate SELECT | Spark wraps in subquery for schema inference | Use `dbtable` parameter instead; apply column selection and joins in Spark SQL |
 | `remote_query()` is read-only | Cannot write to Neo4j through federation | Write operations handled outside the agent |
-| Neo4j JDBC SQL translation is limited | Complex Cypher patterns (variable-length paths, APOC) may not translate | Create specific views for complex graph patterns using native Cypher in the `query` parameter |
+| Neo4j JDBC SQL translation is limited | Complex Cypher patterns (variable-length paths, APOC) may not translate | Use the Neo4j Spark Connector for complex graph patterns |
 | Genie: 30 table/view limit per space | Must choose which views to expose | Focus on the most common Neo4j query patterns |
 | Genie: 5 queries/min/workspace (preview) | Rate-limited for high-throughput use | Suitable for interactive analytics, not batch processing |
 | Genie: read-only generated queries | No write-back to either source | Agent is purely analytical |
@@ -357,4 +364,5 @@ Full reference: [Neo4j JDBC SQL2Cypher](https://neo4j.com/docs/jdbc-manual/curre
 
 ### Project Documentation
 - [GUIDE_NEO4J_UC.md](GUIDE_NEO4J_UC.md) -- Full UC JDBC integration guide
-- [federated_lakehouse_query.ipynb](uc-neo4j-test-suite/federated_lakehouse_query.ipynb) -- Working federated query examples
+- [federated_views_agent_ready.ipynb](uc-neo4j-test-suite/federated_views_agent_ready.ipynb) -- Permanent UC views for Genie (dbtable approach)
+- [federated_lakehouse_query.ipynb](uc-neo4j-test-suite/federated_lakehouse_query.ipynb) -- Working federated query examples (Spark Connector + remote_query)

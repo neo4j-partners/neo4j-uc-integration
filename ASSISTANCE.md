@@ -17,6 +17,14 @@ Some background on how the integration works: the Neo4j JDBC driver plugs into D
 
 Consider a fraud detection team with transaction data in Delta tables and entity relationships (accounts, devices, shared identifiers) in Neo4j. Today, combining those datasets requires custom ETL or duplicate copies. With this integration, a single Databricks notebook joins Neo4j graph traversal results with Delta table aggregations in one query. No data movement, no pipeline to maintain. The integration supports aggregates, filtered queries, COUNT DISTINCT, and multi-hop traversals expressed as SQL JOINs, with aggregation pushed down to Neo4j so only results travel over the network.
 
+## Other use cases
+
+- **Knowledge graph-enriched ML pipelines** — Data science teams training models on lakehouse data can pull graph-derived features (node centrality, community detection scores, relationship counts) directly from Neo4j without building separate ETL to extract and materialize those features into Delta tables.
+
+- **Supply chain visibility** — Organizations modeling supplier networks and dependencies in Neo4j can join that graph data with inventory and logistics data in Delta tables for real-time risk assessment and disruption analysis, all from a single Databricks notebook.
+
+- **Ad hoc exploration before ETL investment** — Analysts can prototype cross-system queries joining Neo4j graph data with lakehouse tables before committing to building a full ingestion pipeline. This is exactly the proof-of-concept scenario Databricks recommends federation for.
+
 Thanks for any leads you can surface.
 
 Best,
