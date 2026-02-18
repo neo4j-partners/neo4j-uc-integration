@@ -217,64 +217,11 @@ Comprehensive fleet health view combining all data sources using both federation
 
 ---
 
-=== Natural Language Queries with Genie
+=== xref:06-genie-natural-language.adoc[Query 6: Natural Language Queries with Genie]
 
-The federated queries above require hand-written SQL. With https://docs.databricks.com/aws/en/genie/[Databricks AI/BI Genie], the same data can be queried using natural language. Genie generates the SQL automatically, joining across the materialized Neo4j tables and Delta lakehouse tables, all through Unity Catalog.
+Query federated Neo4j and Delta lakehouse data using natural language. Genie generates SQL automatically, joining across materialized Neo4j tables and Delta tables through Unity Catalog.
 
-This works because the Neo4j graph data (maintenance events, flights, airports) has been materialized as managed Delta tables via the UC JDBC connection. Genie sees all 8 tables as regular UC tables and generates federated SQL transparently. A set of Genie instructions teaches the LLM the domain model, JOIN patterns, and cross-source relationships. See the https://github.com/neo4j-partners/neo4j-uc-integration/blob/main/FEDERATED_AGENTS.md[Federated Agents guide] for the full architecture, materialization approach, agent integration patterns, and implementation checklist.
-
-==== Example: Fleet Activity and Engine Health
-
-**Question:** _For each aircraft, show the number of flights, maintenance events, and average engine temperature._
-
-**Analysis:** This question requires federating across three data sources: flight counts from `neo4j_flights`, maintenance event counts from `neo4j_maintenance_events`, and average EGT from the Delta sensor chain (`sensor_readings` → `sensors` filtered by type = 'EGT'). Genie identifies the relevant tables, joins them on `aircraft_id`, replaces missing counts with zero, and rounds the average EGT to two decimal places.
-
-**Genie-generated SQL:**
-
-[source,sql]
-----
-SELECT
-    COALESCE(f.aircraft_id, m.aircraft_id, e.aircraft_id) AS aircraft_id,
-    COALESCE(f.num_flights, 0) AS num_flights,
-    COALESCE(m.num_maintenance_events, 0) AS num_maintenance_events,
-    ROUND(e.avg_egt, 2) AS avg_egt_celsius
-FROM (
-    SELECT aircraft_id, COUNT(*) AS num_flights
-    FROM neo4j_flights
-    GROUP BY aircraft_id
-) f
-FULL OUTER JOIN (
-    SELECT aircraft_id, COUNT(*) AS num_maintenance_events
-    FROM neo4j_maintenance_events
-    GROUP BY aircraft_id
-) m ON f.aircraft_id = m.aircraft_id
-FULL OUTER JOIN (
-    SELECT sys.aircraft_id, AVG(r.value) AS avg_egt
-    FROM sensor_readings r
-    JOIN sensors sen ON r.sensor_id = sen.`:ID(Sensor)`
-    JOIN systems sys ON sen.system_id = sys.`:ID(System)`
-    WHERE sen.type = 'EGT'
-    GROUP BY sys.aircraft_id
-) e ON COALESCE(f.aircraft_id, m.aircraft_id) = e.aircraft_id
-ORDER BY aircraft_id
-----
-
-**Results:**
-
-Across all 20 aircraft, the average EGT values are remarkably consistent, ranging from 671.55°C to 671.66°C, while flight counts and maintenance events vary more widely:
-
-[cols="1,1,1,1"]
-|===
-|Aircraft |Flights |Maintenance Events |Avg EGT (°C)
-
-|AC1005 |27 |25 |671.57
-|AC1006 |45 |14 |671.55
-|AC1007 |51 |18 |671.57
-|AC1009 |43 |17 |671.59
-|AC1016 |46 |14 |671.63
-|===
-
-The consistent EGT readings suggest uniform engine performance across the fleet, while the variation in maintenance events (14–25) relative to flight activity (27–51) highlights aircraft that may warrant closer inspection.
+**Method:** Materialized Neo4j Delta tables + Genie NL-to-SQL
 
 ---
 

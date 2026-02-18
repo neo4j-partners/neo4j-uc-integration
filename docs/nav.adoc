@@ -4,5 +4,6 @@
 * xref:03-sensor-maintenance-correlation.adoc[Query 3: Sensor + Maintenance]
 * xref:04-flight-ops-engine-performance.adoc[Query 4: Flight Ops + Engine]
 * xref:05-fleet-health-dashboard.adoc[Query 5: Fleet Health Dashboard]
+* xref:06-genie-natural-language.adoc[Query 6: NL Queries with Genie]
 * xref:07-example-use-cases.adoc[Example Use Cases]
 * xref:06-uc-integration-setup.adoc[Deep Dive: UC Integration Setup]
