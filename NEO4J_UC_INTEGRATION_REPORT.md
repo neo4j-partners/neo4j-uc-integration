@@ -1,14 +1,14 @@
 # Proposal: Neo4j as a First-Class Lakehouse Federation Data Source
 
-This document proposes adding Neo4j as a natively supported connection type (`TYPE NEO4J`) in Unity Catalog's Lakehouse Federation. We have built a working prototype using the existing generic JDBC path (`TYPE JDBC`) with Neo4j's JDBC driver in a bring-your-own-driver configuration. The prototype is fully functional and we want to work with Databricks to make Neo4j an officially supported integration.
+This document proposes adding Neo4j as a natively supported connection type (`TYPE NEO4J`) in Unity Catalog's Lakehouse Federation. We built a working prototype using the existing generic JDBC path (`TYPE JDBC`) with Neo4j's JDBC driver in a bring-your-own-driver configuration. The prototype is fully functional, and we want to work with Databricks to make Neo4j an officially supported integration.
 
-We understand that to be considered for official support, we need to deliver a working prototype of UC Federation with the Neo4j JDBC driver and a detailed proposal for how first-class UC Federation support would work. This report includes both.
+To be considered for official support, Neo4j needs to deliver a working prototype of UC Federation with the Neo4j JDBC driver and a detailed proposal for how first-class UC Federation support would work. This report covers both.
 
 All queries shown here ran on a live Databricks cluster (Runtime 17.3 LTS) connected to Neo4j Aura. The output is real, not mocked.
 
 ## Current State: Generic JDBC Path (TYPE JDBC)
 
-Today, connecting Neo4j to Unity Catalog requires using `TYPE JDBC` -- the generic JDBC connector -- with a bring-your-own-driver configuration. The integration uses two JARs uploaded to a Unity Catalog Volume and a single `CREATE CONNECTION` statement. Once in place, Neo4j is queryable through `remote_query()`, the Spark DataFrame JDBC reader, or materialized Delta tables for Genie.
+Today, connecting Neo4j to Unity Catalog requires using `TYPE JDBC`, the generic JDBC connector, with a bring-your-own-driver configuration. The integration uses two JARs uploaded to a Unity Catalog Volume and a single `CREATE CONNECTION` statement. Once in place, Neo4j is queryable through `remote_query()`, the Spark DataFrame JDBC reader, or materialized Delta tables for Genie.
 
 ### JDBC Driver JARs
 
@@ -59,7 +59,7 @@ Two preview features must be enabled in the workspace:
 - **Custom JDBC on UC Compute** for loading custom JDBC driver JARs in UC connections
 - **`remote_query` table-valued function** for the `remote_query()` SQL function
 
-For federated queries that also use the Neo4j Spark Connector (Queries 3-5), the connector must be installed as a cluster library (`org.neo4j:neo4j-connector-apache-spark:5.3.10`). The UC JDBC connection itself does not require cluster libraries since the JARs load from the UC Volume.
+For federated queries that also use the Neo4j Spark Connector (Queries 3-5), the connector must be installed as a cluster library (`org.neo4j:neo4j-connector-apache-spark:5.3.10`). The UC JDBC connection itself doesn't require cluster libraries since the JARs load from the UC Volume.
 
 ## How SQL-to-Cypher Translation Works
 
@@ -72,11 +72,11 @@ The Neo4j JDBC driver translates standard SQL into Cypher automatically. Neo4j n
 | `SELECT COUNT(DISTINCT manufacturer) FROM Aircraft` | `MATCH (n:Aircraft) RETURN count(DISTINCT n.manufacturer)` |
 | `FROM Flight f NATURAL JOIN DEPARTS_FROM r NATURAL JOIN Airport a` | `MATCH (f:Flight)-[:DEPARTS_FROM]->(a:Airport)` |
 
-The `NATURAL JOIN` syntax is how graph traversals work in SQL. The first table is the source node label, the middle "table" is the relationship type, and the last table is the target node label. This maps directly to Cypher pattern matching, which means multi-hop graph traversals can be expressed as standard SQL JOINs.
+The `NATURAL JOIN` syntax maps graph traversals into SQL. The first table is the source node label, the middle "table" is the relationship type, and the last table is the target node label. This corresponds directly to Cypher pattern matching, which means multi-hop graph traversals can be expressed as standard SQL JOINs.
 
 ## Two Ways to Query
 
-Once the connection exists, there are two ways to use it.
+Once the connection exists, there are two ways to use it: the `remote_query()` SQL function and the Spark DataFrame API.
 
 ### remote_query() SQL Function
 
@@ -89,7 +89,7 @@ SELECT * FROM remote_query(
 )
 ```
 
-This is pure SQL, useful for dashboards, SQL notebooks, and cases where the query result feeds directly into a larger SQL statement. It handles schema inference internally, so `customSchema` is not required. The federated query examples in this report use `remote_query()` extensively for aggregate metrics.
+This is pure SQL. It's useful for dashboards, SQL notebooks, and cases where the query result feeds directly into a larger SQL statement. Schema inference is handled internally, so `customSchema` isn't required. The federated query examples in this report use `remote_query()` extensively for aggregate metrics.
 
 ### Spark DataFrame API
 
@@ -112,13 +112,13 @@ Spark's JDBC reader runs a schema inference step before executing any query, sen
 The fix is to always provide an explicit `customSchema` option when using the DataFrame API:
 
 ```python
-# Fails -- Spark can't infer the schema
+# Fails: Spark can't infer the schema
 df = spark.read.format("jdbc") \
     .option("databricks.connection", "neo4j_connection") \
     .option("query", "SELECT COUNT(*) AS cnt FROM Flight") \
     .load()
 
-# Works -- schema specified explicitly
+# Works: schema specified explicitly
 df = spark.read.format("jdbc") \
     .option("databricks.connection", "neo4j_connection") \
     .option("query", "SELECT COUNT(*) AS cnt FROM Flight") \
@@ -126,11 +126,11 @@ df = spark.read.format("jdbc") \
     .load()
 ```
 
-Column names in the schema must match the aliases in the SQL query, and the types must match what Neo4j returns (typically `LONG` for counts, `STRING` for text, `DOUBLE` for floats). This applies to every DataFrame API query through the UC JDBC connection. The `remote_query()` function does not have this requirement. With a first-class connector, native schema inference would handle this automatically.
+Column names in the schema must match the aliases in the SQL query, and the types must match what Neo4j returns (typically `LONG` for counts, `STRING` for text, `DOUBLE` for floats). This applies to every DataFrame API query through the UC JDBC connection. The `remote_query()` function doesn't have this requirement. With a first-class connector, native schema inference would handle this automatically.
 
 ## Proposed First-Class Support: TYPE NEO4J Connection
 
-The prototype above works using `TYPE JDBC` -- the generic connector for any JDBC-compatible database. We are proposing a first-class `TYPE NEO4J` connection type that would bring Neo4j to parity with natively supported data sources like PostgreSQL, Snowflake, and SQL Server. Here is what that integration would look like and what Neo4j is prepared to build in partnership with Databricks.
+The prototype above works using `TYPE JDBC`, the generic connector for any JDBC-compatible database. We are proposing a first-class `TYPE NEO4J` connection type that brings Neo4j to parity with natively supported data sources like PostgreSQL, Snowflake, and SQL Server. Here is what that integration would look like and what Neo4j is prepared to build in partnership with Databricks.
 
 ### Connection Creation
 
@@ -168,7 +168,7 @@ The JDBC driver and Spark cleaner JARs would ship as part of the integration. No
 
 ### Foreign Catalog Support
 
-Today, `CREATE FOREIGN CATALOG` is not supported with generic JDBC connections. Users must use `remote_query()` or the DataFrame API with explicit query strings.
+Today, `CREATE FOREIGN CATALOG` isn't supported with generic JDBC connections. Users must use `remote_query()` or the DataFrame API with explicit query strings.
 
 With `TYPE NEO4J`, the integration could support:
 
@@ -176,7 +176,7 @@ With `TYPE NEO4J`, the integration could support:
 CREATE FOREIGN CATALOG neo4j_catalog USING CONNECTION neo4j_connection
 ```
 
-This would expose Neo4j node labels as tables and node properties as columns inside a UC catalog, making Neo4j data browsable in Catalog Explorer alongside Delta tables and other federated sources. The Neo4j JDBC driver already implements `DatabaseMetaData` APIs that map graph schema to relational metadata -- node labels as tables, properties as columns, relationship types as foreign key relationships -- so the schema discovery infrastructure exists.
+This would expose Neo4j node labels as tables and node properties as columns inside a UC catalog, making Neo4j data browsable in Catalog Explorer alongside Delta tables and other federated sources. The Neo4j JDBC driver already implements `DatabaseMetaData` APIs that map graph schema to relational metadata (node labels as tables, properties as columns, relationship types as foreign key relationships), so the schema discovery infrastructure exists.
 
 ### Automatic Schema Inference
 
@@ -225,7 +225,7 @@ We ran a 12-test suite against a live Neo4j Aura instance through the UC JDBC co
 | Non-aggregate SELECT | Same subquery limitation |
 | ORDER BY | Same subquery limitation |
 
-Through the generic JDBC path, UC JDBC works for aggregate analytics (COUNT, SUM, AVG, MIN, MAX) with optional WHERE filters and NATURAL JOINs. Row-level data access, GROUP BY, ORDER BY, and HAVING are blocked by Spark's subquery wrapping interacting with the Neo4j SQL translator. The Neo4j driver handles all of these correctly outside the Spark wrapper -- a first-class connector would open up these patterns. For the prototype, the Neo4j Spark Connector covers them.
+Through the generic JDBC path, UC JDBC works for aggregate analytics (COUNT, SUM, AVG, MIN, MAX) with optional WHERE filters and NATURAL JOINs. Row-level data access, GROUP BY, ORDER BY, and HAVING are blocked by Spark's subquery wrapping interacting with the Neo4j SQL translator. The Neo4j driver handles all of these correctly outside the Spark wrapper, and a first-class connector would open up these patterns. For the prototype, the Neo4j Spark Connector covers them.
 
 ## Two Federation Methods
 
@@ -255,7 +255,7 @@ All source code is in the [federated_lakehouse_query.ipynb](https://github.com/n
 
 ### Query 1: Verify Data Sources
 
-Confirms both sides are accessible before running federated queries. Delta tables are counted with standard SQL; Neo4j is verified with `remote_query()` calls, including a graph traversal test:
+Confirms both sides are accessible before running federated queries. Delta tables are counted with standard SQL, while Neo4j is verified with `remote_query()` calls, including a graph traversal test.
 
 ```sql
 SELECT * FROM remote_query('neo4j_uc_connection',
@@ -265,7 +265,7 @@ SELECT * FROM remote_query('neo4j_uc_connection',
               NATURAL JOIN Airport a')
 ```
 
-This exercises the full chain: `remote_query()` to UC JDBC connection to Neo4j JDBC driver to SQL-to-Cypher translation to Cypher execution against Neo4j Aura.
+This exercises the full chain, from `remote_query()` through the UC JDBC connection, into the Neo4j JDBC driver's SQL-to-Cypher translator, and finally to Cypher execution against Neo4j Aura.
 
 Live output:
 
@@ -290,7 +290,7 @@ Sample aircraft data:
 
 ### Query 2: Fleet Summary (Pure SQL Federation)
 
-A single SQL statement that CROSS JOINs four `remote_query()` calls (maintenance event counts, critical event counts, flight counts, graph traversals) with a Delta subquery computing fleet-wide sensor averages across 345K+ readings:
+A single SQL statement CROSS JOINs four `remote_query()` calls (maintenance event counts, critical event counts, flight counts, graph traversals) with a Delta subquery computing fleet-wide sensor averages across 345K+ readings.
 
 ```sql
 SELECT
@@ -348,7 +348,7 @@ This pattern works because `remote_query()` returns a single-row table per call,
 
 ### Query 3: Sensor Health + Maintenance Correlation (Spark Connector)
 
-This query needs per-aircraft grouping, which requires GROUP BY, which means `remote_query()` is out. Instead, maintenance events are loaded from Neo4j via the Spark Connector into a temp view, then JOINed with Delta sensor data in standard Spark SQL:
+This query needs per-aircraft grouping, which requires GROUP BY. That puts `remote_query()` out of scope for the generic JDBC path. Instead, maintenance events are loaded from Neo4j via the Spark Connector into a temp view, then JOINed with Delta sensor data in standard Spark SQL.
 
 ```python
 neo4j_maintenance = spark.read.format("org.neo4j.spark.DataSource") \
@@ -381,7 +381,7 @@ Live output:
 
 ### Query 4: Flight Operations + Engine Performance
 
-Same pattern as Query 3 with a different angle. Flight nodes are loaded from Neo4j via Spark Connector, grouped by aircraft to compute flight counts and unique origin/destination airports, then INNER JOINed with engine-specific sensor readings (filtered to `sys.type = 'Engine'`) from Delta. The result shows aircraft utilization correlated with engine health metrics (EGT, fuel flow, N1 speed).
+This follows the same pattern as Query 3 with a different angle. Flight nodes are loaded from Neo4j via the Spark Connector, grouped by aircraft to compute flight counts and unique origin/destination airports, then INNER JOINed with engine-specific sensor readings (filtered to `sys.type = 'Engine'`) from Delta. The result correlates aircraft utilization with engine health metrics including EGT, fuel flow, and N1 speed.
 
 Live output:
 
@@ -400,13 +400,9 @@ Live output:
 
 ### Query 5: Fleet Health Dashboard (Hybrid)
 
-The most comprehensive query combines both federation methods simultaneously:
+The most comprehensive query combines both federation methods simultaneously.
 
-- **`remote_query()`** provides a fleet-wide graph traversal metric (Flight-[:DEPARTS_FROM]->Airport connections: 800)
-- **Spark Connector temp views** provide per-aircraft maintenance events and flight counts from Neo4j
-- **Delta tables** provide per-aircraft sensor aggregates (EGT, vibration, fuel flow)
-
-Everything LEFT JOINs on `aircraft_id`, sorted by critical maintenance events descending:
+`remote_query()` provides a fleet-wide graph traversal metric (800 Flight-[:DEPARTS_FROM]->Airport connections). Spark Connector temp views provide per-aircraft maintenance events and flight counts from Neo4j. Delta tables provide per-aircraft sensor aggregates (EGT, vibration, fuel flow). Everything LEFT JOINs on `aircraft_id`, sorted by critical maintenance events descending.
 
 Live output:
 
@@ -425,7 +421,7 @@ Graph traversal (Flight)-[:DEPARTS_FROM]->(Airport): 800 connections
 (showing 5 of 20 aircraft)
 ```
 
-This demonstrates both federation methods coexisting in a single analysis: `remote_query()` for fleet-wide aggregate metrics, Spark Connector for row-level Neo4j data that requires grouping, and Delta tables as the foundation for time-series sensor analytics.
+This demonstrates both federation methods coexisting in a single analysis. `remote_query()` handles fleet-wide aggregate metrics, the Spark Connector provides row-level Neo4j data that requires grouping, and Delta tables serve as the foundation for time-series sensor analytics.
 
 ## Genie Integration: Natural Language Access
 
@@ -433,12 +429,12 @@ We extended the integration to support natural language queries through Genie by
 
 ### Why Materialization
 
-Live UC views over `remote_query()` would be the ideal approach, but two schema-inference limitations prevent it:
+Live UC views over `remote_query()` would be the ideal approach, but two schema-inference limitations prevent it today.
 
 | Approach | Problem |
 |----------|---------|
-| `remote_query()` with `query` parameter | Spark wraps the inner query in a subquery; Neo4j's translator can't parse the nested structure |
-| `remote_query()` with `dbtable` parameter | Spark issues `SELECT * FROM Label WHERE 1=0`; Neo4j JDBC returns `NullType` for all columns, so all values come back as NULL |
+| `remote_query()` with `query` parameter | Spark wraps the inner query in a subquery, and Neo4j's translator can't parse the nested structure |
+| `remote_query()` with `dbtable` parameter | Spark issues `SELECT * FROM Label WHERE 1=0`, and Neo4j JDBC returns `NullType` for all columns, so all values come back as NULL |
 
 The working approach uses the Spark DataFrame JDBC reader with `dbtable` (avoids subquery wrapping) and `customSchema` (fixes NullType inference), then saves the results as managed Delta tables:
 
@@ -457,17 +453,17 @@ df = spark.read.format("jdbc") \
 df.write.mode("overwrite").saveAsTable("lakehouse.neo4j_maintenance_events")
 ```
 
-The same pattern materializes `neo4j_flights`, `neo4j_airports`, and `neo4j_flight_airports`. Data is a point-in-time snapshot; re-running the materialization notebook refreshes it.
+The same pattern materializes `neo4j_flights`, `neo4j_airports`, and `neo4j_flight_airports`. The data is a point-in-time snapshot. Re-running the materialization notebook refreshes it.
 
 ### Genie Space Configuration
 
-The Genie space sees 8 tables total, 4 Delta (direct) and 4 Neo4j (materialized):
+The Genie space sees 8 tables total. Four are Delta tables (direct) and four are Neo4j tables (materialized).
 
 **Delta tables:** `aircraft`, `systems`, `sensors`, `sensor_readings`
 
 **Materialized Neo4j tables:** `neo4j_maintenance_events`, `neo4j_flights`, `neo4j_airports`, `neo4j_flight_airports`
 
-Genie treats all 8 as regular UC tables. Instructions in the space teach the LLM the sensor data model (readings require a 4-table join chain through `aircraft` -> `systems` -> `sensors` -> `sensor_readings`, filtered by `sensors.type`), Neo4j table schemas, cross-source JOIN patterns, and example SQL.
+Genie treats all 8 as regular UC tables. Instructions in the space teach the LLM about the sensor data model (readings require a 4-table join chain through `aircraft` -> `systems` -> `sensors` -> `sensor_readings`, filtered by `sensors.type`), Neo4j table schemas, cross-source JOIN patterns, and example SQL.
 
 ### Genie Output: Cross-Source Federation
 
@@ -542,7 +538,7 @@ The Genie space supports programmatic access through either the Genie Managed MC
 
 ## What First-Class Support Would Enable
 
-The following are specific areas where a native `TYPE NEO4J` connection type would improve the user experience over the current generic JDBC path.
+These are the specific areas where a native `TYPE NEO4J` connection type would improve the user experience over the current generic JDBC path.
 
 | Current Limitation (TYPE JDBC) | Impact | How TYPE NEO4J Resolves It |
 |-------------------------------|--------|---------------------------|
@@ -556,7 +552,7 @@ The following are specific areas where a native `TYPE NEO4J` connection type wou
 
 ## SafeSpark Configuration
 
-During prototype development, the UC JDBC connection initially failed with `Connection was closed before the operation completed`. We worked with Databricks engineering to identify the root cause: the Neo4j JDBC driver loads more classes during initialization than a typical JDBC driver because it bundles the SQL-to-Cypher translation engine (ANTLR parser, Cypher AST, translation rules). The default SafeSpark sandbox metaspace allocation needed to be increased for that class loading.
+During prototype development, the UC JDBC connection initially failed with `Connection was closed before the operation completed`. We worked with Databricks engineering to identify the root cause. The Neo4j JDBC driver loads more classes during initialization than a typical JDBC driver because it bundles the SQL-to-Cypher translation engine (ANTLR parser, Cypher AST, translation rules). The default SafeSpark sandbox metaspace allocation needed to be increased for that class loading.
 
 Together we identified three Spark configuration properties that resolve this:
 

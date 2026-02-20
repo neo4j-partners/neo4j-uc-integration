@@ -6,13 +6,13 @@ The prototype ran on a live Databricks cluster (Runtime 17.3 LTS) connected to N
 
 ## Context
 
-Databricks provides automatic metadata sync for supported Lakehouse Federation sources — MySQL, PostgreSQL, Snowflake, and others. For these sources, Unity Catalog syncs the remote schema on each interaction with the catalog, exposing tables and columns as first-class UC objects in Catalog Explorer and `INFORMATION_SCHEMA`.
+Databricks provides automatic metadata sync for supported Lakehouse Federation sources, including MySQL, PostgreSQL, Snowflake, and others. For these sources, Unity Catalog syncs the remote schema on each interaction with the catalog, exposing tables and columns as first-class UC objects in Catalog Explorer and `INFORMATION_SCHEMA`.
 
-Neo4j is not yet on the supported list, and the JDBC connection type does not support foreign catalogs. Our current JDBC integration registers a `CONNECTION` object only — it does not expose Neo4j's schema as browsable UC objects. This prototype demonstrates that the schema mapping is well-defined and implementable, and we want to work together with Databricks to bring Neo4j to the same level of integration as other supported federation sources.
+Neo4j isn't yet on the supported list, and the JDBC connection type doesn't support foreign catalogs. Our current JDBC integration registers a `CONNECTION` object only. It doesn't expose Neo4j's schema as browsable UC objects. This prototype demonstrates that the schema mapping is well-defined and implementable, and we want to work together with Databricks to bring Neo4j to the same level of integration as other supported federation sources.
 
 ## The Value of Metadata Sync Along with the JDBC Connection
 
-The JDBC integration established query connectivity — Databricks users can execute SQL against Neo4j via `remote_query()` and the Spark DataFrame API. Metadata synchronization completes the picture by making Neo4j a governed, discoverable data source within Unity Catalog. With metadata sync, Neo4j gains:
+The JDBC integration established query connectivity. Databricks users can execute SQL against Neo4j via `remote_query()` and the Spark DataFrame API. Metadata synchronization completes the picture by making Neo4j a governed, discoverable data source within Unity Catalog. With metadata sync, Neo4j gains:
 
 - **Catalog Explorer visibility.** Neo4j node labels and relationship types appear as browsable tables alongside Delta tables, with full column definitions and types.
 - **`INFORMATION_SCHEMA` registration.** Neo4j schema objects are queryable via standard `INFORMATION_SCHEMA` views, enabling programmatic discovery by tools, agents, and automation.
@@ -22,7 +22,7 @@ The JDBC integration established query connectivity — Databricks users can exe
 
 ## How Neo4j Graph Schema Maps to Unity Catalog
 
-Neo4j's data model has three core concepts: node labels (analogous to tables), relationship types (analogous to foreign-key joins), and properties (analogous to columns). Each maps directly to UC's three-level namespace:
+Neo4j's data model has three core concepts. Node labels are analogous to tables, relationship types are analogous to foreign-key joins, and properties are analogous to columns. Each maps directly to UC's three-level namespace.
 
 ```
 Unity Catalog                  Neo4j
@@ -93,11 +93,11 @@ SHOW CONSTRAINTS YIELD *
 SHOW INDEXES YIELD *
 ```
 
-These procedures are built into Neo4j (no plugins required) and return the full schema metadata needed for UC registration: property names, types, nullability (via `mandatory`), and constraint information.
+These procedures are built into Neo4j (no plugins required) and return the full schema metadata needed for UC registration, including property names, types, nullability (via `mandatory`), and constraint information.
 
 For richer metadata in a single call, Neo4j also provides `apoc.meta.schema()` (APOC Core plugin), which returns node counts, indexed/unique flags per property, and relationship connectivity patterns (source label, relationship type, target label) in a single nested map.
 
-**Note on relationship connectivity:** `db.schema.relTypeProperties()` returns property metadata but not source/target labels (verified on Neo4j 5.x Aura). Relationship connectivity patterns — which label connects to which via which relationship type — are available from `apoc.meta.schema()` or `db.schema.visualization()`. This is the information needed to populate `source_id` and `target_id` semantics in the relationship tables.
+**Note on relationship connectivity:** `db.schema.relTypeProperties()` returns property metadata but not source/target labels (verified on Neo4j 5.x Aura). Relationship connectivity patterns, specifically which label connects to which via which relationship type, are available from `apoc.meta.schema()` or `db.schema.visualization()`. This is the information needed to populate `source_id` and `target_id` semantics in the relationship tables.
 
 ## What We Prototyped
 
@@ -105,7 +105,7 @@ We validated two approaches to demonstrate that the mapping works end-to-end.
 
 ### Prototype 1: Materialized Delta Tables
 
-This approach reads Neo4j data via the Spark Connector and writes it as managed Delta tables in Unity Catalog. When `saveAsTable()` writes a Delta table, UC automatically registers the full schema metadata — column names, types, nullability, row counts, and statistics — with zero custom API calls.
+This approach reads Neo4j data via the Spark Connector and writes it as managed Delta tables in Unity Catalog. When `saveAsTable()` writes a Delta table, UC automatically registers the full schema metadata (column names, types, nullability, row counts, and statistics) with zero custom API calls.
 
 **Pipeline:**
 
@@ -142,7 +142,7 @@ df.write.mode("overwrite") \
     .saveAsTable("`neo4j_metadata`.`relationships`.`departs_from`")
 ```
 
-**Verification — metadata visible in `INFORMATION_SCHEMA`:**
+**Verification: metadata visible in `INFORMATION_SCHEMA`**
 
 ```sql
 SELECT table_schema, table_name, table_type
@@ -158,15 +158,15 @@ ORDER BY ordinal_position;
 
 After running, all materialized tables appeared in Catalog Explorer with full column definitions, types, and row counts. Tables were queryable via standard SQL (`SELECT * FROM neo4j_metadata.nodes.aircraft`).
 
-**What this demonstrates:** The graph-to-relational mapping is well-defined. The Spark Connector infers the schema correctly, and UC registers it automatically. An official integration could follow this same mapping without the materialization step — syncing only the metadata, not the data.
+**What this demonstrates:** The graph-to-relational mapping is well-defined. The Spark Connector infers the schema correctly, and UC registers it automatically. An official integration could follow this same mapping without the materialization step, syncing only the metadata, not the data.
 
 ### Future Exploration: External Metadata API
 
-A potential future approach to metadata synchronization is the [External Metadata API](https://docs.databricks.com/api/workspace/externalmetadata) (Public Preview), which could enable metadata-only registration without copying data. An exploratory notebook is available at [metadata_sync_external.ipynb](https://github.com/neo4j-partners/neo4j-uc-integration/blob/main/uc-neo4j-test-suite/metadata_sync_external.ipynb). This approach has not yet been validated end-to-end and would require further investigation — including adding a `NEO4J` system type to the API's `system_type` enum and support for typed columns.
+A potential future approach to metadata synchronization is the [External Metadata API](https://docs.databricks.com/api/workspace/externalmetadata) (Public Preview), which could enable metadata-only registration without copying data. An exploratory notebook is available at [metadata_sync_external.ipynb](https://github.com/neo4j-partners/neo4j-uc-integration/blob/main/uc-neo4j-test-suite/metadata_sync_external.ipynb). This approach hasn't yet been validated end-to-end and would require further investigation, including adding a `NEO4J` system type to the API's `system_type` enum and support for typed columns.
 
 ## Example: Materializing a Node Label as a Delta Table
 
-This walkthrough shows the full flow for a single node label — from schema discovery through Delta materialization to `INFORMATION_SCHEMA` verification. All steps ran on Databricks Runtime 17.3 LTS connected to Neo4j Aura.
+This walkthrough shows the full flow for a single node label, from schema discovery through Delta materialization to `INFORMATION_SCHEMA` verification. All steps ran on Databricks Runtime 17.3 LTS connected to Neo4j Aura.
 
 **1. Discover the schema for `:Aircraft`**
 
@@ -183,15 +183,15 @@ with GraphDatabase.driver(NEO4J_BOLT_URI, auth=(NEO4J_USER, NEO4J_PASSWORD)) as 
 
 ```
 NODE LABELS (9 discovered):
-  Aircraft: 6 properties    — aircraft_id, tail_number, icao24, model, manufacturer, operator
-  Airport: 8 properties     — airport_id, name, city, country, iata, ...
-  Component: 4 properties   — system_id, component_id, name, type
-  Delay: 3 properties       — delay_id, cause, minutes (Long)
-  Flight: 8 properties      — flight_id, flight_number, operator, origin, destination, ...
-  MaintenanceEvent: 8 props — event_id, severity, aircraft_id, system_id, component_id, ...
-  Removal: 7 properties     — removal_id, removal_date, tsn (Double), ...
-  Sensor: 5 properties      — sensor_id, name, type, unit, system_id
-  System: 4 properties      — system_id, name, type, aircraft_id
+  Aircraft: 6 properties     (aircraft_id, tail_number, icao24, model, manufacturer, operator)
+  Airport: 8 properties      (airport_id, name, city, country, iata, ...)
+  Component: 4 properties    (system_id, component_id, name, type)
+  Delay: 3 properties        (delay_id, cause, minutes (Long))
+  Flight: 8 properties       (flight_id, flight_number, operator, origin, destination, ...)
+  MaintenanceEvent: 8 props  (event_id, severity, aircraft_id, system_id, component_id, ...)
+  Removal: 7 properties      (removal_id, removal_date, tsn (Double), ...)
+  Sensor: 5 properties       (sensor_id, name, type, unit, system_id)
+  System: 4 properties       (system_id, name, type, aircraft_id)
 
 RELATIONSHIP TYPES (17 discovered):
   DEPARTS_FROM, ARRIVES_AT, OPERATES_FLIGHT, HAS_SYSTEM, HAS_COMPONENT,
@@ -314,11 +314,11 @@ SELECT * FROM neo4j_metadata.nodes.aircraft LIMIT 5;
 
 ## Proposed Production Integration
 
-The prototypes demonstrate that the schema mapping works end-to-end. We want to work with Databricks to turn this into an official integration. Here is how we see the joint implementation coming together:
+The prototypes demonstrate that the schema mapping works end-to-end. We want to work with Databricks to turn this into an official integration. Here's how we see the joint implementation coming together.
 
 ### 1. Foreign Catalog Support for JDBC Connections
 
-Today, `CREATE CONNECTION ... TYPE JDBC` does not support foreign catalogs. Together, we can enable Neo4j as a supported federation source so that users can write:
+Today, `CREATE CONNECTION ... TYPE JDBC` doesn't support foreign catalogs. Together, we can enable Neo4j as a supported federation source so that users can write:
 
 ```sql
 CREATE FOREIGN CATALOG neo4j_catalog
@@ -329,17 +329,17 @@ This would trigger automatic metadata sync on each catalog interaction, bringing
 
 ### 2. Metadata Sync Implementation
 
-We can build the sync implementation together using Neo4j's schema introspection procedures (shown above) and the graph-to-relational mapping defined in this report. The Neo4j JDBC driver already includes much of this translation capability in its SQL-to-Cypher engine — it understands how labels map to tables and properties map to columns. We are ready to contribute this mapping logic to the integration.
+We can build the sync implementation together using Neo4j's schema introspection procedures (shown above) and the graph-to-relational mapping defined in this report. The Neo4j JDBC driver already includes much of this translation capability in its SQL-to-Cypher engine. It understands how labels map to tables and properties map to columns. We're ready to contribute this mapping logic to the integration.
 
 The sync would need to handle:
-- **Schema discovery:** Call `db.schema.nodeTypeProperties()`, `db.schema.relTypeProperties()`, and optionally `apoc.meta.schema()` for counts and connectivity
-- **Type mapping:** Apply the Neo4j-to-UC type mapping table
-- **Relationship connectivity:** Map source/target label patterns to relationship table metadata
-- **Incremental refresh:** Detect schema changes (new labels, new properties) without full re-sync
+- **Schema discovery.** Call `db.schema.nodeTypeProperties()`, `db.schema.relTypeProperties()`, and optionally `apoc.meta.schema()` for counts and connectivity
+- **Type mapping.** Apply the Neo4j-to-UC type mapping table
+- **Relationship connectivity.** Map source/target label patterns to relationship table metadata
+- **Incremental refresh.** Detect schema changes (new labels, new properties) without full re-sync
 
 ### 3. Query Routing
 
-When a user queries a table in the foreign catalog (`SELECT * FROM neo4j_catalog.nodes.aircraft`), the platform routes that query through the JDBC connection. The Neo4j JDBC driver's SQL-to-Cypher translator already handles this translation — `SELECT * FROM Aircraft` becomes `MATCH (n:Aircraft) RETURN n.aircraft_id, n.manufacturer, ...`. We have validated the full set of SQL-to-Cypher translation patterns in our federation report, and the driver is ready to support this routing today.
+When a user queries a table in the foreign catalog (`SELECT * FROM neo4j_catalog.nodes.aircraft`), the platform routes that query through the JDBC connection. The Neo4j JDBC driver's SQL-to-Cypher translator already handles this translation. `SELECT * FROM Aircraft` becomes `MATCH (n:Aircraft) RETURN n.aircraft_id, n.manufacturer, ...`. We've validated the full set of SQL-to-Cypher translation patterns in our federation report, and the driver is ready to support this routing today.
 
 ## Prototype Test Summary
 
@@ -358,5 +358,5 @@ When a user queries a table in the foreign catalog (`SELECT * FROM neo4j_catalog
 
 All prototype code is available for review:
 
-- [metadata_sync_delta.ipynb](https://github.com/neo4j-partners/neo4j-uc-integration/blob/main/uc-neo4j-test-suite/metadata_sync_delta.ipynb) — Materialized Delta Tables prototype
-- [METADATA.md](https://github.com/neo4j-partners/neo4j-uc-integration/blob/main/docs/METADATA.md) — Research and design document with full type mapping and API analysis
+- [metadata_sync_delta.ipynb](https://github.com/neo4j-partners/neo4j-uc-integration/blob/main/uc-neo4j-test-suite/metadata_sync_delta.ipynb): Materialized Delta Tables prototype
+- [METADATA.md](https://github.com/neo4j-partners/neo4j-uc-integration/blob/main/docs/METADATA.md): Research and design document with full type mapping and API analysis
