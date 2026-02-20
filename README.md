@@ -1,5 +1,7 @@
 # Neo4j Unity Catalog JDBC Integration
 
+**Documentation Site:** [https://neo4j-partners.github.io/neo4j-uc-integration](https://neo4j-partners.github.io/neo4j-uc-integration)
+
 This project demonstrates and validates using Neo4j as a federated data source within Databricks Unity Catalog using the Neo4j JDBC driver.
 
 **Status: Fully Working** - All integration issues have been resolved. The root cause was metaspace memory exhaustion in the Databricks SafeSpark sandbox during Neo4j JDBC driver initialization. With the correct Spark configuration, Unity Catalog JDBC connections to Neo4j work correctly — including queries, aggregates, JOINs, and schema discovery. See the full validated test results below.
