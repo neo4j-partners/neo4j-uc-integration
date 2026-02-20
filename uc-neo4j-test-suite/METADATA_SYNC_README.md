@@ -23,7 +23,31 @@ cp .env.sample .env
 ./setup.sh
 ```
 
-### 2. Cluster Requirements
+### 2. Create the Target Catalog
+
+The notebook does **not** create the catalog automatically. You (or your workspace admin) must create it before running the notebook:
+
+```sql
+CREATE CATALOG neo4j_metadata MANAGED LOCATION '<your-storage-location>';
+```
+
+For example, using an existing external location:
+
+```sql
+CREATE CATALOG neo4j_metadata MANAGED LOCATION 'abfss://container@storageaccount.dfs.core.windows.net/neo4j_metadata';
+```
+
+Or if your metastore has a default storage root configured:
+
+```sql
+CREATE CATALOG neo4j_metadata;
+```
+
+You can create the catalog from the **Databricks SQL editor**, a **notebook**, or via the **Catalog Explorer UI** (**Data** > **+** > **Create Catalog**).
+
+The notebook will create the `nodes` and `relationships` schemas within this catalog.
+
+### 3. Cluster Requirements
 
 | Requirement | Notebook 1 (Delta) | Notebook 2 (External API) |
 |-------------|--------------------|-----------------------------|
@@ -31,9 +55,9 @@ cp .env.sample .env
 | Neo4j Spark Connector | **Required** (`org.neo4j:neo4j-connector-apache-spark_2.12:5.4.0_for_spark_3`) | Not needed |
 | Neo4j Python driver | **Required** (`neo4j`) | **Required** (`neo4j`) |
 | SafeSpark memory settings | Not needed (uses Spark Connector, not JDBC) | Not needed |
-| UC privilege | `CREATE CATALOG` (or pre-create the catalog) | `CREATE_EXTERNAL_METADATA` on metastore |
+| UC privilege | `USE CATALOG`, `CREATE SCHEMA` on `neo4j_metadata` | `CREATE_EXTERNAL_METADATA` on metastore |
 
-### 3. Install Cluster Libraries
+### 4. Install Cluster Libraries
 
 For `metadata_sync_delta.ipynb`, install the Spark Connector on your cluster:
 
@@ -59,7 +83,7 @@ For `metadata_sync_external.ipynb`, only the Python driver is needed:
 | Configuration | Loads secrets, sets target catalog name, sets Neo4j creds at session level | Verify host and catalog name are correct |
 | Verify Connectivity | Tests Neo4j Python driver | Should print `[PASS]` and Neo4j version |
 | Discover Schema | Runs `db.schema.nodeTypeProperties()` | Should list all node labels and properties |
-| Create Catalog/Schema | Creates `neo4j_metadata.nodes` and `neo4j_metadata.relationships` | Should print `[PASS]` for each |
+| Create Schemas | Verifies catalog exists, creates `nodes` and `relationships` schemas | Should print `[PASS]` for each |
 | Materialize One Label | Reads first label, writes as Delta table | Check `printSchema()` output and row count |
 | Verify INFORMATION_SCHEMA | Queries `information_schema.tables` and `columns` | **Key proof** — columns and types should appear |
 | Materialize All Labels | Loops through all labels | Check pass/fail summary at the end |
@@ -140,19 +164,17 @@ NODES_SCHEMA = "nodes"                # Change this
 RELATIONSHIPS_SCHEMA = "relationships" # Change this
 ```
 
-### Use a Pre-Existing Catalog
+### Use a Different Catalog
 
-If you don't have `CREATE CATALOG` privilege, ask your admin to create the catalog and schemas, then update the names in the configuration cell.
+If you already have a catalog you'd like to use, update `TARGET_CATALOG` in the configuration cell to match. The notebook will create the `nodes` and `relationships` schemas within it.
 
 ---
 
 ## Troubleshooting
 
-### "PERMISSION_DENIED: User does not have CREATE CATALOG privilege"
+### "Catalog 'neo4j_metadata' was not found"
 
-Ask your workspace admin to either:
-- Grant you `CREATE CATALOG` privilege, or
-- Pre-create the catalog: `CREATE CATALOG neo4j_metadata`
+The catalog must be created before running the notebook. See [Create the Target Catalog](#2-create-the-target-catalog) above.
 
 ### "403 Forbidden" on External Metadata API
 
