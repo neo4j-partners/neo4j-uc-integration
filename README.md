@@ -95,10 +95,13 @@ df.show()
 ```
 neo4j-uc-integration/
 ├── GUIDE_NEO4J_UC.md              # Detailed usage guide
-├── uc-neo4j-test-suite/           # Databricks notebooks and test suite
-│   ├── full_uc_tests.py           # Standalone Python test suite
-│   ├── neo4j_databricks_sql_translation.ipynb  # Full test notebook
-│   └── neo4j_schema_test.ipynb    # Schema testing notebook
+├── METADATA.md                    # Metadata synchronization design
+├── uc-neo4j-test-suite/           # Databricks notebooks
+│   ├── neo4j_databricks_sql_translation.ipynb  # UC JDBC and SQL translation tests
+│   ├── metadata_sync_delta.ipynb              # Metadata sync via Delta tables
+│   ├── metadata_sync_external.ipynb           # Metadata sync via External Metadata API
+│   ├── federated_lakehouse_query.ipynb        # Federated query testing
+│   └── federated_views_agent_ready.ipynb      # Agent-ready federated views
 ├── pyspark-translation-example/   # Local PySpark SQL translation tests
 ├── sample-sql-translation/        # Spring Boot JDBC connectivity demo
 ├── java-metadata-demo/            # Java JDBC metadata exploration
@@ -113,15 +116,9 @@ neo4j-uc-integration/
 
 Import notebooks from `uc-neo4j-test-suite/` to your Databricks workspace:
 
-1. **neo4j_databricks_sql_translation.ipynb** - Full test suite covering network, drivers, direct JDBC, and UC JDBC
-2. **neo4j_schema_test.ipynb** - Focused schema testing
-
-Or run the standalone test suite:
-
-```python
-# In a Databricks notebook
-%run ./full_uc_tests
-```
+1. **neo4j_databricks_sql_translation.ipynb** - UC JDBC connection and SQL-to-Cypher translation tests
+2. **metadata_sync_delta.ipynb** - Metadata sync via materialized Delta tables
+3. **metadata_sync_external.ipynb** - Metadata sync via External Metadata API
 
 ### Local PySpark Tests
 

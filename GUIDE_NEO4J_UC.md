@@ -128,7 +128,7 @@ SELECT * FROM remote_query(
 
 ## Validated Test Results
 
-The following results are from running `full_uc_tests.py` against a Neo4j Aura instance:
+The following results are from testing against a Neo4j Aura instance:
 
 | Test | Status | Result |
 |------|--------|--------|
@@ -382,43 +382,6 @@ spark.databricks.safespark.jdbcSandbox.size.default.mib 512
 
 ---
 
-## Running the Test Suite
-
-A comprehensive test suite is available to validate your UC JDBC setup:
-
-```python
-# In Databricks notebook
-%run ./full_uc_tests
-
-# Or execute directly
-exec(open("/Workspace/path/to/full_uc_tests.py").read())
-```
-
-The test suite:
-- Loads configuration from Databricks Secrets
-- Creates/recreates the UC JDBC connection
-- Runs 12 tests covering all supported and unsupported patterns
-- Wraps all tests in try/except to prevent crashes
-- Provides detailed timing and results summary
-
-**Expected output:**
-```
-============================================================
-SUMMARY
-============================================================
-
-Total Tests: 12
-  Passed: 9
-  Failed: 0
-  Expected Failures: 3
-
-Success Rate: 100% (excluding expected failures)
-
-Total Execution Time: 194.1s
-```
-
----
-
 ## References
 
 ### Documentation
@@ -428,13 +391,15 @@ Total Execution Time: 194.1s
 - [Databricks Unity Catalog JDBC](https://docs.databricks.com/aws/en/connect/jdbc-connection)
 - [Spark JDBC Data Sources](https://spark.apache.org/docs/latest/sql-data-sources-jdbc.html)
 
-### Test Suite Files
+### Notebooks
 
 | File | Description |
 |------|-------------|
-| `uc-neo4j-test-suite/full_uc_tests.py` | Standalone Python test suite for Databricks |
-| `uc-neo4j-test-suite/neo4j_databricks_sql_translation.ipynb` | Full test notebook (Sections 1-8) |
-| `uc-neo4j-test-suite/neo4j_schema_test.ipynb` | Schema testing notebook (Sections 1, 3, 8) |
+| `uc-neo4j-test-suite/neo4j_databricks_sql_translation.ipynb` | UC JDBC connection and SQL-to-Cypher translation tests |
+| `uc-neo4j-test-suite/metadata_sync_delta.ipynb` | Metadata sync via materialized Delta tables |
+| `uc-neo4j-test-suite/metadata_sync_external.ipynb` | Metadata sync via External Metadata API |
+| `uc-neo4j-test-suite/federated_lakehouse_query.ipynb` | Federated query testing |
+| `uc-neo4j-test-suite/federated_views_agent_ready.ipynb` | Agent-ready federated views |
 
 ### Additional Examples
 

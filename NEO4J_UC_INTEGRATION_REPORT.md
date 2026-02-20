@@ -201,7 +201,7 @@ This would unlock row-level data access, GROUP BY, ORDER BY, and LIMIT through t
 
 ## Prototype Validation: Query Patterns
 
-We ran a 12-test suite (`full_uc_tests.py`) against a live Neo4j Aura instance through the UC JDBC connection. Total execution time was approximately 194 seconds, with most time spent on connection initialization rather than query execution.
+We ran a 12-test suite against a live Neo4j Aura instance through the UC JDBC connection. Total execution time was approximately 194 seconds, with most time spent on connection initialization rather than query execution.
 
 ### Passing Tests (9/9 supported patterns)
 

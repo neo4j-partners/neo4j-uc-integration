@@ -2,17 +2,18 @@
 
 A diagnostic test suite for validating Neo4j JDBC connectivity through Databricks Unity Catalog.
 
-## Notebook Status
-
-| Notebook | Status | Description |
-|----------|--------|-------------|
-| `neo4j_databricks_sql_translation.ipynb` | **FAIL** | **SafeSpark incompatibility - blocked** |
-| `neo4j_schema_test.ipynb` | **FAIL** | **SafeSpark incompatibility - blocked** |
-
 ## Notebooks
 
+| Notebook | Description |
+|----------|-------------|
+| `neo4j_databricks_sql_translation.ipynb` | UC JDBC connection and SQL-to-Cypher translation tests |
+| `metadata_sync_delta.ipynb` | Metadata sync via materialized Delta tables |
+| `metadata_sync_external.ipynb` | Metadata sync via External Metadata API |
+| `federated_lakehouse_query.ipynb` | Federated query testing |
+| `federated_views_agent_ready.ipynb` | Agent-ready federated views |
+
 ### neo4j_databricks_sql_translation.ipynb
-Full test suite with all sections (1-8):
+Full test suite with sections (1-7):
 - Section 1: Environment Information
 - Section 2: Network Connectivity Test
 - Section 3: Neo4j Python Driver Test
@@ -20,13 +21,6 @@ Full test suite with all sections (1-8):
 - Section 5: Direct JDBC Tests
 - Section 6: Unity Catalog JDBC Connection Setup
 - Section 7: Unity Catalog JDBC Tests
-- Section 8: Schema Synchronization POC
-
-### neo4j_schema_test.ipynb
-Focused notebook for schema testing (Sections 1, 3, 8 only):
-- Section 1: Environment Information
-- Section 3: Neo4j Python Driver Test
-- Section 8: Schema Synchronization POC
 
 ## Overview
 
@@ -122,66 +116,6 @@ The secret scope should contain:
 | `password` | Yes | Neo4j password |
 | `connection_name` | Yes | UC JDBC connection name (e.g., `neo4j_connection`) - workspace-level, not catalog.schema scoped |
 | `database` | No | Database name (defaults to `neo4j`) |
-
----
-
-## Section 8: Neo4j Schema Synchronization with Unity Catalog
-
-Section 8 of the notebook demonstrates a proof of concept for synchronizing Neo4j graph schema with Unity Catalog. This enables SQL-based access to graph data through UC governance.
-
-### The Challenge
-
-Unity Catalog's Foreign Catalog feature only supports specific databases (PostgreSQL, MySQL, Snowflake, etc.) - not generic JDBC connections. This means Neo4j cannot be automatically registered as a foreign catalog. Instead, we must manually create UC objects backed by the JDBC connection.
-
-### The Solution
-
-The notebook demonstrates a three-phase approach:
-
-**Phase 1: Schema Discovery**
-
-Neo4j's JDBC driver exposes complete graph schema through standard JDBC `DatabaseMetaData` APIs. Using Spark's JVM gateway (`spark._jvm`), we call:
-- `getTables(TABLE)` to discover all node labels
-- `getTables(RELATIONSHIP)` to discover relationship patterns
-- `getColumns()` to discover properties and their types
-- `getPrimaryKeys()` to identify element ID columns
-
-This builds an in-memory schema model without requiring hardcoded label names.
-
-**Phase 2: Unity Catalog Registration**
-
-Three approaches are tested, each in a separate notebook cell:
-
-| Option | Approach | Description |
-|--------|----------|-------------|
-| **A** | Views with inferred schema | Schema discovered at query time; simplest but less control |
-| **B** | Tables with explicit schema | Schema from DatabaseMetaData; predictable types |
-| **C** | Hybrid with registry | Schema registry table + views; best for visibility |
-
-**Phase 3: Verification**
-
-Queries are executed through Unity Catalog to verify:
-- Data is accessible via SQL
-- Schema is correctly mapped
-- UC governance (permissions, audit) applies
-
-### Key Findings
-
-1. **JDBC DatabaseMetaData works**: Complete schema discovery without Cypher procedures
-2. **All three UC approaches work**: Views, tables, and hybrid all successfully query Neo4j
-3. **SQL JOINs translate to relationships**: `NATURAL JOIN` correctly becomes Cypher traversals
-4. **Governance applies**: All queries go through UC connection
-
-### Limitations
-
-- No automatic foreign catalog sync (must manually create UC objects)
-- Temp views used for demo (production would use permanent objects)
-- Schema refresh requires re-running discovery
-
-### References
-
-- [META.md](../META.md) - Full proposal document with detailed technical decisions
-- [Neo4j JDBC DatabaseMetaData](https://neo4j.com/docs/jdbc-manual/current/) - How schema is exposed
-- [Databricks JDBC Connection](https://docs.databricks.com/aws/en/connect/jdbc-connection) - UC JDBC integration
 
 ---
 
@@ -290,7 +224,6 @@ The test notebooks demonstrate these practices:
 - **Section 5**: Direct JDBC with `customSchema` and SQL translation
 - **Section 6**: Unity Catalog connection creation with `externalOptionsAllowList`
 - **Section 7**: UC JDBC queries with DataFrame API and `remote_query()`
-- **Section 8**: Schema discovery prototypes using JDBC metadata and Cypher procedures
 
 ### Neo4j Documentation
 
