@@ -14,11 +14,11 @@ npm install --save-dev puppeteer
 
 ### Usage
 
-1. Place `.excalidraw` files in `docs/images/`.
-2. From the `docs/` directory, run:
+1. Place `.excalidraw` files in `site/images/`.
+2. From the `site/` directory, run:
 
 ```bash
 node scripts/convert-excalidraw.js
 ```
 
-The script will generate `.svg` and `.png` files alongside each `.excalidraw` file in `docs/images/`.
+The script will generate `.svg` and `.png` files alongside each `.excalidraw` file in `site/images/`.

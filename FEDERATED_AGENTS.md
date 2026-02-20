@@ -1,58 +1,12 @@
-# Federated Agents: Natural Language to Neo4j via UC Federation
+# Federated Agents: Natural Language to Neo4j via Unity Catalog
 
-The goal: a user asks a natural language question and the system **automatically federates** across Neo4j graph data and Delta lakehouse tables -- all through Unity Catalog, with no direct Python drivers or Spark Connectors in the loop.
-
----
-
-## Example Questions to Test Genie
-
-Use these natural language questions to verify that Genie correctly federates across Neo4j and Delta tables. They're ordered from simple (single source) to complex (cross-source JOINs).
-
-### Single-Source: Neo4j Tables Only
-
-> How many maintenance events are there by severity level?
-
-> Which aircraft have the most flights?
-
-> List all airports with their city and country.
-
-> Show me all critical maintenance events and their corrective actions.
-
-### Single-Source: Delta Tables Only
-
-> What is the average EGT across all sensor readings?
-
-> Which aircraft have the highest vibration readings?
-
-> How many sensors does each aircraft system have?
-
-### Cross-Source: Neo4j + Delta (Federated)
-
-> Which aircraft had critical maintenance events and what were the faults reported?
-
-> Which aircraft with high EGT readings also had critical maintenance events?
-
-> For each aircraft, show the number of flights, maintenance events, and average engine temperature.
-
-> Which operators have the most critical maintenance events, and what are their fleet's average sensor readings?
-
-> Show me aircraft with above-average vibration that also have major or critical maintenance events.
-
-> Which departure airports have the highest average EGT across their fleet?
-
-> Compare flight activity and engine health -- do aircraft with more flights have higher EGT?
-
-### Advanced: Multi-Table Federated
-
-> Give me a fleet health dashboard: tail number, model, operator, flight count, maintenance events, critical count, average EGT, and average vibration for every aircraft.
-
-> Which Boeing aircraft flying out of the busiest airports have had critical maintenance and high fuel flow?
+A user asks a natural language question and the system **automatically federates** across Neo4j graph data and Delta lakehouse tables — all through Unity Catalog, with no direct Python drivers or Spark Connectors in the loop.
 
 ---
 
 ## The Key Insight
 
-The full chain already exists in pieces. Connecting them end-to-end gives us:
+The full chain already exists:
 
 ```
 Natural Language
@@ -65,228 +19,177 @@ Natural Language
       │
       ├── Delta tables ──► direct read
       │
-      └── remote_query() ──► UC JDBC Connection
-                                    │
-                                    ▼
-                              Neo4j JDBC Driver
-                              (SQL → Cypher via enableSQLTranslation=true)
-                                    │
-                                    ▼
-                                 Neo4j
+      └── Neo4j tables ──► materialized Delta tables (via UC JDBC)
 ```
 
-Every layer is UC-governed. The LLM never sees Cypher, the user never writes SQL, and Neo4j is queried through the same federation path this project already built and tested.
+Every layer is UC-governed. The LLM never sees Cypher, the user never writes SQL, and Neo4j data is queryable through the same federation path as any other UC table.
 
 ---
 
-## How It Works
+## Notebooks Overview
 
-### Step 1: Materialize Neo4j Data as UC Delta Tables
+The `uc-neo4j-test-suite/` directory contains five notebooks that build up the integration layer by layer. Each notebook is self-contained with its own configuration, verification steps, and tests.
 
-Ideally we'd create live UC views over `remote_query()` so Genie queries Neo4j in
-real time. In practice, two Neo4j JDBC schema inference limitations prevent this:
+### 1. SQL Translation Validation (`neo4j_databricks_sql_translation.ipynb`)
 
-**Approach 1 — `remote_query()` with `query` option (FAILS):**
-Spark wraps the inner query in a subquery for schema inference:
-`SELECT * FROM (your_query) SPARK_GEN_SUBQ_N WHERE 1=0`. Neo4j's SQL-to-Cypher
-translator cannot parse subqueries, so `CREATE VIEW` fails with
-`JDBC_EXTERNAL_ENGINE_SYNTAX_ERROR.DURING_OUTPUT_SCHEMA_RESOLUTION`.
+A systematic test suite that validates Neo4j connectivity through Unity Catalog's generic JDBC path. It progresses from basic network connectivity through the full UC JDBC connection, documenting what works and where limitations exist.
 
-**Approach 2 — `remote_query()` with `dbtable` option (PARTIAL — NullType):**
-The `dbtable` option avoids the subquery wrapping — Spark issues a flat
-`SELECT * FROM Label WHERE 1=0` for schema inference, which Neo4j handles correctly.
-The view creation succeeds, but hits a second known issue documented in Section 5 of
-`neo4j_databricks_sql_translation.ipynb`: Neo4j JDBC returns `NullType` for all columns
-during Spark's schema inference, so all values come back as NULL. The fix is the
-`customSchema` option which explicitly specifies column types — but `customSchema` is
-only available on the DataFrame API (`spark.read.format("jdbc")`), not on `remote_query()`.
+**What it covers:**
+- Network connectivity (TCP layer to Neo4j)
+- Neo4j Python driver authentication
+- Neo4j Spark Connector baseline (Bolt protocol)
+- Direct JDBC with SQL-to-Cypher translation (`enableSQLTranslation=true`)
+- Unity Catalog JDBC connection creation and configuration
+- `remote_query()` function tests through UC
 
-**Approach 3 — DataFrame API with `dbtable` + `customSchema` + `saveAsTable()` (WORKS):**
-The DataFrame API supports both `dbtable` (avoids subquery wrapping) and `customSchema`
-(fixes NullType inference). Since this produces a DataFrame rather than a SQL view
-definition, we materialize the results as managed Delta tables via `saveAsTable()`.
-The data is a point-in-time snapshot — re-run the notebook to refresh from Neo4j.
+**Key findings:**
+- The `dbtable` option with `customSchema` is required because Neo4j JDBC returns `NullType` during Spark schema inference
+- The `query` option fails because Spark wraps inner queries in subqueries that Neo4j's SQL translator cannot parse
+- SafeSpark sandbox memory configuration requires three Spark properties (documented in the notebook)
+- SQL aggregates (`COUNT`, `MIN`, `MAX`, `COUNT DISTINCT`) and `NATURAL JOIN` relationship traversals all translate correctly to Cypher
 
-```
-Approach        | Schema Inference | Column Types | Live? | Works?
-----------------|-----------------|--------------|-------|-------
-query option    | Subquery wrap   | N/A (fails)  | N/A   | NO
-dbtable option  | Flat query      | NullType     | Yes   | NO (NULL data)
-dbtable + customSchema + saveAsTable | Flat query | Explicit | Snapshot | YES
-```
+### 2. Federated Lakehouse Queries (`federated_lakehouse_query.ipynb`)
 
-The workaround: use the **DataFrame API** with `dbtable` + `customSchema` to read Neo4j labels, then **materialize as managed Delta tables** via `saveAsTable()`. Re-run the notebook to refresh data from Neo4j.
+Demonstrates querying both Delta lakehouse tables and Neo4j graph data in unified federated queries. Uses two federation methods: `remote_query()` for aggregate queries and the Neo4j Spark Connector for row-level data.
 
-```python
-# Example: materialize MaintenanceEvent nodes as a Delta table
-MAINTENANCE_SCHEMA = """`v$id` STRING, aircraft_id STRING, system_id STRING,
-    component_id STRING, event_id STRING, severity STRING, fault STRING,
-    corrective_action STRING, reported_at STRING"""
+**What it covers:**
+- Fleet-wide summary combining Neo4j graph metrics with Delta sensor analytics
+- Per-aircraft correlation of sensor health (Delta) with maintenance events (Neo4j)
+- Flight operations correlated with engine performance data
+- A comprehensive fleet health dashboard combining all data sources
+- UC audit trail showing what Unity Catalog captured about federated queries
 
-df = spark.read.format("jdbc") \
-    .option("databricks.connection", UC_CONNECTION_NAME) \
-    .option("dbtable", "MaintenanceEvent") \
-    .option("customSchema", MAINTENANCE_SCHEMA) \
-    .load() \
-    .select("aircraft_id", "fault", "severity", "corrective_action", "reported_at")
+**Federation methods compared:**
 
-df.write.mode("overwrite").saveAsTable("lakehouse.neo4j_maintenance_events")
-```
+| Method | Strengths | Limitations |
+|--------|-----------|-------------|
+| `remote_query()` | Pure SQL, no cluster library, UC governed | Aggregate-only (no GROUP BY on results) |
+| Spark Connector | Full Cypher support, row-level data | Requires cluster library, no UC governance |
 
-The same pattern is used for `neo4j_flights`, `neo4j_airports`, and `neo4j_flight_airports` (a Spark SQL JOIN of flights + airports). See `federated_views_agent_ready.ipynb` for the complete implementation.
+### 3. Agent-Ready Federated Views (`federated_views_agent_ready.ipynb`)
 
-Once these tables exist, Genie (or any SQL tool) can query them like regular tables -- GROUP BY, ORDER BY, JOINs with Delta tables all work because the Neo4j data is materialized as standard Delta tables.
+Creates the **materialized Delta tables** that make Neo4j data queryable by Genie and other SQL tools. This is the notebook that bridges the gap between raw Neo4j federation and agent-ready data.
 
-### Step 2: Genie Space Includes Both Delta Tables and Neo4j Views
+**What it does:**
+- Reads Neo4j node labels (MaintenanceEvent, Flight, Airport) via the DataFrame API with `dbtable` + `customSchema`
+- Materializes each as a managed Delta table in Unity Catalog using `saveAsTable()`
+- Creates a flight-to-airport mapping table via Spark SQL JOIN
+- Validates that standard SQL operations (GROUP BY, ORDER BY, WHERE, aggregations, DISTINCT) all work on the materialized tables
+- Runs the same federated queries from notebook #2, but using only UC federation (no Spark Connector)
 
-Create a Genie space that includes **all** data sources as a unified catalog:
+**Why materialized tables instead of live views?** Two Neo4j JDBC limitations prevent `CREATE VIEW` over `remote_query()`:
+1. The `query` option triggers Spark's subquery wrapping, which Neo4j can't parse
+2. The `dbtable` option returns `NullType` and requires `customSchema`, which is only available on the DataFrame API
 
-**Delta tables (direct):**
-- `lakehouse.aircraft` -- aircraft fleet registry
-- `lakehouse.systems` -- aircraft systems (Engine, APU, etc.)
-- `lakehouse.sensors` -- sensor metadata (EGT, Vibration, FuelFlow, N1Speed)
-- `lakehouse.sensor_readings` -- 345K+ time-series sensor readings
+The workaround is to materialize as Delta tables and re-run the notebook to refresh data.
 
-**Neo4j tables (materialized via JDBC `dbtable` + `customSchema`):**
-- `lakehouse.neo4j_maintenance_events` -- maintenance events from the graph
-- `lakehouse.neo4j_flights` -- flight operations from the graph
-- `lakehouse.neo4j_airports` -- airport reference data from the graph
-- `lakehouse.neo4j_flight_airports` -- flight→airport mapping (Spark SQL JOIN)
+**Tables created:**
 
-Genie sees all 8 as regular UC tables. It generates SQL that JOINs across them transparently -- the federation is invisible to the LLM.
+| Table | Source | Description |
+|-------|--------|-------------|
+| `neo4j_maintenance_events` | MaintenanceEvent nodes | Severity, fault, corrective action |
+| `neo4j_flights` | Flight nodes | Flight operations with origin/destination |
+| `neo4j_airports` | Airport nodes | Airport reference data (IATA, name, city) |
+| `neo4j_flight_airports` | Flights + Airports JOIN | Flight-to-departure-airport mapping |
 
-### Step 3: Genie Instructions Teach the Join Patterns
+### 4. Metadata Sync via Delta Tables (`metadata_sync_delta.ipynb`)
 
-Genie spaces support up to 100 instructions (example SQL, SQL functions, plain text). These teach Genie the domain and JOIN patterns:
+Materializes Neo4j node labels and relationship types as managed Delta tables in a dedicated `neo4j_metadata` catalog. When data is written as a Delta table, UC automatically registers full schema metadata — column names, types, nullability — making it browsable in Catalog Explorer and queryable via `INFORMATION_SCHEMA`.
 
-**Plain text instruction:**
-```
-This space combines aircraft sensor telemetry (Delta lakehouse) with maintenance
-events and flight operations (Neo4j knowledge graph) via Unity Catalog federation.
+**What it does:**
+- Discovers all Neo4j labels and relationship types using built-in `db.schema.nodeTypeProperties()` and `db.schema.relTypeProperties()` procedures
+- Reads each label and relationship via the Spark Connector
+- Writes each as a managed Delta table (`neo4j_metadata.nodes.*` and `neo4j_metadata.relationships.*`)
+- Verifies metadata appears in `INFORMATION_SCHEMA`
 
-## Sensor Data Model (IMPORTANT)
+**Requires:** Single-user access mode cluster with the Neo4j Spark Connector installed.
 
-Sensor data is stored across 4 Delta tables in a normalized model:
-- `aircraft` — fleet registry. Primary key: `:ID(Aircraft)` (e.g. "AC1001").
-- `systems` — aircraft systems. Columns: `:ID(System)`, `aircraft_id`, `type` (Engine, APU, Hydraulic, etc.).
-- `sensors` — individual sensors. Columns: `:ID(Sensor)`, `system_id`, `type` (EGT, Vibration, FuelFlow, N1Speed).
-- `sensor_readings` — time-series values. Columns: `sensor_id`, `timestamp`, `value` (numeric).
+### 5. Metadata Sync via External Metadata API (`metadata_sync_external.ipynb`)
 
-There is NO direct "EGT" or "temperature" column. Sensor type is in `sensors.type`,
-and the reading value is in `sensor_readings.value`. To get EGT readings you MUST
-join through the chain: aircraft → systems → sensors → sensor_readings.
+Registers Neo4j schema as external metadata objects in Unity Catalog using the [External Metadata API](https://docs.databricks.com/api/workspace/externalmetadata). No data is copied — this is metadata-only registration for discoverability and lineage tracking.
 
-JOIN pattern for sensor data:
-  aircraft.`:ID(Aircraft)` = systems.aircraft_id
-  systems.`:ID(System)` = sensors.system_id
-  sensors.`:ID(Sensor)` = sensor_readings.sensor_id
+**What it does:**
+- Discovers Neo4j schema (same discovery as notebook #4)
+- Registers each node label and relationship type via the REST API
+- Encodes Neo4j property types in the metadata properties map
+- Lists and verifies all registered objects
+- Includes optional cleanup to delete registered metadata
 
-Filter by sensor type: WHERE sensors.type = 'EGT' (or 'Vibration', 'FuelFlow', 'N1Speed')
-Filter by system type: WHERE systems.type = 'Engine' (or 'APU', 'Hydraulic', etc.)
+**Comparison of metadata sync approaches:**
 
-Example — average EGT per aircraft:
-  SELECT sys.aircraft_id, ROUND(AVG(r.value), 1) AS avg_egt
-  FROM sensor_readings r
-  JOIN sensors sen ON r.sensor_id = sen.`:ID(Sensor)`
-  JOIN systems sys ON sen.system_id = sys.`:ID(System)`
-  WHERE sen.type = 'EGT'
-  GROUP BY sys.aircraft_id
+| Aspect | External Metadata API (#5) | Materialized Delta Tables (#4) |
+|--------|---------------------------|-------------------------------|
+| Data copied | No | Yes |
+| Catalog Explorer visible | No | Yes |
+| SQL queryable | No | Yes |
+| Column types in UC | Properties map only | Full native types |
+| Storage cost | None | Delta storage |
+| Setup complexity | Lower | Higher (Spark Connector needed) |
 
-Sensor types and units:
-- EGT: Exhaust Gas Temperature in Celsius
-- Vibration: vibration level in IPS (inches per second)
-- FuelFlow: fuel flow rate in kg/s
-- N1Speed: fan speed in RPM
+The recommendation is to use both: materialized tables for high-value labels that need SQL access, and the External Metadata API for comprehensive metadata coverage.
 
-## Neo4j Tables (Materialized)
+---
 
-Neo4j tables contain graph-sourced data materialized as Delta tables:
-- `neo4j_maintenance_events` — columns: aircraft_id, fault, severity (CRITICAL, MAJOR, MINOR), corrective_action, reported_at
-- `neo4j_flights` — columns: aircraft_id, flight_number, operator, origin, destination, scheduled_departure, scheduled_arrival
-- `neo4j_airports` — columns: iata, airport_name, city, country, icao, lat, lon
-- `neo4j_flight_airports` — columns: flight_number, aircraft_id, airport_code, airport_name
+## Setting Up a Genie Space
 
-## Cross-Source JOINs
+Once the materialized tables from notebook #3 exist, create a Genie space that includes all data sources as a unified catalog:
 
-Join `aircraft_id` across both sources to correlate sensor health with maintenance
-and flight activity. The aircraft table's `:ID(Aircraft)` matches `aircraft_id` in
-the Neo4j tables and `systems.aircraft_id` in the sensor chain.
-```
+**Delta tables (direct from lakehouse):**
+- `aircraft` — fleet registry
+- `systems` — aircraft systems (Engine, APU, etc.)
+- `sensors` — sensor metadata (EGT, Vibration, FuelFlow, N1Speed)
+- `sensor_readings` — 345K+ time-series sensor readings
 
-**Example SQL queries:**
+**Neo4j tables (materialized):**
+- `neo4j_maintenance_events` — maintenance events from the graph
+- `neo4j_flights` — flight operations from the graph
+- `neo4j_airports` — airport reference data from the graph
+- `neo4j_flight_airports` — flight-to-airport mapping
 
-```sql
--- Fleet health: sensor averages + maintenance counts per aircraft
-SELECT
-    a.tail_number,
-    a.model,
-    a.operator,
-    ROUND(AVG(CASE WHEN sen.type = 'EGT' THEN r.value END), 1) AS avg_egt_c,
-    ROUND(AVG(CASE WHEN sen.type = 'Vibration' THEN r.value END), 4) AS avg_vib_ips,
-    COUNT(DISTINCT m.fault) AS maintenance_events,
-    SUM(CASE WHEN m.severity = 'CRITICAL' THEN 1 ELSE 0 END) AS critical_events
-FROM aircraft a
-JOIN systems sys ON a.`:ID(Aircraft)` = sys.aircraft_id
-JOIN sensors sen ON sys.`:ID(System)` = sen.system_id
-JOIN sensor_readings r ON sen.`:ID(Sensor)` = r.sensor_id
-LEFT JOIN neo4j_maintenance_events m ON a.`:ID(Aircraft)` = m.aircraft_id
-GROUP BY a.tail_number, a.model, a.operator
-ORDER BY critical_events DESC;
-```
+Genie sees all 8 as regular UC tables and generates SQL that JOINs across them transparently. The federation is invisible to the LLM.
 
-```sql
--- Aircraft with high EGT that also have critical maintenance events
-SELECT
-    a.tail_number,
-    a.model,
-    ROUND(AVG(r.value), 1) AS avg_egt,
-    COUNT(DISTINCT m.fault) AS critical_faults
-FROM aircraft a
-JOIN systems sys ON a.`:ID(Aircraft)` = sys.aircraft_id
-JOIN sensors sen ON sys.`:ID(System)` = sen.system_id
-JOIN sensor_readings r ON sen.`:ID(Sensor)` = r.sensor_id
-JOIN neo4j_maintenance_events m ON a.`:ID(Aircraft)` = m.aircraft_id
-WHERE sen.type = 'EGT' AND m.severity = 'CRITICAL'
-GROUP BY a.tail_number, a.model
-ORDER BY avg_egt DESC;
-```
+### Genie Instructions
 
-```sql
--- Flight activity + engine performance per aircraft
-SELECT
-    a.tail_number,
-    COUNT(DISTINCT f.flight_number) AS total_flights,
-    COUNT(DISTINCT f.destination) AS unique_destinations,
-    ROUND(AVG(CASE WHEN sen.type = 'EGT' THEN r.value END), 1) AS avg_egt_c,
-    ROUND(AVG(CASE WHEN sen.type = 'FuelFlow' THEN r.value END), 2) AS avg_fuel_kgs
-FROM aircraft a
-JOIN neo4j_flights f ON a.`:ID(Aircraft)` = f.aircraft_id
-JOIN systems sys ON a.`:ID(Aircraft)` = sys.aircraft_id
-JOIN sensors sen ON sys.`:ID(System)` = sen.system_id
-JOIN sensor_readings r ON sen.`:ID(Sensor)` = r.sensor_id
-WHERE sys.type = 'Engine'
-GROUP BY a.tail_number
-ORDER BY total_flights DESC;
-```
+Genie spaces support up to 100 instructions (example SQL, plain text) that teach the domain and JOIN patterns. Key things to communicate:
 
-### Step 4: Expose via Genie MCP Server or Conversation API
+- The sensor data model is normalized across 4 tables. There is no direct "EGT" column — sensor type is in `sensors.type` and the reading value is in `sensor_readings.value`. Queries must JOIN through the chain: `aircraft → systems → sensors → sensor_readings`.
+- Neo4j tables use `aircraft_id` as the join key, matching `aircraft.:ID(Aircraft)` in the Delta tables.
+- Sensor types include EGT (Celsius), Vibration (IPS), FuelFlow (kg/s), and N1Speed (RPM).
+- Severity levels for maintenance events are CRITICAL, MAJOR, and MINOR.
 
-The Genie space is accessed programmatically through either:
+---
 
-**Option A: Genie Managed MCP Server** (for agent integration)
-```
-https://<workspace>/api/2.0/mcp/genie/<space_id>
-```
+## Example Questions
 
-An agent connects to this MCP server and sends natural language queries. Genie generates SQL, Spark executes it (federating to Neo4j via `remote_query()` views), and results come back.
+Use these natural language questions to verify that Genie correctly federates across Neo4j and Delta tables.
 
-**Option B: Genie Conversation API** (for direct app integration)
-```
-POST /api/2.0/genie/spaces/{space_id}/start-conversation
-{"content": "Which aircraft with high EGT readings also had critical maintenance events?"}
-```
+### Single-Source: Neo4j Tables Only
 
-Poll for results, then extract the generated SQL and result set from the response attachments.
+- How many maintenance events are there by severity level?
+- Which aircraft have the most flights?
+- List all airports with their city and country.
+- Show me all critical maintenance events and their corrective actions.
+
+### Single-Source: Delta Tables Only
+
+- What is the average EGT across all sensor readings?
+- Which aircraft have the highest vibration readings?
+- How many sensors does each aircraft system have?
+
+### Cross-Source: Neo4j + Delta (Federated)
+
+- Which aircraft had critical maintenance events and what were the faults reported?
+- Which aircraft with high EGT readings also had critical maintenance events?
+- For each aircraft, show the number of flights, maintenance events, and average engine temperature.
+- Which operators have the most critical maintenance events, and what are their fleet's average sensor readings?
+- Show me aircraft with above-average vibration that also have major or critical maintenance events.
+- Which departure airports have the highest average EGT across their fleet?
+- Compare flight activity and engine health — do aircraft with more flights have higher EGT?
+
+### Advanced: Multi-Table Federated
+
+- Give me a fleet health dashboard: tail number, model, operator, flight count, maintenance events, critical count, average EGT, and average vibration for every aircraft.
+- Which Boeing aircraft flying out of the busiest airports have had critical maintenance and high fuel flow?
 
 ---
 
@@ -304,117 +207,43 @@ Poll for results, then extract the generated SQL and result set from the respons
 │   Tables: aircraft, systems, sensors, sensor_readings,                  │
 │           neo4j_maintenance_events, neo4j_flights,                      │
 │           neo4j_airports, neo4j_flight_airports                         │
-│   Instructions: domain context + example SQL + JOIN patterns            │
+│   Instructions: domain context + JOIN patterns                          │
 └─────────────────────────────┬────────────────────────────────────────────┘
                               │ Generated SQL
                               ▼
 ┌──────────────────────────────────────────────────────────────────────────┐
 │                      Spark SQL Engine                                   │
 │                                                                         │
-│   SELECT a.tail_number, AVG(r.value) AS avg_egt,                       │
-│          COUNT(m.fault) AS critical_faults                              │
-│   FROM aircraft a                                                       │
-│   JOIN ... sensor_readings r ...                                        │
-│   JOIN neo4j_maintenance_events m ...  ◄── UC view over remote_query() │
-│   WHERE sen.type = 'EGT' AND m.severity = 'CRITICAL'                  │
-│   GROUP BY ...                                                          │
-│                                                                         │
 ├────────────────────────────┬─────────────────────────────────────────────┤
 │  Delta Lakehouse (direct)  │  Neo4j (materialized via JDBC dbtable)    │
 │                            │                                             │
-│  sensor_readings           │  MaintenanceEvent nodes                     │
-│  sensors                   │  Flight nodes                               │
-│  systems                   │  Airport nodes                              │
-│  aircraft                  │                                             │
-│                            │  UC JDBC Connection                         │
-│                            │  dbtable + customSchema → saveAsTable()     │
-│                            │  Re-run notebook to refresh                 │
+│  sensor_readings           │  neo4j_maintenance_events                   │
+│  sensors                   │  neo4j_flights                              │
+│  systems                   │  neo4j_airports                             │
+│  aircraft                  │  neo4j_flight_airports                      │
+│                            │                                             │
+│                            │  Re-run federated_views_agent_ready.ipynb   │
+│                            │  to refresh from Neo4j                      │
 └────────────────────────────┴─────────────────────────────────────────────┘
 ```
 
-**Everything flows through Unity Catalog.** No Spark Connector, no direct Bolt connection, no Python driver. The Neo4j JDBC driver's `enableSQLTranslation=true` handles SQL-to-Cypher translation transparently.
+Everything flows through Unity Catalog. No Spark Connector, no direct Bolt connection, no Python driver.
 
 ---
 
 ## Agent Integration Patterns
 
-### Pattern 1: Genie as Standalone Agent (Simplest)
+### Pattern 1: Genie as Standalone Agent
 
-A single Genie space handles all queries. Best when:
-- Questions map cleanly to SQL over the unified table set
-- No multi-step reasoning needed
-- The `remote_query()` views cover the needed Neo4j access patterns
+A single Genie space handles all queries. Best when questions map cleanly to SQL over the unified table set and no multi-step reasoning is needed. Connect via the Genie MCP server endpoint or the Conversation API.
 
-```python
-from databricks.sdk import WorkspaceClient
-from databricks_mcp import DatabricksMCPClient
+### Pattern 2: Multi-Agent with Genie + DBSQL MCP
 
-workspace_client = WorkspaceClient(profile="my-profile")
-genie_mcp = DatabricksMCPClient(
-    server_url=f"https://{host}/api/2.0/mcp/genie/{space_id}",
-    workspace_client=workspace_client
-)
-```
+For questions that need both NL-to-SQL (Genie) and ad-hoc federated SQL, pair a Genie agent with a DBSQL MCP server. The DBSQL MCP server can execute arbitrary SQL including `remote_query()` calls, handling edge cases where the materialized tables don't cover a specific Neo4j query pattern.
 
-### Pattern 2: Multi-Agent with Genie + DBSQL MCP (Flexible)
+### Pattern 3: Agent Bricks Supervisor
 
-For questions that need both NL-to-SQL (Genie) and ad-hoc federated SQL (DBSQL MCP server running `remote_query()` directly):
-
-```
-┌────────────────────────────────┐
-│     Supervisor (LangGraph)     │
-├───────────────┬────────────────┤
-│               │                │
-▼               ▼                │
-Genie MCP    DBSQL MCP          │
-(NL→SQL      (ad-hoc SQL        │
- over all    with remote_query   │
- tables)     for custom Neo4j    │
-             queries)            │
-```
-
-The DBSQL MCP server can execute arbitrary SQL including `remote_query()` calls, so it handles edge cases where the pre-built views don't cover a specific Neo4j query pattern.
-
-```python
-# Supervisor can route to either:
-genie_mcp = DatabricksMCPClient(
-    server_url=f"https://{host}/api/2.0/mcp/genie/{space_id}",
-    workspace_client=workspace_client
-)
-dbsql_mcp = DatabricksMCPClient(
-    server_url=f"https://{host}/api/2.0/mcp/sql",
-    workspace_client=workspace_client
-)
-```
-
-### Pattern 3: Agent Bricks Supervisor (No-Code)
-
-Use Agent Bricks to create a supervisor that coordinates a Genie sub-agent (for the federated fleet data) with other agents (e.g., a RAG agent for unstructured maintenance manuals). This is the "Lab 6" pattern referenced in the notebook -- but now the Genie space itself handles the federation transparently.
-
----
-
-## Implementation Checklist
-
-### Prerequisites (Already Done)
-- [x] Neo4j UC JDBC connection configured (`neo4j_uc_connection`)
-- [x] Delta lakehouse tables exist (`aircraft`, `systems`, `sensors`, `sensor_readings`)
-- [x] `remote_query()` tested and working against Neo4j
-- [x] SafeSpark memory configs applied
-- [x] Neo4j JDBC driver JARs uploaded to UC Volume
-
-### New Work
-- [x] **Materialize Neo4j data as UC Delta tables** via JDBC `dbtable` + `customSchema`
-  - `neo4j_maintenance_events` -- all maintenance events
-  - `neo4j_flights` -- all flight operations
-  - `neo4j_airports` -- airport reference data
-  - `neo4j_flight_airports` -- flight→airport mapping (Spark SQL JOIN)
-  - See `federated_views_agent_ready.ipynb` for the working notebook
-- [ ] **Create Genie space** with all 8 tables/views
-- [ ] **Add Genie instructions** -- domain context, JOIN patterns, example SQL
-- [ ] **Add example queries** -- the federated queries from the notebook as Genie examples
-- [ ] **Test NL queries** -- verify Genie generates correct federated SQL
-- [ ] **Connect to agent** via Genie MCP server or Conversation API
-- [ ] **Optional: Add DBSQL MCP** for ad-hoc `remote_query()` fallback
+Use Agent Bricks to create a supervisor that coordinates a Genie sub-agent (for the federated fleet data) with other agents (e.g., a RAG agent for unstructured maintenance manuals). The Genie space handles the federation transparently.
 
 ---
 
@@ -422,21 +251,20 @@ Use Agent Bricks to create a supervisor that coordinates a Genie sub-agent (for 
 
 | Constraint | Impact | Mitigation |
 |---|---|---|
-| Neo4j data is materialized (snapshot), not live | Data may be stale if Neo4j is updated | Re-run the materialization notebook to refresh; consider scheduling as a job |
-| `remote_query()` with `query` option breaks for non-aggregate SELECT | Spark wraps in subquery for schema inference | Use DataFrame API with `dbtable` + `customSchema` instead |
-| `remote_query()` with `dbtable` returns NullType for all columns | Live views over `remote_query()` return NULL data | Use `customSchema` (DataFrame API only) and materialize as Delta tables |
+| Neo4j data is materialized (snapshot), not live | Data may be stale if Neo4j is updated | Re-run `federated_views_agent_ready.ipynb` to refresh; consider scheduling as a job |
+| `remote_query()` with `query` option breaks | Spark wraps in subquery for schema inference | Use DataFrame API with `dbtable` + `customSchema` instead |
+| `remote_query()` with `dbtable` returns NullType | Live views return NULL data | Use `customSchema` (DataFrame API only) and materialize as Delta tables |
 | Neo4j JDBC SQL translation is limited | Complex Cypher patterns (variable-length paths, APOC) may not translate | Use the Neo4j Spark Connector for complex graph patterns |
 | Genie: 30 table/view limit per space | Must choose which views to expose | Focus on the most common Neo4j query patterns |
 | Genie: 5 queries/min/workspace (preview) | Rate-limited for high-throughput use | Suitable for interactive analytics, not batch processing |
 | Genie: read-only generated queries | No write-back to either source | Agent is purely analytical |
-| JDBC memory limit: 400 MiB | Large Neo4j result sets may hit this | Filter data in the `remote_query()` SQL before returning |
-| `enableSQLTranslation=true` required | Must be in the JDBC URL | Already configured in the UC connection |
+| JDBC memory limit: 400 MiB | Large Neo4j result sets may hit this | Filter data in the query before returning |
 
 ---
 
 ## SQL-to-Cypher Translation Reference
 
-The Neo4j JDBC driver translates SQL to Cypher using these patterns (relevant for what Genie-generated SQL will actually execute):
+The Neo4j JDBC driver translates SQL to Cypher using these patterns (relevant for what Genie-generated SQL will actually execute against Neo4j):
 
 | SQL Pattern | Cypher Translation |
 |---|---|
@@ -447,28 +275,30 @@ The Neo4j JDBC driver translates SQL to Cypher using these patterns (relevant fo
 
 Full reference: [Neo4j JDBC SQL2Cypher](https://neo4j.com/docs/jdbc-manual/current/sql2cypher/)
 
+See `neo4j_databricks_sql_translation.ipynb` for tested examples of each pattern.
+
 ---
 
 ## References
 
-### UC Federation (Core)
+### Project Notebooks
+- [`neo4j_databricks_sql_translation.ipynb`](uc-neo4j-test-suite/neo4j_databricks_sql_translation.ipynb) — UC JDBC validation test suite
+- [`federated_lakehouse_query.ipynb`](uc-neo4j-test-suite/federated_lakehouse_query.ipynb) — Federated query examples (Spark Connector + remote_query)
+- [`federated_views_agent_ready.ipynb`](uc-neo4j-test-suite/federated_views_agent_ready.ipynb) — Materialized UC tables for Genie
+- [`metadata_sync_delta.ipynb`](uc-neo4j-test-suite/metadata_sync_delta.ipynb) — Schema sync via Delta materialization
+- [`metadata_sync_external.ipynb`](uc-neo4j-test-suite/metadata_sync_external.ipynb) — Schema sync via External Metadata API
+
+### Project Documentation
+- [GUIDE_NEO4J_UC.md](GUIDE_NEO4J_UC.md) — Full UC JDBC integration guide
+
+### Databricks
 - [Lakehouse Federation overview](https://docs.databricks.com/aws/en/query-federation/)
 - [remote_query() reference](https://docs.databricks.com/aws/en/query-federation/remote-queries)
-- [JDBC Unity Catalog connection](https://docs.databricks.com/aws/en/connect/jdbc-connection)
-- [Neo4j JDBC SQL2Cypher](https://neo4j.com/docs/jdbc-manual/current/sql2cypher/)
-
-### Genie / AI-BI
 - [What is an AI/BI Genie space](https://docs.databricks.com/aws/en/genie/)
 - [Set up a Genie space](https://docs.databricks.com/aws/en/genie/set-up)
 - [Genie Conversation API](https://docs.databricks.com/aws/en/genie/conversation-api)
-- [Use Genie in multi-agent systems](https://learn.microsoft.com/en-us/azure/databricks/generative-ai/agent-framework/multi-agent-genie)
-
-### Agent Framework
-- [Mosaic AI Agent Framework](https://docs.databricks.com/aws/en/generative-ai/agent-framework/index.html)
 - [Managed MCP servers](https://docs.databricks.com/aws/en/generative-ai/mcp/managed-mcp)
-- [Multi-Agent Supervisor Architecture (Blog)](https://www.databricks.com/blog/multi-agent-supervisor-architecture-orchestrating-enterprise-ai-scale)
 
-### Project Documentation
-- [GUIDE_NEO4J_UC.md](GUIDE_NEO4J_UC.md) -- Full UC JDBC integration guide
-- [federated_views_agent_ready.ipynb](uc-neo4j-test-suite/federated_views_agent_ready.ipynb) -- Permanent UC views for Genie (dbtable approach)
-- [federated_lakehouse_query.ipynb](uc-neo4j-test-suite/federated_lakehouse_query.ipynb) -- Working federated query examples (Spark Connector + remote_query)
+### Neo4j
+- [Neo4j JDBC SQL2Cypher](https://neo4j.com/docs/jdbc-manual/current/sql2cypher/)
+- [Neo4j Spark Connector](https://neo4j.com/docs/spark/current/)

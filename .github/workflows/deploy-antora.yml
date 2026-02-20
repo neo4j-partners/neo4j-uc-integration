@@ -30,20 +30,20 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: docs/package-lock.json
+          cache-dependency-path: site/package-lock.json
 
       - name: Install dependencies
         run: npm ci
-        working-directory: docs
+        working-directory: site
 
       - name: Build Antora site
         run: npm run build
-        working-directory: docs
+        working-directory: site
 
       - name: Upload artifact for GitHub Pages
         uses: actions/upload-pages-artifact@v3
         with:
-          path: docs/build/site
+          path: site/build/site
 
   deploy:
     name: Deploy to GitHub Pages
