@@ -6,28 +6,6 @@ The **Spark Cleaner** (`SparkSubqueryCleaningTranslator`) is a specialized trans
 
 When Apache Spark uses JDBC to query a database, it wraps the original query in a synthetic subquery structure to probe the result schema. This wrapper pattern can interfere with Cypher queries being passed through the Neo4j JDBC Driver. The Spark Cleaner detects these wrapper patterns and extracts the original Cypher query, allowing it to execute correctly against Neo4j.
 
-## Installation
-
-Download the pre-built JAR from Maven Central:
-
-- [neo4j-jdbc-translator-sparkcleaner-6.10.3.jar](https://repo.maven.apache.org/maven2/org/neo4j/neo4j-jdbc-translator-sparkcleaner/6.10.3/neo4j-jdbc-translator-sparkcleaner-6.10.3.jar)
-- [All versions](https://repo.maven.apache.org/maven2/org/neo4j/neo4j-jdbc-translator-sparkcleaner/) (use latest if needed)
-
-This is a self-contained "fat JAR" that includes the translator implementation. It provides a `SqlTranslatorFactory` service that can clean/normalize Spark SQL queries before they're sent to Neo4j.
-
-Simply add this JAR to your classpath alongside the Neo4j JDBC driver. The Spark Cleaner is automatically discovered via Java's Service Provider Interface (SPI) - no additional configuration is required.
-
-The translator will participate in the translator chain whenever:
-1. The JAR is on the classpath
-2. SQL translation is enabled (`enableSQLTranslation=true`) OR you call `connection.nativeSQL()`
-
-The JAR contains:
-- `SparkSubqueryCleaningTranslator` - Main translator logic
-- `SparkSubqueryCleaningTranslatorFactory` - SPI factory for automatic discovery
-- All shaded dependencies (Cypher parser, ANTLR runtime, etc.)
-
----
-
 ## The Problem: Spark's Subquery Wrapping
 
 When Apache Spark connects to a database via JDBC, it often needs to determine the schema of query results before executing the actual query. To accomplish this, Spark wraps the user's query in a synthetic structure like:

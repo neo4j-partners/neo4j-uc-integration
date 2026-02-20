@@ -160,66 +160,157 @@ After running, all materialized tables appeared in Catalog Explorer with full co
 
 **What this demonstrates:** The graph-to-relational mapping is well-defined. The Spark Connector infers the schema correctly, and UC registers it automatically. An official integration could follow this same mapping without the materialization step — syncing only the metadata, not the data.
 
-### Prototype 2: External Metadata API
+### Future Exploration: External Metadata API
 
-This approach registers Neo4j schema as external metadata objects via the [External Metadata API](https://docs.databricks.com/api/workspace/externalmetadata) (Public Preview). No data is copied — this is metadata-only registration.
+A potential future approach to metadata synchronization is the [External Metadata API](https://docs.databricks.com/api/workspace/externalmetadata) (Public Preview), which could enable metadata-only registration without copying data. An exploratory notebook is available at [metadata_sync_external.ipynb](https://github.com/neo4j-partners/neo4j-uc-integration/blob/main/uc-neo4j-test-suite/metadata_sync_external.ipynb). This approach has not yet been validated end-to-end and would require further investigation — including adding a `NEO4J` system type to the API's `system_type` enum and support for typed columns.
 
-**Pipeline:**
+## Example: Materializing a Node Label as a Delta Table
 
-1. Discover all node labels and properties via `db.schema.nodeTypeProperties()`
-2. Discover relationship types and properties via `db.schema.relTypeProperties()`
-3. Map each label to an External Metadata API payload
-4. POST each object to `/api/2.0/lineage-tracking/external-metadata`
-5. Verify all objects are retrievable via GET
+This walkthrough shows the full flow for a single node label — from schema discovery through Delta materialization to `INFORMATION_SCHEMA` verification. All steps ran on Databricks Runtime 17.3 LTS connected to Neo4j Aura.
 
-**API payload for a node label:**
+**1. Discover the schema for `:Aircraft`**
 
-```json
-{
-  "name": "Aircraft",
-  "system_type": "OTHER",
-  "entity_type": "NodeLabel",
-  "description": "Neo4j :Aircraft node label (4 properties)",
-  "columns": ["aircraft_id", "manufacturer", "model", "icao24"],
-  "url": "neo4j+s://host:7687",
-  "properties": {
-    "neo4j.database": "neo4j",
-    "neo4j.label": "Aircraft",
-    "neo4j.host": "host",
-    "neo4j.property_count": "4",
-    "neo4j.property.aircraft_id.type": "STRING",
-    "neo4j.property.aircraft_id.neo4j_type": "String",
-    "neo4j.property.aircraft_id.mandatory": "true",
-    "neo4j.property.manufacturer.type": "STRING",
-    "neo4j.property.manufacturer.neo4j_type": "String"
-  }
-}
+The pipeline starts by calling `db.schema.nodeTypeProperties()` to discover all properties and their types:
+
+```python
+with GraphDatabase.driver(NEO4J_BOLT_URI, auth=(NEO4J_USER, NEO4J_PASSWORD)) as driver:
+    with driver.session(database=NEO4J_DATABASE) as session:
+        result = session.run("CALL db.schema.nodeTypeProperties()")
+        for record in result:
+            label = record["nodeLabels"][0]
+            print(f"  {label}.{record['propertyName']}: {record['propertyTypes']}")
 ```
 
-**API payload for a relationship type:**
+```
+NODE LABELS (9 discovered):
+  Aircraft: 6 properties    — aircraft_id, tail_number, icao24, model, manufacturer, operator
+  Airport: 8 properties     — airport_id, name, city, country, iata, ...
+  Component: 4 properties   — system_id, component_id, name, type
+  Delay: 3 properties       — delay_id, cause, minutes (Long)
+  Flight: 8 properties      — flight_id, flight_number, operator, origin, destination, ...
+  MaintenanceEvent: 8 props — event_id, severity, aircraft_id, system_id, component_id, ...
+  Removal: 7 properties     — removal_id, removal_date, tsn (Double), ...
+  Sensor: 5 properties      — sensor_id, name, type, unit, system_id
+  System: 4 properties      — system_id, name, type, aircraft_id
 
-```json
-{
-  "name": "DEPARTS_FROM",
-  "system_type": "OTHER",
-  "entity_type": "RelationshipType",
-  "description": "Neo4j [:DEPARTS_FROM] relationship type (0 properties)",
-  "columns": [],
-  "url": "neo4j+s://host:7687",
-  "properties": {
-    "neo4j.database": "neo4j",
-    "neo4j.relationship_type": "DEPARTS_FROM",
-    "neo4j.host": "host",
-    "neo4j.property_count": "0"
-  }
-}
+RELATIONSHIP TYPES (17 discovered):
+  DEPARTS_FROM, ARRIVES_AT, OPERATES_FLIGHT, HAS_SYSTEM, HAS_COMPONENT,
+  HAS_SENSOR, HAS_EVENT, HAS_DELAY, HAS_REMOVAL, AFFECTS_AIRCRAFT, ...
 ```
 
-All labels and relationship types registered successfully and were retrievable via the API.
+<!-- Source: metadata_sync_delta.ipynb, cell "discover-schema" (Step 2) -->
 
-**Current limitations of this approach:** Neo4j is not in the `system_type` enum (we used `OTHER`). The `columns` field accepts only string arrays with no type information (types are encoded in the `properties` map). External metadata objects do not appear in Catalog Explorer or `INFORMATION_SCHEMA` — they are only visible via the REST API. These are the kinds of gaps that an official integration would close.
 
-**What this demonstrates:** The External Metadata API can represent Neo4j graph schema today, but with reduced fidelity compared to natively supported data sources. Working together to add a `NEO4J` system type and typed column support would make this a viable metadata-only sync path.
+
+**2. Read from Neo4j and write as a managed Delta table**
+
+The Spark Connector reads the label and infers the schema automatically. `saveAsTable()` writes a managed Delta table and UC registers the metadata:
+
+```python
+df = spark.read.format("org.neo4j.spark.DataSource") \
+    .option("labels", ":Aircraft") \
+    .load()
+
+df.printSchema()
+df.show(5, truncate=False)
+
+df.write.mode("overwrite") \
+    .option("overwriteSchema", "true") \
+    .saveAsTable("`neo4j_metadata`.`nodes`.`aircraft`")
+```
+
+```
+Inferred schema for :Aircraft:
+  <id>: long, <labels>: array<string>, tail_number: string, operator: string,
+  model: string, manufacturer: string, icao24: string, aircraft_id: string
+
+Sample data (5 rows):
++----+-----------+-----------+--------+------------+------+-----------+
+|<id>|tail_number|operator   |model   |manufacturer|icao24|aircraft_id|
++----+-----------+-----------+--------+------------+------+-----------+
+|0   |N95040A    |ExampleAir |B737-800|Boeing      |448367|AC1001     |
+|1   |N30268B    |SkyWays    |A320-200|Airbus      |aee78a|AC1002     |
+|2   |N54980C    |RegionalCo |A321neo |Airbus      |7c6b17|AC1003     |
++----+-----------+-----------+--------+------------+------+-----------+
+
+Materialized :Aircraft → neo4j_metadata.nodes.aircraft (20 rows, 8 columns)
+```
+
+<!-- Source: metadata_sync_delta.ipynb, cell "single-label" (Step 4) -->
+
+**3. Verify metadata in `INFORMATION_SCHEMA`**
+
+After writing, the table and its columns are immediately visible in UC:
+
+```sql
+SELECT table_schema, table_name, table_type
+FROM `neo4j_metadata`.information_schema.tables
+WHERE table_schema = 'nodes'
+ORDER BY table_name;
+```
+
+```
++----------------+----------+
+|table_name      |table_type|
++----------------+----------+
+|aircraft        |MANAGED   |
+|airport         |MANAGED   |
+|component       |MANAGED   |
+|delay           |MANAGED   |
+|flight          |MANAGED   |
+|maintenanceevent|MANAGED   |
+|removal         |MANAGED   |
+|sensor          |MANAGED   |
+|system          |MANAGED   |
++----------------+----------+
+```
+
+<!-- Source: metadata_sync_delta.ipynb, cell "verify-metadata" (Step 5) -->
+
+```sql
+SELECT ordinal_position, column_name, data_type, is_nullable
+FROM `neo4j_metadata`.information_schema.columns
+WHERE table_schema = 'nodes' AND table_name = 'aircraft'
+ORDER BY ordinal_position;
+```
+
+```
++----------------+------------+---------+-----------+
+|ordinal_position|column_name |data_type|is_nullable|
++----------------+------------+---------+-----------+
+|0               |<id>        |LONG     |YES        |
+|1               |<labels>    |ARRAY    |YES        |
+|2               |tail_number |STRING   |YES        |
+|3               |operator    |STRING   |YES        |
+|4               |model       |STRING   |YES        |
+|5               |manufacturer|STRING   |YES        |
+|6               |icao24      |STRING   |YES        |
+|7               |aircraft_id |STRING   |YES        |
++----------------+------------+---------+-----------+
+Table neo4j_metadata.nodes.aircraft: 20 rows
+```
+
+<!-- Source: metadata_sync_delta.ipynb, cell "verify-metadata" (Step 5) -->
+
+The table is now browsable in Catalog Explorer and queryable via standard SQL:
+
+```sql
+SELECT * FROM neo4j_metadata.nodes.aircraft LIMIT 5;
+```
+
+```
++-----------+-----------+--------+------------+------+-----------+
+|tail_number|operator   |model   |manufacturer|icao24|aircraft_id|
++-----------+-----------+--------+------------+------+-----------+
+|N95040A    |ExampleAir |B737-800|Boeing      |448367|AC1001     |
+|N30268B    |SkyWays    |A320-200|Airbus      |aee78a|AC1002     |
+|N54980C    |RegionalCo |A321neo |Airbus      |7c6b17|AC1003     |
+|N37272D    |NorthernJet|E190    |Embraer     |fe5e91|AC1004     |
+|N53032E    |ExampleAir |B737-800|Boeing      |232296|AC1005     |
++-----------+-----------+--------+------------+------+-----------+
+```
+
+<!-- Source: metadata_sync_delta.ipynb, cell "single-label" (Step 4) -->
 
 ## Proposed Production Integration
 
@@ -250,10 +341,6 @@ The sync would need to handle:
 
 When a user queries a table in the foreign catalog (`SELECT * FROM neo4j_catalog.nodes.aircraft`), the platform routes that query through the JDBC connection. The Neo4j JDBC driver's SQL-to-Cypher translator already handles this translation — `SELECT * FROM Aircraft` becomes `MATCH (n:Aircraft) RETURN n.aircraft_id, n.manufacturer, ...`. We have validated the full set of SQL-to-Cypher translation patterns in our federation report, and the driver is ready to support this routing today.
 
-### 4. `NEO4J` System Type in External Metadata API
-
-As part of an official integration, adding `NEO4J` to the `system_type` enum (currently requires `OTHER`) would enable proper categorization, filtering, and UI treatment of Neo4j metadata objects in Catalog Explorer and the lineage tracking system.
-
 ## Prototype Test Summary
 
 | Component | Status | Notes |
@@ -265,8 +352,6 @@ As part of an official integration, adding `NEO4J` to the `system_type` enum (cu
 | `INFORMATION_SCHEMA` visibility | PASS | Column names, types, nullability all correct |
 | Catalog Explorer visibility | PASS | Tables browsable with full column definitions |
 | SQL queryability | PASS | `SELECT * FROM neo4j_metadata.nodes.aircraft` works |
-| External Metadata API registration | PASS | All labels and relationship types registered |
-| External Metadata API retrieval | PASS | All objects retrievable via GET |
 | Type mapping coverage | PASS | All Neo4j property types mapped to UC types |
 
 ## Repository
@@ -274,5 +359,4 @@ As part of an official integration, adding `NEO4J` to the `system_type` enum (cu
 All prototype code is available for review:
 
 - [metadata_sync_delta.ipynb](https://github.com/neo4j-partners/neo4j-uc-integration/blob/main/uc-neo4j-test-suite/metadata_sync_delta.ipynb) — Materialized Delta Tables prototype
-- [metadata_sync_external.ipynb](https://github.com/neo4j-partners/neo4j-uc-integration/blob/main/uc-neo4j-test-suite/metadata_sync_external.ipynb) — External Metadata API prototype
-- [METADATA.md](https://github.com/neo4j-partners/neo4j-uc-integration/blob/main/METADATA.md) — Research and design document with full type mapping and API analysis
+- [METADATA.md](https://github.com/neo4j-partners/neo4j-uc-integration/blob/main/docs/METADATA.md) — Research and design document with full type mapping and API analysis

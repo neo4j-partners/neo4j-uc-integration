@@ -1,19 +1,22 @@
-# Neo4j Unity Catalog JDBC Test Suite
+# Neo4j Unity Catalog Integration — Notebooks
 
-A diagnostic test suite for validating Neo4j JDBC connectivity through Databricks Unity Catalog.
+Databricks notebooks for validating Neo4j JDBC connectivity through Unity Catalog, running federated queries across Neo4j and Delta lakehouse tables, and synchronizing Neo4j metadata into Unity Catalog.
+
+**Jump to:** [Metadata Sync Notebooks](#metadata-sync-notebooks)
 
 ## Notebooks
 
 | Notebook | Description |
 |----------|-------------|
-| `neo4j_databricks_sql_translation.ipynb` | UC JDBC connection and SQL-to-Cypher translation tests |
+| `neo4j_databricks_sql_translation.ipynb` | UC JDBC connection and SQL-to-Cypher translation validation |
+| `federated_lakehouse_query.ipynb` | Federated queries joining Neo4j graph data with Delta lakehouse tables |
+| `federated_views_agent_ready.ipynb` | Materializes Neo4j data as Delta tables for Genie natural language queries |
 | `metadata_sync_delta.ipynb` | Metadata sync via materialized Delta tables |
 | `metadata_sync_external.ipynb` | Metadata sync via External Metadata API |
-| `federated_lakehouse_query.ipynb` | Federated query testing |
-| `federated_views_agent_ready.ipynb` | Agent-ready federated views |
 
 ### neo4j_databricks_sql_translation.ipynb
-Full test suite with sections (1-7):
+
+Sections 1–7:
 - Section 1: Environment Information
 - Section 2: Network Connectivity Test
 - Section 3: Neo4j Python Driver Test
@@ -22,13 +25,21 @@ Full test suite with sections (1-7):
 - Section 6: Unity Catalog JDBC Connection Setup
 - Section 7: Unity Catalog JDBC Tests
 
-## Overview
+### federated_lakehouse_query.ipynb
 
-This test suite runs on a Databricks cluster and validates:
+Demonstrates two federation methods in a single notebook:
+- `remote_query()` — UC JDBC table-valued function for Neo4j aggregate queries (no cluster library needed)
+- Neo4j Spark Connector — Row-level Neo4j data loaded into temp views for JOINs with Delta tables
 
-1. **Environment** - Python version, Neo4j driver availability, configuration
-2. **Neo4j Driver** - Direct connectivity using the Neo4j Python driver (Bolt protocol)
-3. **Unity Catalog JDBC** - JDBC connectivity through UC's SafeSpark wrapper
+Requires the Neo4j Spark Connector as a cluster library and a single-user access mode cluster.
+
+### federated_views_agent_ready.ipynb
+
+Materializes Neo4j node labels (MaintenanceEvent, Flight, Airport) as managed Delta tables in Unity Catalog using the DataFrame API with `dbtable` + `customSchema`. Creates a flight-to-airport mapping table via Spark SQL JOIN. These tables make Neo4j data queryable by Genie and other SQL tools — GROUP BY, ORDER BY, and JOINs all work because the data is materialized as regular Delta tables.
+
+Uses pure UC JDBC federation only — no Spark Connector or cluster libraries required.
+
+---
 
 ## Prerequisites
 
@@ -55,7 +66,7 @@ CREATE VOLUME IF NOT EXISTS main.jdbc_drivers.jars;
 - [All full-bundle versions](https://repo.maven.apache.org/maven2/org/neo4j/neo4j-jdbc-full-bundle/)
 - [All sparkcleaner versions](https://repo.maven.apache.org/maven2/org/neo4j/neo4j-jdbc-translator-sparkcleaner/)
 
-See [CLEANER.md](../neo4j_jdbc_spark_cleaning/CLEANER.md) for details on the SparkSubqueryCleaningTranslator.
+See [CLEANER.md](../docs/CLEANER.md) for details on the SparkSubqueryCleaningTranslator.
 
 ### 2. Databricks Secrets
 
@@ -86,42 +97,33 @@ databricks secrets put-secret neo4j-uc-creds connection_name
 databricks secrets put-secret neo4j-uc-creds database
 ```
 
-## Test Details
-
-### Environment Test
-- Reports Python version and platform
-- Checks Neo4j Python driver installation
-- Displays loaded configuration
-
-### Neo4j Driver Test
-- Connects using Bolt protocol (`neo4j+s://`)
-- Verifies connectivity
-- Executes simple query (`RETURN 1`)
-- Retrieves Neo4j server version
-
-### Unity Catalog JDBC Test
-- Creates a UC JDBC connection with the Neo4j driver
-- Tests DataFrame API with UC connection
-- Tests native Cypher with `FORCE_CYPHER` hint
-- Tests `remote_query()` function
-
-## Expected Secrets
-
-The secret scope should contain:
+### Expected Secrets
 
 | Key | Required | Description |
 |-----|----------|-------------|
 | `host` | Yes | Neo4j host (e.g., `xxxxx.databases.neo4j.io`) |
 | `user` | Yes | Neo4j username |
 | `password` | Yes | Neo4j password |
-| `connection_name` | Yes | UC JDBC connection name (e.g., `neo4j_connection`) - workspace-level, not catalog.schema scoped |
+| `connection_name` | Yes | UC JDBC connection name (e.g., `neo4j_connection`) — workspace-level, not catalog.schema scoped |
 | `database` | No | Database name (defaults to `neo4j`) |
+
+### 3. Cluster Requirements
+
+| Requirement | JDBC / Federated Views Notebooks | Federated Lakehouse Notebook | Metadata Sync (Delta) | Metadata Sync (External API) |
+|-------------|----------------------------------|------------------------------|----------------------|------------------------------|
+| Access mode | Any | **Single user** | **Single user** | Any |
+| Neo4j Spark Connector | Not needed | **Required** | **Required** | Not needed |
+| Neo4j Python driver | Not needed | Not needed | **Required** | **Required** |
+| SafeSpark memory settings | **Required** | **Required** | Not needed | Not needed |
+
+**Installing cluster libraries:**
+
+- Neo4j Spark Connector: **Compute** > your cluster > **Libraries** > **Install new** > **Maven** > `org.neo4j:neo4j-connector-apache-spark_2.12:5.4.0_for_spark_3`
+- Neo4j Python driver: **Compute** > your cluster > **Libraries** > **Install new** > **PyPI** > `neo4j`
 
 ---
 
 ## Best Practices
-
-This section summarizes best practices for using the Neo4j JDBC driver with Databricks Unity Catalog, based on official Neo4j and Databricks documentation.
 
 ### Neo4j JDBC Driver Configuration
 
@@ -215,32 +217,159 @@ Queries like `SELECT COUNT(*) FROM Label` are efficiently translated to `MATCH (
 
 ---
 
+## Metadata Sync Notebooks
+
+Two notebooks prototype Unity Catalog metadata synchronization for Neo4j. See [METADATA.md](../docs/METADATA.md) for the full design.
+
+| Notebook | Approach | What It Does |
+|----------|----------|-------------|
+| `metadata_sync_delta.ipynb` | Materialized Delta Tables | Reads Neo4j labels/relationships via Spark Connector, writes as managed Delta tables. Full UC integration — Catalog Explorer, INFORMATION_SCHEMA, SQL access. |
+| `metadata_sync_external.ipynb` | External Metadata API | Registers Neo4j schema as external metadata objects via REST API. No data copied — metadata-only for discoverability and lineage. |
+
+### Additional Prerequisites for Metadata Sync
+
+Beyond the [common prerequisites](#prerequisites) above, the metadata sync notebooks have additional requirements:
+
+**For `metadata_sync_delta.ipynb`:**
+- **Target catalog must already exist.** The notebook does not create it. Create it before running:
+  ```sql
+  CREATE CATALOG neo4j_metadata;
+  ```
+  Or with a specific storage location:
+  ```sql
+  CREATE CATALOG neo4j_metadata MANAGED LOCATION '<your-storage-location>';
+  ```
+  The notebook will create the `nodes` and `relationships` schemas within this catalog.
+- **Single-user access mode** cluster with the Neo4j Spark Connector installed.
+- **UC privileges:** `USE CATALOG`, `CREATE SCHEMA` on the target catalog.
+
+**For `metadata_sync_external.ipynb`:**
+- **UC privilege:** `CREATE_EXTERNAL_METADATA` on the metastore. Ask your admin:
+  ```sql
+  GRANT CREATE_EXTERNAL_METADATA ON METASTORE TO `user@email.com`;
+  ```
+- Workspace URL and auth token are auto-discovered from the notebook context — no manual configuration needed.
+
+### Running metadata_sync_delta.ipynb
+
+Run cells in order. Each cell builds on the previous one.
+
+| Cell | What It Does | What to Check |
+|------|-------------|---------------|
+| Configuration | Loads secrets, sets target catalog name | Verify host and catalog name are correct |
+| Verify Connectivity | Tests Neo4j Python driver | Should print `[PASS]` and Neo4j version |
+| Discover Schema | Runs `db.schema.nodeTypeProperties()` and `db.schema.relTypeProperties()` | Should list all node labels and properties |
+| Create Schemas | Verifies catalog exists, creates `nodes` and `relationships` schemas | Should print `[PASS]` for each |
+| Materialize One Label | Reads first label via Spark Connector, writes as Delta table | Check `printSchema()` output and row count |
+| Verify INFORMATION_SCHEMA | Queries `information_schema.tables` and `columns` | Columns and types should appear |
+| Materialize All Labels | Loops through all labels | Check pass/fail summary |
+| Materialize Relationships | Discovers relationship patterns via MATCH query, writes as Delta tables | Check pass/fail summary |
+| Final Summary | Shows all tables in the catalog | Verify total table count and row counts |
+
+**Expected output after final cell:**
+
+```
+METADATA SYNC SUMMARY
+  Target Catalog: neo4j_metadata
+  Node label tables: N (in nodes)
+  Relationship tables: N (in relationships)
+  Total tables: N
+  Total data rows: N,NNN
+
+  All tables are:
+    - Browsable in Catalog Explorer
+    - Visible in INFORMATION_SCHEMA
+    - Queryable via standard SQL
+    - Governed by UC permissions
+
+[PASS] Metadata synchronization complete
+```
+
+**After running, verify in Catalog Explorer:**
+
+1. Navigate to **Data** > **neo4j_metadata** catalog
+2. Open the **nodes** schema — each Neo4j label should appear as a table
+3. Click any table — columns, types, and row counts should be visible
+4. Open the **relationships** schema — each relationship type should appear
+5. Try running a SQL query: `SELECT * FROM neo4j_metadata.nodes.aircraft LIMIT 5`
+
+### Running metadata_sync_external.ipynb
+
+Run cells in order.
+
+| Cell | What It Does | What to Check |
+|------|-------------|---------------|
+| Configuration | Loads secrets, auto-discovers workspace URL and token | Verify workspace URL is correct, token shows `********` |
+| Verify Connectivity | Tests Neo4j Python driver | Should print `[PASS]` |
+| Discover Schema | Gets labels, relationships, and properties via `db.schema.nodeTypeProperties()` and `db.schema.relTypeProperties()` | Should list all labels and relationship types |
+| Register One Label | POSTs one label to External Metadata API | Should return an ID and print `[PASS]` |
+| Register All Labels | Loops through all labels | Check pass/fail summary |
+| Register Relationships | Loops through all relationship types | Check pass/fail summary |
+| List All Metadata | GETs all registered objects | Should show a table of all registered entries |
+| Cleanup | Commented out — uncomment to delete | Only run if you want to remove the metadata |
+
+**Expected output after list cell:**
+
+```
+ALL REGISTERED EXTERNAL METADATA
+
++------------------+------------------+-------+----------------+
+| name             | entity_type      |columns| created_by     |
++------------------+------------------+-------+----------------+
+| Aircraft         | NodeLabel        | 4     | user@email.com |
+| Flight           | NodeLabel        | 6     | user@email.com |
+| Airport          | NodeLabel        | 7     | user@email.com |
+| DEPARTS_FROM     | RelationshipType | 0     | user@email.com |
+| ...              | ...              | ...   | ...            |
++------------------+------------------+-------+----------------+
+```
+
+**Note:** External metadata objects do **not** appear in Catalog Explorer or `INFORMATION_SCHEMA`. They are only visible via the REST API. This is a limitation of the External Metadata API (Public Preview).
+
+### Customization
+
+In `metadata_sync_delta.ipynb`, edit the configuration cell to change target names:
+
+```python
+TARGET_CATALOG = "neo4j_metadata"     # Change this
+NODES_SCHEMA = "nodes"                # Change this
+RELATIONSHIPS_SCHEMA = "relationships" # Change this
+```
+
+### Metadata Sync Troubleshooting
+
+**"Catalog 'neo4j_metadata' was not found"** — The catalog must be created before running the notebook. See [Additional Prerequisites](#additional-prerequisites-for-metadata-sync) above.
+
+**"403 Forbidden" on External Metadata API** — The current user needs `CREATE_EXTERNAL_METADATA` privilege on the metastore.
+
+**"org.neo4j.spark.DataSource not found"** — The Neo4j Spark Connector library is not installed on the cluster. Install via **Compute** > **Libraries** > **Maven**: `org.neo4j:neo4j-connector-apache-spark_2.12:5.4.0_for_spark_3`
+
+**"Single user access mode required"** — The Neo4j Spark Connector only works with single-user access mode. Change your cluster's access mode in **Compute** > your cluster > **Configuration** > **Access mode**.
+
+**Schema mismatch on rerun** — The notebooks use `.option("overwriteSchema", "true")` so reruns work even if the Neo4j schema changed. This is safe for prototype use.
+
+**Empty schema discovery** — If `db.schema.nodeTypeProperties()` returns no results, the Neo4j database may be empty or the credentials may point to the wrong database. Check the `NEO4J_DATABASE` value in your `.env` file.
+
+**Multi-label nodes** — Nodes with multiple labels (e.g., `:Person:Employee`) are discovered under each individual label but not as a combined type. The notebook prints a warning showing how many multi-label entries were skipped.
+
+---
+
 ## References
-
-### Notebook Code Sections
-
-The test notebooks demonstrate these practices:
-
-- **Section 5**: Direct JDBC with `customSchema` and SQL translation
-- **Section 6**: Unity Catalog connection creation with `externalOptionsAllowList`
-- **Section 7**: UC JDBC queries with DataFrame API and `remote_query()`
 
 ### Neo4j Documentation
 
-- [Neo4j JDBC Driver Manual](https://neo4j.com/docs/jdbc-manual/current/) - Complete driver reference
-- [SQL to Cypher Translation](https://neo4j.com/docs/jdbc-manual/current/sql2cypher/) - Supported SQL constructs and configuration
-- [Driver Configuration](https://neo4j.com/docs/jdbc-manual/current/configuration/) - Connection options and parameters
-- [GitHub: neo4j/neo4j-jdbc](https://github.com/neo4j/neo4j-jdbc) - Source code and issue tracking
+- [Neo4j JDBC Driver Manual](https://neo4j.com/docs/jdbc-manual/current/) — Complete driver reference
+- [SQL to Cypher Translation](https://neo4j.com/docs/jdbc-manual/current/sql2cypher/) — Supported SQL constructs and configuration
+- [Driver Configuration](https://neo4j.com/docs/jdbc-manual/current/configuration/) — Connection options and parameters
+- [GitHub: neo4j/neo4j-jdbc](https://github.com/neo4j/neo4j-jdbc) — Source code and issue tracking
 
 ### Databricks Documentation
 
-- [JDBC Unity Catalog Connection](https://docs.databricks.com/aws/en/connect/jdbc-connection) - Creating and using UC JDBC connections
-- [Work with Foreign Tables](https://docs.databricks.com/aws/en/tables/foreign) - Foreign table concepts and patterns
-- [Manage Foreign Catalogs](https://docs.databricks.com/aws/en/query-federation/foreign-catalogs) - Query federation vs JDBC comparison
+- [JDBC Unity Catalog Connection](https://docs.databricks.com/aws/en/connect/jdbc-connection) — Creating and using UC JDBC connections
+- [Work with Foreign Tables](https://docs.databricks.com/aws/en/tables/foreign) — Foreign table concepts and patterns
+- [Manage Foreign Catalogs](https://docs.databricks.com/aws/en/query-federation/foreign-catalogs) — Query federation vs JDBC comparison
 
 ### Driver Downloads
 
-- **Recommended**: Use `../neo4j_jdbc_spark_cleaning/neo4j-jdbc-translator-sparkcleaner-6.10.3.jar` (includes SparkSubqueryCleaningTranslator)
-- [Maven Central: neo4j-jdbc-full-bundle](https://repo1.maven.org/maven2/org/neo4j/neo4j-jdbc-full-bundle/) - Official releases (without SparkCleaner)
-- [CLEANER_USER.md](../CLEANER_USER.md) - Build instructions for custom JAR with SparkCleaner
-
+- [Maven Central: neo4j-jdbc-full-bundle](https://repo1.maven.org/maven2/org/neo4j/neo4j-jdbc-full-bundle/) — Official releases
+- [Maven Central: neo4j-jdbc-translator-sparkcleaner](https://repo.maven.apache.org/maven2/org/neo4j/neo4j-jdbc-translator-sparkcleaner/) — Spark subquery cleaner

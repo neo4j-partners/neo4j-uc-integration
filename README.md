@@ -63,7 +63,7 @@ Two JARs are uploaded to a Unity Catalog Volume:
 | `neo4j-jdbc-full-bundle-6.10.3.jar` | JDBC driver with built-in SQL-to-Cypher translation engine |
 | `neo4j-jdbc-translator-sparkcleaner-6.10.3.jar` | Preprocesses Spark-generated SQL artifacts before translation |
 
-The spark cleaner handles a Spark-specific behavior: when Spark connects via JDBC, it wraps queries in a subquery for schema probing (`SELECT * FROM (<query>) SPARK_GEN_SUBQ_0 WHERE 1=0`). The cleaner detects this marker, extracts the inner query, and routes it correctly. See [neo4j_jdbc_spark_cleaning/](./neo4j_jdbc_spark_cleaning/) for details.
+The spark cleaner handles a Spark-specific behavior: when Spark connects via JDBC, it wraps queries in a subquery for schema probing (`SELECT * FROM (<query>) SPARK_GEN_SUBQ_0 WHERE 1=0`). The cleaner detects this marker, extracts the inner query, and routes it correctly. See [CLEANER.md](./docs/CLEANER.md) for details.
 
 ### SafeSpark Configuration
 
@@ -134,7 +134,7 @@ The Neo4j JDBC driver automatically translates SQL to Cypher when `enableSQLTran
 - GROUP BY / HAVING
 - ORDER BY / LIMIT
 
-Spark wraps JDBC queries in subqueries for schema resolution. Neo4j's SQL translator cannot handle certain constructs inside subqueries. Aggregate queries work because their results don't require this wrapping. See [GUIDE_NEO4J_UC.md](./GUIDE_NEO4J_UC.md) for workarounds.
+Spark wraps JDBC queries in subqueries for schema resolution. Neo4j's SQL translator cannot handle certain constructs inside subqueries. Aggregate queries work because their results don't require this wrapping. See [GUIDE_NEO4J_UC.md](./docs/GUIDE_NEO4J_UC.md) for workarounds.
 
 ---
 
@@ -173,7 +173,17 @@ Two approaches are prototyped:
 | **Materialized Delta Tables** | Reads Neo4j via Spark Connector, writes as managed Delta tables | Full UC integration (Catalog Explorer, INFORMATION_SCHEMA, SQL). Requires scheduled refresh. |
 | **External Metadata API** | Registers Neo4j schema as external metadata objects via REST API | No data copied — metadata-only for discoverability and lineage. No direct SQL query support. |
 
-See [METADATA.md](./METADATA.md) for the full design and [METADATA_SYNC_REPORT.md](./METADATA_SYNC_REPORT.md) for prototype results.
+See [METADATA.md](./docs/METADATA.md) for the full design and [METADATA_SYNC_REPORT.md](./METADATA_SYNC_REPORT.md) for prototype results.
+
+---
+
+## Federated Agents and Genie Integration
+
+Neo4j data materialized as Delta tables becomes queryable through Databricks AI/BI Genie without any direct graph database access. Users ask natural language questions and Genie generates SQL that federates across Neo4j graph data and Delta lakehouse tables — all governed by Unity Catalog. The LLM never sees Cypher and the user never writes SQL.
+
+This supports several agent integration patterns: Genie as a standalone NL-to-SQL agent, multi-agent setups pairing Genie with a DBSQL MCP server, and Agent Bricks supervisors coordinating Genie with other agents (e.g., RAG over maintenance manuals).
+
+See [FEDERATED_AGENTS.md](./docs/FEDERATED_AGENTS.md) for the full architecture, Genie space setup instructions, example questions, and agent integration patterns.
 
 ---
 
@@ -182,19 +192,19 @@ See [METADATA.md](./METADATA.md) for the full design and [METADATA_SYNC_REPORT.m
 ```
 neo4j-uc-integration/
 ├── README.md                          # This file
-├── GUIDE_NEO4J_UC.md                  # Detailed JDBC usage guide
-├── METADATA.md                        # Metadata synchronization design
 ├── METADATA_SYNC_REPORT.md            # Metadata sync prototype report
-├── FEDERATED_AGENTS.md                # Federated agents + Genie integration
 ├── NEO4J_UC_INTEGRATION_REPORT.md     # Full integration proposal for Databricks
+├── docs/
+│   ├── GUIDE_NEO4J_UC.md              # Detailed JDBC usage guide
+│   ├── METADATA.md                    # Metadata synchronization design
+│   ├── FEDERATED_AGENTS.md            # Federated agents + Genie integration
+│   └── CLEANER.md                     # Spark subquery cleaner explanation
 ├── uc-neo4j-test-suite/               # Databricks notebooks and test suite
 │   ├── neo4j_databricks_sql_translation.ipynb  # UC JDBC and SQL translation tests
 │   ├── metadata_sync_delta.ipynb               # Metadata sync via Delta tables
 │   ├── metadata_sync_external.ipynb            # Metadata sync via External Metadata API
 │   ├── federated_lakehouse_query.ipynb         # Federated query patterns
 │   └── federated_views_agent_ready.ipynb       # Agent-ready federated views
-├── neo4j_jdbc_spark_cleaning/         # Spark cleaner translator info
-└── site/                              # Antora documentation site source
 ```
 
 ---
