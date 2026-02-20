@@ -94,10 +94,15 @@ CALL db.schema.nodeTypeProperties()
 
 -- Relationship type properties
 CALL db.schema.relTypeProperties()
--- Returns: relType, sourceNodeLabels, targetNodeLabels, propertyName, propertyTypes, mandatory
+-- Returns: relType, propertyName, propertyTypes, mandatory
 ```
 
 These use older internal type names (`String`, `Long`, `Double`) instead of Cypher 5 canonical names.
+
+> **Note:** Some documentation references `sourceNodeLabels` and `targetNodeLabels` as
+> output columns for `db.schema.relTypeProperties()`, but these are **not available** on
+> Neo4j 5.x Aura (verified on 5.27-aura). To discover relationship source/target patterns,
+> use `apoc.meta.schema()` or `db.schema.visualization()` instead.
 
 ### Constraints and Indexes
 
