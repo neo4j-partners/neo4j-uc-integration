@@ -1,4 +1,6 @@
-# Metadata Sync Prototype Plan
+# Metadata Sync Prototype Plan — IMPLEMENTED
+
+> **Status:** Both notebooks and the testing README have been implemented. See `METADATA_SYNC_README.md` for how to test.
 
 This plan builds two Databricks notebooks that prototype Unity Catalog metadata synchronization for Neo4j, following the same patterns as the existing `uc-neo4j-test-suite/` (Databricks secrets via `setup.sh`, step-by-step notebook cells, try/except wrapping, status output).
 
