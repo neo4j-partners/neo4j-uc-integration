@@ -164,13 +164,13 @@ OPTIONS (
 )
 ```
 
-The JDBC driver and Spark cleaner JARs would be bundled by Databricks. No UC Volume upload, no `java_dependencies`, no `externalOptionsAllowList`, no manual driver class specification.
+The JDBC driver and Spark cleaner JARs would ship as part of the integration. No UC Volume upload, no `java_dependencies`, no `externalOptionsAllowList`, no manual driver class specification.
 
 ### Foreign Catalog Support
 
 Today, `CREATE FOREIGN CATALOG` is not supported with generic JDBC connections. Users must use `remote_query()` or the DataFrame API with explicit query strings.
 
-With `TYPE NEO4J`, Databricks could support:
+With `TYPE NEO4J`, the integration could support:
 
 ```sql
 CREATE FOREIGN CATALOG neo4j_catalog USING CONNECTION neo4j_connection
@@ -188,7 +188,7 @@ A first-class connector would implement schema inference by querying Neo4j's sch
 
 Today, the Neo4j JDBC driver's SQL-to-Cypher translation engine (ANTLR parser, Cypher AST, translation rules) loads more classes than typical JDBC drivers. The default SafeSpark sandbox metaspace is too small, causing the sandboxed JVM to crash. Users must add three Spark configuration properties to every cluster (see the SafeSpark section below for details).
 
-A first-class connector would set appropriate sandbox defaults for the Neo4j driver automatically, or use a dedicated sandbox configuration as other native connectors do.
+A first-class connector would include appropriate sandbox defaults for the Neo4j driver, similar to how other native connectors configure their sandbox environments.
 
 ### Broader Query Pattern Support
 
@@ -591,7 +591,7 @@ The following are specific areas where a native `TYPE NEO4J` connection type wou
 | No GROUP BY / ORDER BY / LIMIT through UC JDBC | Cannot do per-entity aggregation or sorting at the Neo4j source | Native connector skips Spark's subquery wrapping, enabling full SQL pattern support |
 | `customSchema` required on every DataFrame API query | Users must know exact column names and types before querying | Native schema inference from Neo4j's metadata (labels, property keys, types) |
 | Manual SafeSpark memory tuning required | Cluster config must include 3 Spark properties or connection crashes | Bundled driver with appropriate sandbox defaults |
-| Bring-your-own-driver JAR management | Users must download, upload, and version-manage 2 JARs in a UC Volume | Driver bundled by Databricks; no user-managed JARs |
+| Bring-your-own-driver JAR management | Users must download, upload, and version-manage 2 JARs in a UC Volume | Driver ships with the integration; no user-managed JARs |
 | No foreign catalog support | Cannot browse Neo4j schema in Catalog Explorer | `CREATE FOREIGN CATALOG` exposes labels as tables |
 | Materialized tables required for Genie | Neo4j data in Genie is point-in-time snapshots requiring manual refresh | Live foreign catalog tables eliminate materialization step |
 | Neo4j JDBC SQL translation covers basic patterns | Complex Cypher (variable-length paths, APOC procedures) won't translate from SQL | Native connector could support Cypher passthrough alongside SQL translation |
