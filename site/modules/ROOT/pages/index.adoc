@@ -24,7 +24,7 @@ A Genie space is configured with:
 * **Neo4j tables (materialized):** `neo4j_maintenance_events`, `neo4j_flights`, `neo4j_airports`, `neo4j_flight_airports`
 * **Instructions:** domain context, JOIN patterns, and example SQL that teach Genie how to navigate the sensor data model and cross-source joins
 
-The Genie space can then use natural language queries to query the data, combining Delta tables and Neo4j tables transparently. The full architecture and implementation details are in the https://github.com/neo4j-partners/neo4j-uc-integration/blob/main/FEDERATED_AGENTS.md[Federated Agents guide].
+The Genie space can then use natural language queries to query the data, combining Delta tables and Neo4j tables transparently. The full architecture and implementation details are in the https://github.com/neo4j-partners/neo4j-uc-integration/blob/main/federated_agents.md[Federated Agents guide].
 
 [source,text]
 ----
@@ -77,7 +77,7 @@ OPTIONS (
 
 Once this connection exists, you can query Neo4j directly from SQL using `remote_query()`, or from PySpark using the Spark DataFrame JDBC reader, all governed by Unity Catalog.
 
-NOTE: The Neo4j JDBC driver requires additional memory for class loading in the Databricks SafeSpark sandbox. Without the correct Spark configuration (`spark.databricks.safespark.jdbcSandbox.jvm.maxMetaspace.mib`, etc.), the sandbox JVM will crash with "Connection was closed before the operation completed." See the full setup details in the https://github.com/neo4j-field/neo4j-uc-integration/blob/main/GUIDE_NEO4J_UC.md[Neo4j UC JDBC Guide].
+NOTE: The Neo4j JDBC driver requires additional memory for class loading in the Databricks SafeSpark sandbox. Without the correct Spark configuration (`spark.databricks.safespark.jdbcSandbox.jvm.maxMetaspace.mib`, etc.), the sandbox JVM will crash with "Connection was closed before the operation completed." See the full setup details in the https://github.com/neo4j-field/neo4j-uc-integration/blob/main/neo4j_uc_jdbc_guide.md[Neo4j UC JDBC Guide].
 
 == The Demo: Aircraft Digital Twin
 
@@ -121,7 +121,7 @@ image::architecture-overview.png[Federated Lakehouse Architecture,700]
 
 == UC JDBC: Supported and Unsupported Query Patterns
 
-Spark wraps UC JDBC queries in a subquery for schema inference, which limits what SQL constructs the Neo4j driver can translate. The following patterns were validated against a live Neo4j Aura instance (see the full test results in the https://github.com/neo4j-field/neo4j-uc-integration/blob/main/GUIDE_NEO4J_UC.md[Neo4j UC JDBC Guide]).
+Spark wraps UC JDBC queries in a subquery for schema inference, which limits what SQL constructs the Neo4j driver can translate. The following patterns were validated against a live Neo4j Aura instance (see the full test results in the https://github.com/neo4j-field/neo4j-uc-integration/blob/main/neo4j_uc_jdbc_guide.md[Neo4j UC JDBC Guide]).
 
 === Supported Patterns
 
@@ -236,13 +236,13 @@ How the Neo4j JDBC connection to Unity Catalog was built, including the SafeSpar
 == Prerequisites
 
 1. Lakehouse tables in Unity Catalog: `aircraft`, `systems`, `sensors`, `sensor_readings`
-2. Neo4j UC JDBC connection configured (see https://github.com/neo4j-field/neo4j-uc-integration/blob/main/GUIDE_NEO4J_UC.md[setup guide])
+2. Neo4j UC JDBC connection configured (see https://github.com/neo4j-field/neo4j-uc-integration/blob/main/neo4j_uc_jdbc_guide.md[setup guide])
 3. Neo4j Spark Connector installed as cluster library (for queries 3-5)
 4. `neo4j-uc-creds` secret scope configured
 
 == References
 
-* https://github.com/neo4j-field/neo4j-uc-integration/blob/main/GUIDE_NEO4J_UC.md[Neo4j UC JDBC Setup Guide]
+* https://github.com/neo4j-field/neo4j-uc-integration/blob/main/neo4j_uc_jdbc_guide.md[Neo4j UC JDBC Setup Guide]
 * https://github.com/neo4j-field/databricks-neo4j-mcp-demo/tree/main/aircraft_digital_twin_data[Aircraft Digital Twin Dataset]
 * https://neo4j.com/docs/jdbc-manual/current/sql2cypher/[Neo4j JDBC SQL2Cypher]
 * https://docs.databricks.com/sql/language-manual/functions/remote_query[Databricks remote_query()]

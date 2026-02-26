@@ -289,7 +289,7 @@ See `neo4j_databricks_sql_translation.ipynb` for tested examples of each pattern
 - [`metadata_sync_external.ipynb`](uc-neo4j-test-suite/metadata_sync_external.ipynb) — Schema sync via External Metadata API
 
 ### Project Documentation
-- [GUIDE_NEO4J_UC.md](GUIDE_NEO4J_UC.md) — UC JDBC integration guide
+- [neo4j_uc_jdbc_guide.md](neo4j_uc_jdbc_guide.md) — UC JDBC integration guide
 
 ### Databricks
 - [Lakehouse Federation overview](https://docs.databricks.com/aws/en/query-federation/)

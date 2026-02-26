@@ -2,9 +2,15 @@
 
 **Documentation Site:** [https://neo4j-partners.github.io/neo4j-uc-integration](https://neo4j-partners.github.io/neo4j-uc-integration)
 
-This project is a working prototype and proposal for integrating Neo4j as a federated data source within Databricks Unity Catalog. It demonstrates the full stack: JDBC connectivity with automatic SQL-to-Cypher translation, federated queries joining Neo4j graph data with Delta lakehouse tables, metadata synchronization that maps Neo4j's graph schema into UC's three-level namespace, and natural language query support through Databricks Genie.
+This project shows how to query a Neo4j graph database directly from Databricks using Unity Catalog. You write SQL in Databricks and the Neo4j JDBC driver automatically translates it to Cypher — the graph query language Neo4j uses — so you don't need to learn Cypher to get data out of Neo4j.
+
+The connection works through Unity Catalog's JDBC support, which means your Neo4j access is governed by the same permissions, credentials, and audit controls as the rest of your lakehouse. Once connected, you can join Neo4j graph data (like flights, airports, and relationships between them) with your existing Delta tables in a single query.
+
+The project also demonstrates how to make Neo4j's schema (node labels, relationship types, properties) visible in Databricks Catalog Explorer through metadata synchronization, and how to make Neo4j data queryable in plain English through Databricks AI/BI Genie.
 
 All queries shown in this repo ran on a live Databricks cluster (Runtime 17.3 LTS) connected to Neo4j Aura. The output is real, not mocked.
+
+For a step-by-step setup and usage guide, see [neo4j_uc_jdbc_guide.md](./docs/neo4j_uc_jdbc_guide.md).
 
 ---
 
@@ -63,7 +69,7 @@ Two JARs are uploaded to a Unity Catalog Volume:
 | `neo4j-jdbc-full-bundle-6.10.3.jar` | JDBC driver with built-in SQL-to-Cypher translation engine |
 | `neo4j-jdbc-translator-sparkcleaner-6.10.3.jar` | Preprocesses Spark-generated SQL artifacts before translation |
 
-The spark cleaner handles a Spark-specific behavior: when Spark connects via JDBC, it wraps queries in a subquery for schema probing (`SELECT * FROM (<query>) SPARK_GEN_SUBQ_0 WHERE 1=0`). The cleaner detects this marker, extracts the inner query, and routes it correctly. See [CLEANER.md](./docs/CLEANER.md) for details.
+The spark cleaner handles a Spark-specific behavior: when Spark connects via JDBC, it wraps queries in a subquery for schema probing (`SELECT * FROM (<query>) SPARK_GEN_SUBQ_0 WHERE 1=0`). The cleaner detects this marker, extracts the inner query, and routes it correctly. See [neo4j_jdbc_cleaner.md](./docs/neo4j_jdbc_cleaner.md) for details.
 
 ### SafeSpark Configuration
 
@@ -134,46 +140,23 @@ The Neo4j JDBC driver automatically translates SQL to Cypher when `enableSQLTran
 - GROUP BY / HAVING
 - ORDER BY / LIMIT
 
-Spark wraps JDBC queries in subqueries for schema resolution. Neo4j's SQL translator cannot handle certain constructs inside subqueries. Aggregate queries work because their results don't require this wrapping. See [GUIDE_NEO4J_UC.md](./docs/GUIDE_NEO4J_UC.md) for workarounds.
+Spark wraps JDBC queries in subqueries for schema resolution. Neo4j's SQL translator cannot handle certain constructs inside subqueries. Aggregate queries work because their results don't require this wrapping. See [neo4j_uc_jdbc_guide.md](./docs/neo4j_uc_jdbc_guide.md) for workarounds.
 
 ---
 
 ## Metadata Synchronization
 
-The JDBC connection provides query connectivity but does not expose Neo4j's schema as browsable UC objects. Metadata synchronization completes the picture:
+Setting up a JDBC connection lets you query Neo4j from Databricks, but it doesn't make Neo4j's schema visible in Unity Catalog. Without metadata sync, there's no way to browse Neo4j's node labels and relationship types in Catalog Explorer, set table-level permissions, or track data lineage — the connection just shows up as a single opaque object.
 
-| Aspect | JDBC Connection (Current) | With Metadata Sync |
-|--------|--------------------------|-------------------|
-| What's registered in UC | A `CONNECTION` object only | Catalog + schemas + tables + columns |
-| Schema browsing in Catalog Explorer | No | Yes |
-| Access control granularity | Connection-level only | Table-level and column-level |
-| Lineage tracking | No | Yes |
-| Query model | `spark.read.format('jdbc')...` | `SELECT * FROM neo4j_catalog.nodes.aircraft` |
+Metadata synchronization solves this by mapping Neo4j's graph structure into Unity Catalog's three-level namespace. Node labels (like `Aircraft` or `Flight`) become tables in a `nodes` schema, relationship types (like `DEPARTS_FROM`) become tables in a `relationships` schema, and properties become columns with the appropriate data types. The result is that Neo4j data looks like any other set of tables in your catalog — you can browse it, grant access to specific tables, and see it in lineage views.
 
-### Graph-to-Relational Mapping
+This project prototypes two approaches:
 
-```
-Unity Catalog                  Neo4j
-─────────────                  ─────
-Catalog: neo4j_catalog    →   Neo4j database
-  Schema: nodes            →   Node labels namespace
-    Table: aircraft        →   :Aircraft label
-      Column: aircraft_id  →   aircraft_id property (STRING)
-      Column: manufacturer →   manufacturer property (STRING)
-  Schema: relationships    →   Relationship types namespace
-    Table: departs_from    →   :DEPARTS_FROM type
-      Column: source_id    →   Start node identifier
-      Column: target_id    →   End node identifier
-```
+- **Materialized Delta Tables** — Reads data from Neo4j using the Spark Connector and writes it as managed Delta tables. This gives you the full Unity Catalog experience: Catalog Explorer browsing, `INFORMATION_SCHEMA` queries, standard SQL access, and Delta features like time travel. The trade-off is that it copies the data, so you need scheduled jobs to keep it fresh.
 
-Two approaches are prototyped:
+- **External Metadata API** — Registers Neo4j's schema as metadata-only entries via Databricks REST API. No data is copied — it just makes Neo4j objects discoverable in the catalog for search and lineage purposes. The trade-off is that you can't query these entries directly with SQL.
 
-| Approach | How It Works | Trade-offs |
-|----------|-------------|------------|
-| **Materialized Delta Tables** | Reads Neo4j via Spark Connector, writes as managed Delta tables | Full UC integration (Catalog Explorer, INFORMATION_SCHEMA, SQL). Requires scheduled refresh. |
-| **External Metadata API** | Registers Neo4j schema as external metadata objects via REST API | No data copied — metadata-only for discoverability and lineage. No direct SQL query support. |
-
-See [METADATA.md](./docs/METADATA.md) for the full design and [METADATA_SYNC_REPORT.md](./METADATA_SYNC_REPORT.md) for prototype results.
+For the full design, type mappings, and implementation details, see [metadata_synchronization.md](./docs/metadata_synchronization.md). For prototype results from running the sync notebooks, see [METADATA_SYNC_REPORT.md](./METADATA_SYNC_REPORT.md).
 
 ---
 
@@ -183,7 +166,7 @@ Neo4j data materialized as Delta tables becomes queryable through Databricks AI/
 
 This supports several agent integration patterns: Genie as a standalone NL-to-SQL agent, multi-agent setups pairing Genie with a DBSQL MCP server, and Agent Bricks supervisors coordinating Genie with other agents (e.g., RAG over maintenance manuals).
 
-See [FEDERATED_AGENTS.md](./docs/FEDERATED_AGENTS.md) for the full architecture, Genie space setup instructions, example questions, and agent integration patterns.
+See [federated_agents.md](./docs/federated_agents.md) for the full architecture, Genie space setup instructions, example questions, and agent integration patterns.
 
 ---
 
@@ -195,10 +178,10 @@ neo4j-uc-integration/
 ├── METADATA_SYNC_REPORT.md            # Metadata sync prototype report
 ├── NEO4J_UC_INTEGRATION_REPORT.md     # Full integration proposal for Databricks
 ├── docs/
-│   ├── GUIDE_NEO4J_UC.md              # Detailed JDBC usage guide
-│   ├── METADATA.md                    # Metadata synchronization design
-│   ├── FEDERATED_AGENTS.md            # Federated agents + Genie integration
-│   └── CLEANER.md                     # Spark subquery cleaner explanation
+│   ├── neo4j_uc_jdbc_guide.md         # Detailed JDBC usage guide
+│   ├── metadata_synchronization.md    # Metadata synchronization design
+│   ├── federated_agents.md            # Federated agents + Genie integration
+│   └── neo4j_jdbc_cleaner.md          # Spark subquery cleaner explanation
 ├── uc-neo4j-test-suite/               # Databricks notebooks and test suite
 │   ├── neo4j_databricks_sql_translation.ipynb  # UC JDBC and SQL translation tests
 │   ├── metadata_sync_delta.ipynb               # Metadata sync via Delta tables

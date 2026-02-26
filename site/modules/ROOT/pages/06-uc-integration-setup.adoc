@@ -403,7 +403,7 @@ The federated queries in this guide use UC JDBC for aggregate counts and the Spa
 
 == References
 
-* https://github.com/neo4j-field/neo4j-uc-integration/blob/main/GUIDE_NEO4J_UC.md[Neo4j UC JDBC Setup Guide] - Full configuration reference
+* https://github.com/neo4j-field/neo4j-uc-integration/blob/main/neo4j_uc_jdbc_guide.md[Neo4j UC JDBC Setup Guide] - Full configuration reference
 * https://neo4j.com/docs/jdbc-manual/current/[Neo4j JDBC Driver Documentation]
 * https://neo4j.com/docs/jdbc-manual/current/sql2cypher/[Neo4j SQL2Cypher Translation Rules]
 * https://docs.databricks.com/query-federation/[Databricks Lakehouse Federation]

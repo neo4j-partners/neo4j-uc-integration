@@ -200,7 +200,7 @@ The consistent EGT readings suggest uniform engine performance across the fleet,
 
 == References
 
-* https://github.com/neo4j-partners/neo4j-uc-integration/blob/main/FEDERATED_AGENTS.md[Federated Agents Guide] -- full architecture, implementation checklist, and agent integration details
+* https://github.com/neo4j-partners/neo4j-uc-integration/blob/main/federated_agents.md[Federated Agents Guide] -- full architecture, implementation checklist, and agent integration details
 * https://docs.databricks.com/aws/en/genie/[Databricks AI/BI Genie]
 * https://docs.databricks.com/aws/en/genie/set-up[Set up a Genie space]
 * https://docs.databricks.com/aws/en/genie/conversation-api[Genie Conversation API]

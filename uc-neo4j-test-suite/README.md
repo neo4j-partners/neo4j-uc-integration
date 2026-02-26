@@ -66,7 +66,7 @@ CREATE VOLUME IF NOT EXISTS main.jdbc_drivers.jars;
 - [All full-bundle versions](https://repo.maven.apache.org/maven2/org/neo4j/neo4j-jdbc-full-bundle/)
 - [All sparkcleaner versions](https://repo.maven.apache.org/maven2/org/neo4j/neo4j-jdbc-translator-sparkcleaner/)
 
-See [CLEANER.md](../docs/CLEANER.md) for details on the SparkSubqueryCleaningTranslator.
+See [neo4j_jdbc_cleaner.md](../docs/neo4j_jdbc_cleaner.md) for details on the SparkSubqueryCleaningTranslator.
 
 ### 2. Databricks Secrets
 
@@ -219,7 +219,7 @@ Queries like `SELECT COUNT(*) FROM Label` are efficiently translated to `MATCH (
 
 ## Metadata Sync Notebooks
 
-Two notebooks prototype Unity Catalog metadata synchronization for Neo4j. See [METADATA.md](../docs/METADATA.md) for the full design.
+Two notebooks prototype Unity Catalog metadata synchronization for Neo4j. See [metadata_synchronization.md](../docs/metadata_synchronization.md) for the full design.
 
 | Notebook | Approach | What It Does |
 |----------|----------|-------------|
