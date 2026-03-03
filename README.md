@@ -86,7 +86,7 @@ spark.databricks.safespark.jdbcSandbox.size.default.mib 512
 ```sql
 CREATE CONNECTION neo4j_connection TYPE JDBC
 ENVIRONMENT (
-  java_dependencies '["path/to/neo4j-jdbc-full-bundle-6.10.3.jar", "path/to/neo4j-jdbc-translator-sparkcleaner-6.10.3.jar"]'
+  java_dependencies '["path/to/neo4j-jdbc-full-bundle-6.10.3.jar", "path/to/neo4j-jdbc-translator-sparkcleaner-6.10.3.jar"]'  -- must be UC Volume paths
 )
 OPTIONS (
   url 'jdbc:neo4j+s://your-host:7687/neo4j?enableSQLTranslation=true',

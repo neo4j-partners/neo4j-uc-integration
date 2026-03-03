@@ -151,7 +151,7 @@ The driver samples relationships to infer schema metadata. The default sample si
 
 **Store JDBC Driver in Unity Catalog Volumes**
 
-JDBC drivers must be stored in a UC Volume and referenced via `java_dependencies` in the connection definition. Users querying the connection need `READ` access to the volume location. This ensures consistent driver availability across all compute types.
+JDBC drivers **must** be stored in a UC Volume and referenced via `java_dependencies` in the connection definition. This is a Databricks limitation — `java_dependencies` only accepts UC Volume paths. Cluster-installed libraries (Maven coordinates or uploaded JARs) cannot be referenced in `CREATE CONNECTION TYPE JDBC`; they are a separate system used only for Direct JDBC and the Spark Connector. Users querying the connection need `READ` access to the volume location.
 
 **Configure externalOptionsAllowList Appropriately**
 

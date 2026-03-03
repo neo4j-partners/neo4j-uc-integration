@@ -110,6 +110,8 @@ A few things to note about this statement.
 
 The `ENVIRONMENT` block uses `java_dependencies` to load the two JARs from the UC Volume. This is how the SafeSpark sandbox gets the driver classes. Both JARs are required. The spark cleaner JAR preprocesses Spark-generated SQL before the main driver translates it to Cypher.
 
+NOTE: `java_dependencies` only accepts UC Volume paths. Cluster-installed libraries (e.g., Maven coordinates added via the cluster Libraries tab) cannot be referenced here — they are a separate system.
+
 The JDBC URL includes `enableSQLTranslation=true` as a query parameter. This activates the driver's built-in SQL-to-Cypher translator, which is what makes the whole federation approach work. Without it, the driver expects native Cypher and Spark's SQL queries would fail.
 
 The `externalOptionsAllowList` property is significant. By default, UC JDBC connections only allow connection-level options. Adding `customSchema` to the allow list lets individual queries specify their own schema, which turns out to be mandatory for Neo4j (explained in the next section).

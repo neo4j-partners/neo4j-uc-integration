@@ -44,6 +44,8 @@ Upload these JARs to a Unity Catalog Volume:
 
 **Note:** The version numbers in this guide reflect the versions available at the time of writing. If you are using a different version, adjust the JAR filenames and references accordingly.
 
+**Important:** The `java_dependencies` option in `CREATE CONNECTION TYPE JDBC` only supports Unity Catalog Volume paths (e.g., `/Volumes/catalog/schema/jars/`). Cluster-installed libraries (Maven coordinates, uploaded JARs) cannot be referenced here — they are a separate system. JARs must be uploaded to a UC Volume and referenced by their Volume path.
+
 Example path: `/Volumes/catalog/schema/jars/`
 
 ### 3. Cluster Libraries
@@ -56,7 +58,7 @@ For comprehensive testing, install these libraries on your cluster:
 | neo4j (Python) | 6.0.2 | Neo4j Python Driver |
 | neo4j-jdbc-full-bundle | 6.10.5 | JDBC driver (cluster library for Direct JDBC) |
 
-For UC JDBC only, the cluster libraries are optional—the JARs are loaded from the UC Volume.
+For UC JDBC connections, cluster libraries are **not used**. The `java_dependencies` option only accepts UC Volume paths — cluster-installed libraries (Maven coordinates or uploaded JARs) cannot be referenced in `CREATE CONNECTION`. The JDBC JARs must be stored in a UC Volume.
 
 ---
 
@@ -346,14 +348,14 @@ df = query_neo4j(
 
 ## Choosing the Right Integration Method
 
-| Use Case | Recommended Method |
-|----------|-------------------|
-| Aggregate analytics (COUNT, SUM, etc.) | UC JDBC Connection |
-| Graph traversal counts | UC JDBC with NATURAL JOIN |
-| Row-level data access | Neo4j Spark Connector |
-| Complex Cypher queries | Neo4j Spark Connector |
-| GROUP BY analytics | Direct JDBC or Spark Connector |
-| Ad-hoc exploration | Neo4j Python Driver |
+| Use Case | Recommended Method | JAR Source |
+|----------|-------------------|------------|
+| Aggregate analytics (COUNT, SUM, etc.) | UC JDBC Connection | UC Volume (`java_dependencies`) |
+| Graph traversal counts | UC JDBC with NATURAL JOIN | UC Volume (`java_dependencies`) |
+| Row-level data access | Neo4j Spark Connector | Cluster library (Maven coordinate) |
+| Complex Cypher queries | Neo4j Spark Connector | Cluster library (Maven coordinate) |
+| GROUP BY analytics | Direct JDBC or Spark Connector | Cluster library (Maven coordinate) |
+| Ad-hoc exploration | Neo4j Python Driver | pip package |
 
 ---
 
