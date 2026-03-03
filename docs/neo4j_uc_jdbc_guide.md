@@ -42,6 +42,8 @@ Upload these JARs to a Unity Catalog Volume:
 | [`neo4j-jdbc-full-bundle-6.x.x.jar`](https://mvnrepository.com/artifact/org.neo4j/neo4j-jdbc-full-bundle/6.10.5) | Main JDBC driver with SQL-to-Cypher translation |
 | [`neo4j-jdbc-translator-sparkcleaner-6.x.x.jar`](https://mvnrepository.com/artifact/org.neo4j/neo4j-jdbc-translator-sparkcleaner/6.10.5) | Cleans Spark-generated SQL artifacts |
 
+**Note:** The version numbers in this guide reflect the versions available at the time of writing. If you are using a different version, adjust the JAR filenames and references accordingly.
+
 Example path: `/Volumes/catalog/schema/jars/`
 
 ### 3. Cluster Libraries
@@ -52,7 +54,7 @@ For comprehensive testing, install these libraries on your cluster:
 |---------|---------|---------|
 | org.neo4j:neo4j-connector-apache-spark | 5.3.10 (Spark 3) | Neo4j Spark Connector |
 | neo4j (Python) | 6.0.2 | Neo4j Python Driver |
-| neo4j-jdbc-full-bundle | 6.10.3 | JDBC driver (cluster library for Direct JDBC) |
+| neo4j-jdbc-full-bundle | 6.10.5 | JDBC driver (cluster library for Direct JDBC) |
 
 For UC JDBC only, the cluster libraries are optional—the JARs are loaded from the UC Volume.
 
@@ -80,8 +82,8 @@ Without these settings, you'll see: `Connection was closed before the operation 
 CREATE CONNECTION neo4j_connection TYPE JDBC
 ENVIRONMENT (
   java_dependencies '[
-    "/Volumes/catalog/schema/jars/neo4j-jdbc-full-bundle-6.10.3.jar",
-    "/Volumes/catalog/schema/jars/neo4j-jdbc-translator-sparkcleaner-6.10.3.jar"
+    "/Volumes/catalog/schema/jars/neo4j-jdbc-full-bundle-6.10.5.jar",
+    "/Volumes/catalog/schema/jars/neo4j-jdbc-translator-sparkcleaner-6.10.5.jar"
   ]'
 )
 OPTIONS (
