@@ -39,8 +39,8 @@ Upload these JARs to a Unity Catalog Volume:
 
 | JAR | Purpose |
 |-----|---------|
-| `neo4j-jdbc-full-bundle-6.x.x.jar` | Main JDBC driver with SQL-to-Cypher translation |
-| `neo4j-jdbc-translator-sparkcleaner-6.x.x.jar` | Cleans Spark-generated SQL artifacts |
+| [`neo4j-jdbc-full-bundle-6.x.x.jar`](https://mvnrepository.com/artifact/org.neo4j/neo4j-jdbc-full-bundle/6.10.5) | Main JDBC driver with SQL-to-Cypher translation |
+| [`neo4j-jdbc-translator-sparkcleaner-6.x.x.jar`](https://mvnrepository.com/artifact/org.neo4j/neo4j-jdbc-translator-sparkcleaner/6.10.5) | Cleans Spark-generated SQL artifacts |
 
 Example path: `/Volumes/catalog/schema/jars/`
 
