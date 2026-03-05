@@ -145,8 +145,8 @@
     {
       "id": "left_panel",
       "type": "rectangle",
-      "x": 60,
-      "y": 120,
+      "x": 58.8125,
+      "y": 120.0078125,
       "width": 330,
       "height": 380,
       "angle": 0,
@@ -164,11 +164,11 @@
         "type": 3
       },
       "seed": 100005,
-      "version": 2,
-      "versionNonce": 100005,
+      "version": 4,
+      "versionNonce": 2031118312,
       "isDeleted": false,
       "boundElements": [],
-      "updated": 1700000000000,
+      "updated": 1772723749255,
       "link": null,
       "locked": false
     },

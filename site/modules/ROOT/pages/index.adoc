@@ -12,27 +12,6 @@ This is particularly powerful when different databases serve different strengths
 
 Databricks https://docs.databricks.com/query-federation/[Lakehouse Federation] makes this possible through Unity Catalog (UC). UC acts as a single governance layer that can reach into external databases via JDBC connections, letting you write SQL that spans your lakehouse tables and external sources like Neo4j.
 
-== How This Works with Genie
-
-The federated queries shown in this guide can also be driven by natural language through https://docs.databricks.com/aws/en/genie/[Databricks AI/BI Genie]. Instead of writing SQL by hand, a user asks a plain-English question and Genie generates the SQL automatically, federating across Neo4j graph data and Delta lakehouse tables, all governed by Unity Catalog.
-
-The key insight is that Neo4j data can be **materialized as managed Delta tables** by reading it through the UC JDBC connection and saving the results as regular tables. Once materialized, Genie sees all tables (Delta and Neo4j-sourced) as regular UC tables and generates SQL that JOINs across them transparently.
-
-A Genie space is configured with:
-
-* **Delta tables (direct):** `aircraft`, `systems`, `sensors`, `sensor_readings`
-* **Neo4j tables (materialized):** `neo4j_maintenance_events`, `neo4j_flights`, `neo4j_airports`, `neo4j_flight_airports`
-* **Instructions:** domain context, JOIN patterns, and example SQL that teach Genie how to navigate the sensor data model and cross-source joins
-
-The Genie space can then use natural language queries to query the data, combining Delta tables and Neo4j tables transparently. The full architecture and implementation details are in the https://github.com/neo4j-partners/neo4j-uc-integration/blob/main/federated_agents.md[Federated Agents guide].
-
-[source,text]
-----
-Natural Language → Genie (NL → SQL) → Spark SQL Engine
-    ├── Delta tables → direct read
-    └── Neo4j tables → materialized via JDBC dbtable + customSchema
-----
-
 == How It Works: Neo4j JDBC + Unity Catalog
 
 The key enabler is the https://neo4j.com/docs/jdbc-manual/current/[Neo4j JDBC driver] with its built-in https://neo4j.com/docs/jdbc-manual/current/sql2cypher/[SQL-to-Cypher translation]. When you send a SQL query through a UC JDBC connection, the Neo4j driver automatically translates it to Cypher so Databricks can treat Neo4j as just another SQL data source.
@@ -103,6 +82,27 @@ The federated queries in this guide join both sources to answer questions that n
 == Architecture
 
 image::architecture-overview.png[Federated Lakehouse Architecture,700]
+
+== How This Works with Genie
+
+The federated queries shown in this guide can also be driven by natural language through https://docs.databricks.com/aws/en/genie/[Databricks AI/BI Genie]. Instead of writing SQL by hand, a user asks a plain-English question and Genie generates the SQL automatically, federating across Neo4j graph data and Delta lakehouse tables, all governed by Unity Catalog.
+
+The key insight is that Neo4j data can be **materialized as managed Delta tables** by reading it through the UC JDBC connection and saving the results as regular tables. Once materialized, Genie sees all tables (Delta and Neo4j-sourced) as regular UC tables and generates SQL that JOINs across them transparently.
+
+A Genie space is configured with:
+
+* **Delta tables (direct):** `aircraft`, `systems`, `sensors`, `sensor_readings`
+* **Neo4j tables (materialized):** `neo4j_maintenance_events`, `neo4j_flights`, `neo4j_airports`, `neo4j_flight_airports`
+* **Instructions:** domain context, JOIN patterns, and example SQL that teach Genie how to navigate the sensor data model and cross-source joins
+
+The Genie space can then use natural language queries to query the data, combining Delta tables and Neo4j tables transparently. The full architecture and implementation details are in the https://github.com/neo4j-partners/neo4j-uc-integration/blob/main/federated_agents.md[Federated Agents guide].
+
+[source,text]
+----
+Natural Language → Genie (NL → SQL) → Spark SQL Engine
+    ├── Delta tables → direct read
+    └── Neo4j tables → materialized via JDBC dbtable + customSchema
+----
 
 == Federation Methods
 
