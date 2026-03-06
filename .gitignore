@@ -40,7 +40,7 @@ target/
 *.jks
 *.hprof
 dependency-reduced-pom.xml
-# Maven wrapper JAR must be committed 
+# Maven wrapper JAR must be committed
 !**/.mvn/wrapper/maven-wrapper.jar
 *.DS_Store
 *.swp

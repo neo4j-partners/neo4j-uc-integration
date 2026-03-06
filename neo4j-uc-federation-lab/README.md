@@ -43,9 +43,9 @@ Uses pure UC JDBC federation only — no Spark Connector or cluster libraries re
 
 ## Prerequisites
 
-### 1. Neo4j JDBC Driver JARs
+### 1. Neo4j Unity Catalog Connector JAR
 
-Upload **both** Neo4j JDBC JAR files to a Unity Catalog Volume:
+Upload the Neo4j Unity Catalog Connector JAR to a Unity Catalog Volume:
 
 ```sql
 -- Create a volume for JDBC drivers
@@ -53,20 +53,18 @@ CREATE SCHEMA IF NOT EXISTS main.jdbc_drivers;
 CREATE VOLUME IF NOT EXISTS main.jdbc_drivers.jars;
 ```
 
-**Required: Download both JARs from Maven Central**
+**Required: Build the connector JAR**
 
-1. **Full Bundle** (contains the driver class `org.neo4j.jdbc.Neo4jDriver`):
-   - [neo4j-jdbc-full-bundle-6.10.3.jar](https://repo.maven.apache.org/maven2/org/neo4j/neo4j-jdbc-full-bundle/6.10.3/neo4j-jdbc-full-bundle-6.10.3.jar)
-   - Upload to: `/Volumes/main/jdbc_drivers/jars/neo4j-jdbc-full-bundle-6.10.3.jar`
+The `neo4j-unity-catalog-connector-1.0.0-SNAPSHOT.jar` is a single shaded JAR that bundles the Neo4j JDBC driver, SQL-to-Cypher translator, and Spark subquery cleaner. Build it from the `neo4j-unity-catalog-connector/` directory:
 
-2. **Spark Cleaner** (handles Spark's subquery wrapping):
-   - [neo4j-jdbc-translator-sparkcleaner-6.10.3.jar](https://repo.maven.apache.org/maven2/org/neo4j/neo4j-jdbc-translator-sparkcleaner/6.10.3/neo4j-jdbc-translator-sparkcleaner-6.10.3.jar)
-   - Upload to: `/Volumes/main/jdbc_drivers/jars/neo4j-jdbc-translator-sparkcleaner-6.10.3.jar`
+```bash
+cd ../neo4j-unity-catalog-connector
+./mvnw package -DskipTests
+```
 
-- [All full-bundle versions](https://repo.maven.apache.org/maven2/org/neo4j/neo4j-jdbc-full-bundle/)
-- [All sparkcleaner versions](https://repo.maven.apache.org/maven2/org/neo4j/neo4j-jdbc-translator-sparkcleaner/)
-
-See [neo4j_jdbc_cleaner.md](../docs/neo4j_jdbc_cleaner.md) for details on the SparkSubqueryCleaningTranslator.
+Upload the resulting JAR to your UC Volume:
+- `target/neo4j-unity-catalog-connector-1.0.0-SNAPSHOT.jar`
+- Upload to: `/Volumes/main/jdbc_drivers/jars/neo4j-unity-catalog-connector-1.0.0-SNAPSHOT.jar`
 
 ### 2. Databricks Secrets
 
@@ -129,7 +127,7 @@ databricks secrets put-secret neo4j-uc-creds database
 
 **Use the Full Bundle JAR**
 
-The `neo4j-jdbc-full-bundle` artifact includes all required components: the core driver, SQL-to-Cypher translator, and Spark subquery cleaner. This eliminates classpath issues and ensures all translation features work out of the box.
+The `neo4j-unity-catalog-connector` JAR includes all required components: the core JDBC driver, SQL-to-Cypher translator, and Spark subquery cleaner in a single shaded JAR. This eliminates classpath issues and ensures all translation features work out of the box.
 
 **Enable SQL Translation via URL Parameter**
 
@@ -151,7 +149,7 @@ The driver samples relationships to infer schema metadata. The default sample si
 
 **Store JDBC Driver in Unity Catalog Volumes**
 
-JDBC drivers **must** be stored in a UC Volume and referenced via `java_dependencies` in the connection definition. This is a Databricks limitation — `java_dependencies` only accepts UC Volume paths. Cluster-installed libraries (Maven coordinates or uploaded JARs) cannot be referenced in `CREATE CONNECTION TYPE JDBC`; they are a separate system used only for Direct JDBC and the Spark Connector. Users querying the connection need `READ` access to the volume location.
+The JDBC driver JAR **must** be stored in a UC Volume and referenced via `java_dependencies` in the connection definition. This is a Databricks limitation — `java_dependencies` only accepts UC Volume paths. Cluster-installed libraries (Maven coordinates or uploaded JARs) cannot be referenced in `CREATE CONNECTION TYPE JDBC`; they are a separate system used only for Direct JDBC and the Spark Connector. Users querying the connection need `READ` access to the volume location.
 
 **Configure externalOptionsAllowList Appropriately**
 
@@ -371,5 +369,4 @@ RELATIONSHIPS_SCHEMA = "relationships" # Change this
 
 ### Driver Downloads
 
-- [Maven Central: neo4j-jdbc-full-bundle](https://repo1.maven.org/maven2/org/neo4j/neo4j-jdbc-full-bundle/) — Official releases
-- [Maven Central: neo4j-jdbc-translator-sparkcleaner](https://repo.maven.apache.org/maven2/org/neo4j/neo4j-jdbc-translator-sparkcleaner/) — Spark subquery cleaner
+- [Maven Central: neo4j-jdbc-full-bundle](https://repo1.maven.org/maven2/org/neo4j/neo4j-jdbc-full-bundle/) — Official releases (bundled in the connector JAR)
