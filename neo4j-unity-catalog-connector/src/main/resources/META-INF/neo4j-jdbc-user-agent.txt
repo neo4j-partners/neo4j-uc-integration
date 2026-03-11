@@ -1,1 +1,0 @@
-neo4j-unity-catalog-connector/${project.version}
