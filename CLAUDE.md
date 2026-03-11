@@ -6,19 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Neo4j + Databricks Unity Catalog Integration — a federated query system enabling SQL queries against Neo4j graph databases from Databricks via Unity Catalog's JDBC support. The core component is a shaded (fat) JAR connector that bundles the Neo4j JDBC driver with SQL-to-Cypher translators.
 
-## Build Commands
+## Connector JAR
 
-All commands run from `neo4j-unity-catalog-connector/`:
-
-```bash
-./mvnw clean verify          # Build + test + format check
-./mvnw package -DskipTests   # Build JAR without tests
-./mvnw test                  # Run tests only
-./mvnw spotless:check        # Check code formatting
-./mvnw spotless:apply        # Auto-fix formatting
-```
-
-Output JAR: `target/neo4j-unity-catalog-connector-1.0.0-SNAPSHOT.jar`
+The Neo4j Unity Catalog Connector JAR is built and released from a separate repo: [neo4j-unity-catalog-connector](https://github.com/neo4j-labs/neo4j-unity-catalog-connector). Download the latest release from [releases](https://github.com/neo4j-labs/neo4j-unity-catalog-connector/tags).
 
 ## Architecture
 

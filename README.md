@@ -60,16 +60,17 @@ All notebooks are in `uc-neo4j-test-suite/` and should be imported to your Datab
 
 ## How It Works
 
-### JDBC Driver JARs
+### JDBC Driver JAR
 
-Two JARs are uploaded to a Unity Catalog Volume:
+A single shaded JAR is uploaded to a Unity Catalog Volume:
 
 | JAR | Purpose |
 |-----|---------|
-| `neo4j-jdbc-full-bundle-6.10.3.jar` | JDBC driver with built-in SQL-to-Cypher translation engine |
-| `neo4j-jdbc-translator-sparkcleaner-6.10.3.jar` | Preprocesses Spark-generated SQL artifacts before translation |
+| `neo4j-unity-catalog-connector-<version>.jar` | Bundles the Neo4j JDBC driver, SQL-to-Cypher translator, and Spark subquery cleaner |
 
-The spark cleaner handles a Spark-specific behavior: when Spark connects via JDBC, it wraps queries in a subquery for schema probing (`SELECT * FROM (<query>) SPARK_GEN_SUBQ_0 WHERE 1=0`). The cleaner detects this marker, extracts the inner query, and routes it correctly. See [neo4j_jdbc_cleaner.md](./docs/neo4j_jdbc_cleaner.md) for details.
+Download the latest release from [neo4j-unity-catalog-connector releases](https://github.com/neo4j-labs/neo4j-unity-catalog-connector/tags). See the [neo4j-unity-catalog-connector](https://github.com/neo4j-labs/neo4j-unity-catalog-connector) repo for details on what the JAR contains and how it is built.
+
+The JAR includes a Spark subquery cleaner that handles a Spark-specific behavior: when Spark connects via JDBC, it wraps queries in a subquery for schema probing (`SELECT * FROM (<query>) SPARK_GEN_SUBQ_0 WHERE 1=0`). The cleaner detects this marker, extracts the inner query, and routes it correctly. See [neo4j_jdbc_cleaner.md](./docs/neo4j_jdbc_cleaner.md) for details.
 
 ### SafeSpark Configuration
 
@@ -86,7 +87,7 @@ spark.databricks.safespark.jdbcSandbox.size.default.mib 512
 ```sql
 CREATE CONNECTION neo4j_connection TYPE JDBC
 ENVIRONMENT (
-  java_dependencies '["path/to/neo4j-jdbc-full-bundle-6.10.3.jar", "path/to/neo4j-jdbc-translator-sparkcleaner-6.10.3.jar"]'  -- must be UC Volume paths
+  java_dependencies '["path/to/neo4j-unity-catalog-connector-<version>.jar"]'  -- must be a UC Volume path
 )
 OPTIONS (
   url 'jdbc:neo4j+s://your-host:7687/neo4j?enableSQLTranslation=true',

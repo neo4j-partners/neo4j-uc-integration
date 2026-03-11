@@ -33,16 +33,15 @@ Enable these preview features in your Databricks workspace:
 | Custom JDBC on UC Compute | Loading custom JDBC drivers in UC connections |
 | remote_query table-valued function | Using `remote_query()` SQL function |
 
-### 2. Neo4j JDBC Driver JARs
+### 2. Neo4j Unity Catalog Connector JAR
 
-Upload these JARs to a Unity Catalog Volume:
+Download the latest release from [neo4j-unity-catalog-connector releases](https://github.com/neo4j-labs/neo4j-unity-catalog-connector/tags) and upload it to a Unity Catalog Volume:
 
 | JAR | Purpose |
 |-----|---------|
-| [`neo4j-jdbc-full-bundle-6.x.x.jar`](https://mvnrepository.com/artifact/org.neo4j/neo4j-jdbc-full-bundle/6.10.5) | Main JDBC driver with SQL-to-Cypher translation |
-| [`neo4j-jdbc-translator-sparkcleaner-6.x.x.jar`](https://mvnrepository.com/artifact/org.neo4j/neo4j-jdbc-translator-sparkcleaner/6.10.5) | Cleans Spark-generated SQL artifacts |
+| `neo4j-unity-catalog-connector-<version>.jar` | Shaded JAR bundling the JDBC driver, SQL-to-Cypher translator, and Spark subquery cleaner |
 
-**Note:** The version numbers in this guide reflect the versions available at the time of writing. If you are using a different version, adjust the JAR filenames and references accordingly.
+See the [neo4j-unity-catalog-connector](https://github.com/neo4j-labs/neo4j-unity-catalog-connector) repo for details on what the JAR contains and how it is built.
 
 **Important:** The `java_dependencies` option in `CREATE CONNECTION TYPE JDBC` only supports Unity Catalog Volume paths (e.g., `/Volumes/catalog/schema/jars/`). Cluster-installed libraries (Maven coordinates, uploaded JARs) cannot be referenced here — they are a separate system. JARs must be uploaded to a UC Volume and referenced by their Volume path.
 
@@ -84,8 +83,7 @@ Without these settings, you'll see: `Connection was closed before the operation 
 CREATE CONNECTION neo4j_connection TYPE JDBC
 ENVIRONMENT (
   java_dependencies '[
-    "/Volumes/catalog/schema/jars/neo4j-jdbc-full-bundle-6.10.5.jar",
-    "/Volumes/catalog/schema/jars/neo4j-jdbc-translator-sparkcleaner-6.10.5.jar"
+    "/Volumes/catalog/schema/jars/neo4j-unity-catalog-connector-<version>.jar"
   ]'
 )
 OPTIONS (

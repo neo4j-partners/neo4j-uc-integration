@@ -53,18 +53,12 @@ CREATE SCHEMA IF NOT EXISTS main.jdbc_drivers;
 CREATE VOLUME IF NOT EXISTS main.jdbc_drivers.jars;
 ```
 
-**Required: Build the connector JAR**
+**Required: Download the connector JAR**
 
-The `neo4j-unity-catalog-connector-1.0.0-SNAPSHOT.jar` is a single shaded JAR that bundles the Neo4j JDBC driver, SQL-to-Cypher translator, and Spark subquery cleaner. Build it from the `neo4j-unity-catalog-connector/` directory:
+The Neo4j Unity Catalog Connector is a single shaded JAR that bundles the Neo4j JDBC driver, SQL-to-Cypher translator, and Spark subquery cleaner. Download the latest release from [neo4j-unity-catalog-connector releases](https://github.com/neo4j-labs/neo4j-unity-catalog-connector/tags). See the [neo4j-unity-catalog-connector](https://github.com/neo4j-labs/neo4j-unity-catalog-connector) repo for build details.
 
-```bash
-cd ../neo4j-unity-catalog-connector
-./mvnw package -DskipTests
-```
-
-Upload the resulting JAR to your UC Volume:
-- `target/neo4j-unity-catalog-connector-1.0.0-SNAPSHOT.jar`
-- Upload to: `/Volumes/main/jdbc_drivers/jars/neo4j-unity-catalog-connector-1.0.0-SNAPSHOT.jar`
+Upload the JAR to your UC Volume:
+- Upload to: `/Volumes/main/jdbc_drivers/jars/neo4j-unity-catalog-connector-<version>.jar`
 
 ### 2. Databricks Secrets
 
@@ -369,4 +363,4 @@ RELATIONSHIPS_SCHEMA = "relationships" # Change this
 
 ### Driver Downloads
 
-- [Maven Central: neo4j-jdbc-full-bundle](https://repo1.maven.org/maven2/org/neo4j/neo4j-jdbc-full-bundle/) — Official releases (bundled in the connector JAR)
+- [Neo4j Unity Catalog Connector releases](https://github.com/neo4j-labs/neo4j-unity-catalog-connector/tags) — Shaded JAR bundling the JDBC driver, SQL-to-Cypher translator, and Spark subquery cleaner
