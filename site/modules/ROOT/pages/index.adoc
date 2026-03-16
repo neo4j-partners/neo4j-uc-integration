@@ -111,8 +111,8 @@ Natural Language → Genie (NL → SQL) → Spark SQL Engine
 |Method |Pros |Cons
 
 |`remote_query()`
-|Pure SQL, no cluster library, UC governed
-|Aggregate-only (no GROUP BY, ORDER BY)
+|Pure SQL, no cluster library, UC governed, supports GROUP BY/HAVING/ORDER BY
+|Non-aggregate SELECT not supported
 
 |Spark Connector
 |Full Cypher support, row-level data
@@ -150,28 +150,67 @@ All of these passed through UC JDBC with `remote_query()` or the Spark DataFrame
 |`SELECT COUNT(*) AS cnt FROM Flight f NATURAL JOIN DEPARTS_FROM r NATURAL JOIN Airport a`
 |===
 
-=== Unsupported Patterns
+=== New SQL Functionality Supported
 
-These patterns fail because Spark's subquery wrapping conflicts with the Neo4j SQL translator:
+The SQL-to-Cypher translator now supports the following patterns that were previously unavailable:
+
+[cols="2,1"]
+|===
+|Pattern |Example
+
+|GROUP BY (implicit grouping)
+|`SELECT name, count(*) FROM People GROUP BY name`
+
+|GROUP BY (explicit WITH-clause)
+|`SELECT sum(age) FROM People GROUP BY name`
+
+|HAVING (simple and compound)
+|`SELECT name, count(*) AS cnt FROM People GROUP BY name HAVING cnt > 5`
+
+|HAVING with aggregate not in SELECT
+|`SELECT name FROM People GROUP BY name HAVING count(*) > 5`
+
+|ORDER BY on aggregate aliases
+|`SELECT name, count(*) AS cnt FROM People GROUP BY name ORDER BY cnt`
+
+|DISTINCT with GROUP BY/HAVING
+|`SELECT DISTINCT name FROM People GROUP BY name HAVING count(*) > 5`
+
+|LIMIT and OFFSET
+|`... GROUP BY name HAVING count(*) > 5 ORDER BY name LIMIT 10 OFFSET 5`
+
+|WHERE + GROUP BY combinations
+|`SELECT count(*) FROM People WHERE age > 18 GROUP BY name HAVING count(*) > 1`
+
+|JOIN + GROUP BY
+|`SELECT c.name, count(*) FROM Customers c JOIN Orders o ON c.id = o.customer_id GROUP BY c.name`
+
+|COUNT(DISTINCT) in HAVING
+|`SELECT name FROM People GROUP BY name HAVING count(DISTINCT age) > 3`
+
+|Additional aggregate functions
+|`percentileCont`, `percentileDisc`, `stDev`, `stDevP`
+
+|Full clause combinations
+|WHERE + GROUP BY + HAVING + DISTINCT + ORDER BY + LIMIT + OFFSET
+|===
+
+NOTE: The examples above cover GROUP BY, HAVING, ORDER BY, LIMIT/OFFSET, DISTINCT, and their combinations with WHERE and JOIN. *Coming soon:* non-aggregate SELECT (`SELECT col1, col2 FROM Label`) and relationship property aggregation (aggregating over properties stored on Neo4j relationships rather than node properties).
+
+=== Unsupported Patterns
 
 [cols="1,2"]
 |===
 |Pattern |Workaround
 
-|`GROUP BY`
-|Use the Neo4j Spark Connector to load row-level data, then aggregate in Spark SQL
-
-|`ORDER BY` / `LIMIT`
-|Apply sorting and limiting in Spark after the query returns
-
-|`HAVING`
-|Use the Spark Connector with Spark SQL filtering
-
 |Non-aggregate `SELECT col1, col2`
 |Use the Neo4j Spark Connector with a Cypher query
+
+|Relationship property aggregation
+|Use Cypher directly via the Neo4j Spark Connector
 |===
 
-The federated query examples in this guide use `remote_query()` for aggregate metrics and the Spark Connector for row-level data that requires GROUP BY, combining both methods where needed.
+The federated query examples in this guide use `remote_query()` for aggregate metrics (including GROUP BY and HAVING) and the Spark Connector for row-level data, combining both methods where needed.
 
 == Query Examples
 

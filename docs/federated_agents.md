@@ -63,7 +63,7 @@ Demonstrates querying both Delta lakehouse tables and Neo4j graph data in unifie
 
 | Method | Strengths | Limitations |
 |--------|-----------|-------------|
-| `remote_query()` | Pure SQL, no cluster library, UC governed | Aggregate-only (no GROUP BY on results) |
+| `remote_query()` | Pure SQL, no cluster library, UC governed, supports GROUP BY/HAVING/ORDER BY | Non-aggregate SELECT not supported |
 | Spark Connector | Full Cypher support, row-level data | Requires cluster library, no UC governance |
 
 ### 3. Agent-Ready Federated Views (`federated_views_agent_ready.ipynb`)
@@ -254,7 +254,7 @@ Use Agent Bricks to create a supervisor that coordinates a Genie sub-agent (for 
 | Neo4j data is materialized (snapshot), not live | Data may be stale if Neo4j is updated | Re-run `federated_views_agent_ready.ipynb` to refresh; consider scheduling as a job |
 | `remote_query()` with `query` option breaks | Spark wraps in subquery for schema inference | Use DataFrame API with `dbtable` + `customSchema` instead |
 | `remote_query()` with `dbtable` returns NullType | Live views return NULL data | Use `customSchema` (DataFrame API only) and materialize as Delta tables |
-| Neo4j JDBC SQL translation is limited | Complex Cypher patterns (variable-length paths, APOC) may not translate | Use the Neo4j Spark Connector for complex graph patterns |
+| Neo4j JDBC SQL translation covers aggregates, GROUP BY, HAVING, ORDER BY, LIMIT but not all patterns | Non-aggregate SELECT and relationship property aggregation are not yet supported | Use the Neo4j Spark Connector for unsupported patterns |
 | Genie: 30 table/view limit per space | Must choose which views to expose | Focus on the most common Neo4j query patterns |
 | Genie: 5 queries/min/workspace (preview) | Rate-limited for high-throughput use | Suitable for interactive analytics, not batch processing |
 | Genie: read-only generated queries | No write-back to either source | Agent is purely analytical |
@@ -272,6 +272,22 @@ The Neo4j JDBC driver translates SQL to Cypher using these patterns (relevant fo
 | `FROM A NATURAL JOIN REL NATURAL JOIN B` | `MATCH (a:A)-[:REL]->(b:B) RETURN ...` |
 | `WHERE severity = 'CRITICAL'` | `WHERE n.severity = 'CRITICAL'` |
 | `COUNT(*), SUM(), AVG()` | Cypher aggregation functions |
+| `GROUP BY name` | Implicit grouping in RETURN or explicit WITH clause |
+| `HAVING count(*) > 5` | WITH ... WHERE (post-aggregation filter) |
+| `ORDER BY cnt` | ORDER BY with alias resolution after WITH |
+
+**New SQL functionality supported:**
+- **GROUP BY** — implicit grouping (columns match SELECT) and explicit WITH-clause generation (columns differ from SELECT)
+- **HAVING** — simple conditions, compound conditions (AND/OR), mixed SELECT/HAVING aggregates, HAVING without GROUP BY, HAVING on non-aggregate GROUP BY columns
+- **ORDER BY on aggregate aliases** — correct alias resolution after WITH clauses
+- **DISTINCT with GROUP BY/HAVING** — correct `RETURN DISTINCT` placement
+- **LIMIT and OFFSET with WITH clauses** — correct attachment to the final RETURN
+- **WHERE + GROUP BY combinations** — WHERE filters before aggregation, HAVING filters after
+- **JOIN + GROUP BY** — aggregation across relationships
+- **COUNT(DISTINCT) in HAVING** — the DISTINCT flag is preserved through the entire pipeline
+- **Additional aggregate functions** — `percentileCont`, `percentileDisc`, `stDev`, `stDevP`
+
+> The translation examples above cover aggregates, WHERE, JOIN, GROUP BY, HAVING, ORDER BY, LIMIT/OFFSET, DISTINCT, and their combinations. **Coming soon:** non-aggregate SELECT and relationship property aggregation.
 
 Full reference: [Neo4j JDBC SQL2Cypher](https://neo4j.com/docs/jdbc-manual/current/sql2cypher/)
 

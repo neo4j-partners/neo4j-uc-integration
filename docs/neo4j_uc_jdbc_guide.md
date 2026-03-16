@@ -15,7 +15,7 @@ This integration was validated by working with Databricks engineering to resolve
 | Network Connectivity | **PASS** | TCP to Neo4j port 7687 |
 | Neo4j Python Driver | **PASS** | Bolt protocol works |
 | Neo4j Spark Connector | **PASS** | `org.neo4j.spark.DataSource` works |
-| Neo4j JDBC SQL-to-Cypher | **PASS** | Aggregates, JOINs, dbtable all work |
+| Neo4j JDBC SQL-to-Cypher | **PASS** | Aggregates, GROUP BY, HAVING, ORDER BY, JOINs, dbtable all work |
 | Direct JDBC (Non-UC) | **PASS** | Works with `customSchema` workaround |
 | **Unity Catalog JDBC** | **PASS** | Works with SafeSpark memory configuration |
 | **UC Schema Discovery** | **PASS** | Works with SafeSpark memory configuration |
@@ -143,11 +143,14 @@ The following results are from testing against a Neo4j Aura instance:
 | Aggregate with WHERE (AND) | **PASS** | 15 Boeing with model |
 | Aggregate with WHERE (IS NOT NULL) | **PASS** | 60 aircraft with icao24 |
 | JOIN with Aggregate (2-hop) | **PASS** | 11,200 relationships |
-| GROUP BY | **EXPECTED FAIL** | Subquery limitation |
+| GROUP BY | **PASS** | Implicit and explicit WITH-clause grouping |
+| ORDER BY | **PASS** | Including aggregate alias resolution |
+| HAVING | **PASS** | Simple, compound, and mixed aggregates |
+| LIMIT / OFFSET | **PASS** | Correct attachment to final RETURN |
+| DISTINCT + GROUP BY | **PASS** | Correct RETURN DISTINCT placement |
 | Non-aggregate SELECT | **EXPECTED FAIL** | Subquery limitation |
-| ORDER BY | **EXPECTED FAIL** | Subquery limitation |
 
-**Success Rate: 100%** (9/9 supported patterns passed, 3 expected failures documented)
+**Success Rate: 100%** (14/14 supported patterns passed, 1 expected failure documented)
 
 ---
 
@@ -222,33 +225,71 @@ This translates to Cypher: `MATCH (f:Flight)-[:DEPARTS_FROM]->(a:Airport) RETURN
 
 ---
 
+## New SQL Functionality Supported
+
+The SQL-to-Cypher translator now supports GROUP BY, HAVING, ORDER BY, LIMIT/OFFSET, DISTINCT, and their full combinations. These patterns previously failed through UC JDBC but are now fully translated to Cypher:
+
+- **GROUP BY** — implicit grouping (columns match SELECT) and explicit WITH-clause generation (columns differ from SELECT)
+- **HAVING** — simple conditions, compound conditions (AND/OR), mixed SELECT/HAVING aggregates, HAVING without GROUP BY (implicit single-group), HAVING on non-aggregate GROUP BY columns
+- **ORDER BY on aggregate aliases** — `ORDER BY cnt` where `cnt` aliases `count(*)`, with correct alias resolution after WITH clauses
+- **DISTINCT with GROUP BY/HAVING** — correct `RETURN DISTINCT` placement
+- **LIMIT and OFFSET with WITH clauses** — correct attachment to the final RETURN
+- **WHERE + GROUP BY combinations** — WHERE filters before aggregation, HAVING filters after
+- **JOIN + GROUP BY** — aggregation across relationships, with and without WITH clauses
+- **COUNT(DISTINCT) in HAVING** — the DISTINCT flag is preserved through the entire pipeline
+- **Compound HAVING with multiple aggregates** — each HAVING-only aggregate gets a hidden WITH column; aggregates already in SELECT are deduplicated
+- **Additional aggregate functions** — `percentileCont`, `percentileDisc`, `stDev` (stddev_samp), `stDevP` (stddev_pop)
+- **Full clause combinations** — all of the above working together: WHERE + GROUP BY + HAVING + DISTINCT + ORDER BY + LIMIT + OFFSET
+
+### GROUP BY Examples
+
+```sql
+-- Implicit grouping (GROUP BY columns match SELECT)
+SELECT name, count(*) FROM People p GROUP BY name
+-- Cypher: MATCH (p:People) RETURN p.name AS name, count(*)
+
+-- GROUP BY column not in SELECT (WITH clause generated)
+SELECT sum(age) FROM People p GROUP BY name
+-- Cypher: MATCH (p:People) WITH sum(p.age) AS __with_col_0, p.name AS __group_col_1 RETURN __with_col_0
+```
+
+### HAVING Examples
+
+```sql
+-- HAVING with alias
+SELECT name, count(*) AS cnt FROM People p GROUP BY name HAVING cnt > 5
+-- Cypher: MATCH (p:People) WITH p.name AS name, count(*) AS cnt WHERE cnt > 5 RETURN name, cnt
+
+-- HAVING with aggregate not in SELECT
+SELECT name FROM People p GROUP BY name HAVING count(*) > 5
+-- Cypher: MATCH (p:People) WITH p.name AS name, count(*) AS __having_col_0 WHERE __having_col_0 > 5 RETURN name
+```
+
+### Full Combination Example
+
+```sql
+SELECT DISTINCT department, count(*) AS cnt, max(age) AS max_age
+FROM People p WHERE age > 18
+GROUP BY department HAVING count(*) > 1 AND max(age) > 25
+ORDER BY cnt DESC LIMIT 10 OFFSET 2
+-- Cypher: MATCH (p:People) WHERE p.age > 18
+--         WITH p.department AS department, count(*) AS cnt, max(p.age) AS max_age
+--         WHERE (cnt > 1 AND max_age > 25)
+--         RETURN DISTINCT department, cnt, max_age ORDER BY cnt DESC SKIP 2 LIMIT 10
+```
+
+> **Coming soon:** non-aggregate SELECT (`SELECT col1, col2 FROM Label`) and relationship property aggregation (aggregating over properties stored on Neo4j relationships rather than node properties).
+
 ## Unsupported Query Patterns
 
-These patterns **do not work** through UC because Spark wraps queries in subqueries for schema resolution, and Neo4j's SQL translator cannot handle certain constructs inside subqueries.
+These patterns **do not work** through UC JDBC:
 
 | Pattern | Why It Fails |
 |---------|--------------|
 | `SELECT col1, col2 FROM Label` | Non-aggregate SELECT fails in subquery |
-| `GROUP BY` | GROUP BY inside subquery is invalid |
-| `HAVING` | HAVING inside subquery is invalid |
-| `ORDER BY` | ORDER BY inside subquery is invalid |
-| `LIMIT` | LIMIT inside subquery is invalid |
+| Relationship property aggregation | SQL has no syntax for referencing properties on join edges |
 
 ### Workarounds
-
-**For GROUP BY / HAVING:** Use Direct JDBC (bypassing UC) or the Neo4j Spark Connector.
-
-**For ORDER BY / LIMIT:** Apply sorting and limiting in Spark after the query:
-```python
-df = spark.read.format("jdbc") \
-    .option("databricks.connection", "neo4j_connection") \
-    .option("query", "SELECT COUNT(*) AS cnt FROM Flight") \
-    .option("customSchema", "cnt LONG") \
-    .load()
-
-# Apply sorting and limiting in Spark
-df.orderBy("cnt", ascending=False).limit(10).show()
-```
 
 **For non-aggregate queries:** Use the Neo4j Spark Connector:
 ```python
@@ -260,6 +301,8 @@ df = spark.read.format("org.neo4j.spark.DataSource") \
     .option("query", "MATCH (a:Aircraft) RETURN a.aircraft_id, a.manufacturer LIMIT 10") \
     .load()
 ```
+
+**For relationship property aggregation:** Use Cypher directly via the Neo4j Spark Connector. In the property graph model, relationships carry their own properties (e.g., `claimCount` on a `SHARES_CLAIMS_WITH` relationship), but SQL has no concept of a join edge carrying data.
 
 ---
 
@@ -273,6 +316,11 @@ The Neo4j JDBC driver automatically translates SQL to Cypher when `enableSQLTran
 | `SELECT * FROM Aircraft LIMIT 5` | `MATCH (n:Aircraft) RETURN n LIMIT 5` |
 | `FROM A NATURAL JOIN REL NATURAL JOIN B` | `MATCH (a:A)-[:REL]->(b:B)` |
 | `WHERE prop = 'value'` | `WHERE n.prop = 'value'` |
+| `SELECT name, count(*) FROM People GROUP BY name` | `MATCH (p:People) RETURN p.name AS name, count(*)` |
+| `... GROUP BY name HAVING count(*) > 5` | `... WITH p.name AS name, count(*) AS __having_col_0 WHERE __having_col_0 > 5 RETURN name` |
+| `... GROUP BY name ORDER BY count(*)` | `... WITH ... ORDER BY __with_col_0` |
+
+> The translation examples above cover aggregates, WHERE, JOIN, GROUP BY, HAVING, ORDER BY, LIMIT/OFFSET, DISTINCT, and their combinations. **Coming soon:** non-aggregate SELECT and relationship property aggregation.
 
 See [Neo4j JDBC SQL2Cypher docs](https://neo4j.com/docs/jdbc-manual/current/sql2cypher/) for complete translation rules.
 
@@ -297,9 +345,9 @@ df = spark.read.format("jdbc") \
     .load()
 ```
 
-### 2. Use Aggregates for UC JDBC
+### 2. Use Aggregates and GROUP BY for UC JDBC
 
-UC JDBC works best for aggregate queries (analytics, counts, summaries). For row-level data access, use the Neo4j Spark Connector.
+UC JDBC works well for aggregate queries (analytics, counts, summaries) including GROUP BY, HAVING, ORDER BY, and LIMIT. For row-level data access, use the Neo4j Spark Connector.
 
 ### 3. Use NATURAL JOIN for Relationships
 
@@ -349,10 +397,11 @@ df = query_neo4j(
 | Use Case | Recommended Method | JAR Source |
 |----------|-------------------|------------|
 | Aggregate analytics (COUNT, SUM, etc.) | UC JDBC Connection | UC Volume (`java_dependencies`) |
+| GROUP BY / HAVING analytics | UC JDBC Connection | UC Volume (`java_dependencies`) |
 | Graph traversal counts | UC JDBC with NATURAL JOIN | UC Volume (`java_dependencies`) |
 | Row-level data access | Neo4j Spark Connector | Cluster library (Maven coordinate) |
 | Complex Cypher queries | Neo4j Spark Connector | Cluster library (Maven coordinate) |
-| GROUP BY analytics | Direct JDBC or Spark Connector | Cluster library (Maven coordinate) |
+| Relationship property aggregation | Neo4j Spark Connector | Cluster library (Maven coordinate) |
 | Ad-hoc exploration | Neo4j Python Driver | pip package |
 
 ---
@@ -372,9 +421,9 @@ spark.databricks.safespark.jdbcSandbox.size.default.mib 512
 
 ### "syntax error or access rule violation - invalid syntax"
 
-**Cause:** Query pattern not supported through UC (GROUP BY, ORDER BY, LIMIT, or non-aggregate SELECT).
+**Cause:** Query pattern not supported through UC (non-aggregate SELECT or relationship property aggregation).
 
-**Fix:** Use Direct JDBC or Neo4j Spark Connector for unsupported patterns.
+**Fix:** Use Neo4j Spark Connector for unsupported patterns.
 
 ### "No column has been read prior to this call" / NullType errors
 

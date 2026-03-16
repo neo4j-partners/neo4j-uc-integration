@@ -58,8 +58,8 @@ git tag connector-1.0.0
 git push origin connector-1.0.0
 ```
 
-## SQL-to-Cypher Limitations via UC JDBC
+## SQL-to-Cypher Support via UC JDBC
 
-Supported: `SELECT COUNT(*)`, aggregates with `WHERE`, `COUNT DISTINCT`, `NATURAL JOIN` (graph traversals), subqueries with aggregates.
+Supported: `SELECT COUNT(*)`, aggregates with `WHERE`, `COUNT DISTINCT`, `NATURAL JOIN` (graph traversals), subqueries with aggregates, `GROUP BY` (implicit and explicit WITH-clause generation), `HAVING` (simple, compound, mixed aggregates, without GROUP BY), `ORDER BY` (including on aggregate aliases and after WITH clauses), `DISTINCT` with GROUP BY/HAVING, `LIMIT`/`OFFSET` with WITH clauses, `WHERE` + `GROUP BY` combinations, `JOIN` + `GROUP BY`, `COUNT(DISTINCT)` in HAVING, additional aggregate functions (`percentileCont`, `percentileDisc`, `stDev`, `stDevP`), full clause combinations.
 
-Not supported (use Spark Connector instead): non-aggregate `SELECT`, `GROUP BY`/`HAVING`, `ORDER BY`/`LIMIT`.
+Not supported (use Spark Connector instead): non-aggregate `SELECT`, relationship property aggregation.

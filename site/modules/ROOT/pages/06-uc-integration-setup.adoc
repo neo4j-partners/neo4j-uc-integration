@@ -214,7 +214,7 @@ This is pure SQL, which makes it useful for dashboards, SQL notebooks, and cases
 
 == What Works and What Doesn't
 
-Spark wraps JDBC queries in subqueries for schema resolution. The wrapping looks like `SELECT * FROM (your_query) SPARK_GEN_SUBQ_0 WHERE 1=0`. The spark cleaner JAR strips most of these artifacts, but certain SQL constructs break when nested inside a subquery on the Neo4j side.
+Spark wraps JDBC queries in subqueries for schema resolution. The wrapping looks like `SELECT * FROM (your_query) SPARK_GEN_SUBQ_0 WHERE 1=0`. The spark cleaner JAR strips most of these artifacts, but certain SQL constructs still do not translate.
 
 === Supported Patterns
 
@@ -261,35 +261,83 @@ These SQL patterns have been validated through UC JDBC with 100% pass rate:
 |`FROM Flight NATURAL JOIN DEPARTS_FROM NATURAL JOIN Airport`
 |===
 
-=== Unsupported Patterns
+=== New SQL Functionality Supported
 
-These patterns fail because the SQL constructs are invalid inside the subquery wrapper that Spark generates:
+The SQL-to-Cypher translator now supports GROUP BY, HAVING, ORDER BY, LIMIT/OFFSET, DISTINCT, and their full combinations:
+
+[cols="2,1,2"]
+|===
+|Pattern |Status |Example
+
+|GROUP BY (implicit grouping)
+|PASS
+|`SELECT name, count(*) FROM People GROUP BY name`
+
+|GROUP BY (explicit WITH-clause)
+|PASS
+|`SELECT sum(age) FROM People GROUP BY name`
+
+|HAVING (simple and compound)
+|PASS
+|`SELECT name, count(*) AS cnt FROM People GROUP BY name HAVING cnt > 5`
+
+|HAVING with aggregate not in SELECT
+|PASS
+|`SELECT name FROM People GROUP BY name HAVING count(*) > 5`
+
+|ORDER BY on aggregate aliases
+|PASS
+|`SELECT name, count(*) AS cnt FROM People GROUP BY name ORDER BY cnt`
+
+|DISTINCT with GROUP BY/HAVING
+|PASS
+|`SELECT DISTINCT name FROM People GROUP BY name HAVING count(*) > 5`
+
+|LIMIT and OFFSET
+|PASS
+|`... GROUP BY name ORDER BY name LIMIT 10 OFFSET 5`
+
+|WHERE + GROUP BY combinations
+|PASS
+|`SELECT count(*) FROM People WHERE age > 18 GROUP BY name`
+
+|JOIN + GROUP BY
+|PASS
+|`SELECT c.name, count(*) FROM Customers c JOIN Orders o ON c.id = o.customer_id GROUP BY c.name`
+
+|COUNT(DISTINCT) in HAVING
+|PASS
+|`SELECT name FROM People GROUP BY name HAVING count(DISTINCT age) > 3`
+
+|Additional aggregate functions
+|PASS
+|`percentileCont`, `percentileDisc`, `stDev`, `stDevP`
+
+|Full clause combinations
+|PASS
+|WHERE + GROUP BY + HAVING + DISTINCT + ORDER BY + LIMIT + OFFSET
+|===
+
+NOTE: The examples above cover GROUP BY, HAVING, ORDER BY, LIMIT/OFFSET, DISTINCT, and their combinations with WHERE and JOIN. *Coming soon:* non-aggregate SELECT (`SELECT col1, col2 FROM Label`) and relationship property aggregation (aggregating over properties stored on Neo4j relationships rather than node properties).
+
+=== Unsupported Patterns
 
 [cols="1,2"]
 |===
-|Pattern |Failure Reason
-
-|`GROUP BY`
-|GROUP BY inside a subquery is invalid in the Neo4j SQL translator
-
-|`ORDER BY`
-|ORDER BY inside a subquery is invalid
-
-|`LIMIT`
-|LIMIT inside a subquery is invalid
-
-|`HAVING`
-|HAVING inside a subquery is invalid
+|Pattern |Workaround
 
 |Non-aggregate `SELECT`
-|`SELECT col1, col2 FROM Label` fails in the subquery context
+|Use the Neo4j Spark Connector with a Cypher query
+
+|Relationship property aggregation
+|Use Cypher directly via the Neo4j Spark Connector
 |===
 
-The practical implication: UC JDBC works well for aggregate analytics (counts, sums, averages, min/max) with optional WHERE filters and JOINs. For row-level data access, GROUP BY queries, or anything requiring ORDER BY, use the Neo4j Spark Connector instead. The federated queries in this guide use both methods, choosing whichever fits the query pattern.
+The practical implication: UC JDBC now works well for aggregate analytics with GROUP BY, HAVING, ORDER BY, LIMIT, and DISTINCT, in addition to simple aggregates with WHERE filters and JOINs. For row-level data access or relationship property aggregation, use the Neo4j Spark Connector instead.
 
 === Workarounds for Unsupported Patterns
 
-For GROUP BY or row-level access, the Neo4j Spark Connector bypasses UC entirely and speaks Cypher natively:
+For non-aggregate queries or relationship property aggregation, the Neo4j Spark Connector bypasses UC entirely and speaks Cypher natively:
 
 [source,python]
 ----
@@ -300,19 +348,6 @@ df = spark.read.format("org.neo4j.spark.DataSource") \
     .option("authentication.basic.password", password) \
     .option("query", "MATCH (a:Aircraft) RETURN a.aircraft_id, a.manufacturer LIMIT 10") \
     .load()
-----
-
-For ORDER BY and LIMIT, run the aggregate through UC JDBC and apply sorting in Spark after:
-
-[source,python]
-----
-df = spark.read.format("jdbc") \
-    .option("databricks.connection", "neo4j_connection") \
-    .option("query", "SELECT COUNT(*) AS cnt FROM Flight") \
-    .option("customSchema", "cnt LONG") \
-    .load()
-
-df.orderBy("cnt", ascending=False).limit(10).show()
 ----
 
 == Validated Test Results
@@ -360,19 +395,31 @@ The full test suite (`full_uc_tests.py`) runs 12 tests against a live Neo4j Aura
 |11,200 relationships
 
 |GROUP BY
-|EXPECTED FAIL
-|Subquery limitation
+|PASS
+|Implicit and explicit WITH-clause grouping
+
+|ORDER BY
+|PASS
+|Including aggregate alias resolution
+
+|HAVING
+|PASS
+|Simple, compound, and mixed aggregates
+
+|LIMIT / OFFSET
+|PASS
+|Correct attachment to final RETURN
+
+|DISTINCT + GROUP BY
+|PASS
+|Correct RETURN DISTINCT placement
 
 |Non-aggregate SELECT
 |EXPECTED FAIL
 |Subquery limitation
-
-|ORDER BY
-|EXPECTED FAIL
-|Subquery limitation
 |===
 
-9 of 9 supported patterns passed. 3 expected failures confirmed. Total execution time across all tests was approximately 194 seconds, with most of the time spent on connection initialization rather than query execution.
+14 of 14 supported patterns passed. 1 expected failure confirmed. Total execution time across all tests was approximately 194 seconds, with most of the time spent on connection initialization rather than query execution.
 
 == Choosing the Right Method
 
@@ -385,6 +432,9 @@ Both federation methods have a place. The right choice depends on the query patt
 |Aggregate analytics (COUNT, SUM, AVG, MIN, MAX)
 |UC JDBC via `remote_query()` or DataFrame API
 
+|GROUP BY / HAVING analytics
+|UC JDBC via `remote_query()` or DataFrame API
+
 |Graph traversal counts (flights per airport, maintenance per system)
 |UC JDBC with NATURAL JOIN
 
@@ -394,14 +444,14 @@ Both federation methods have a place. The right choice depends on the query patt
 |Complex Cypher (variable-length paths, graph algorithms)
 |Neo4j Spark Connector
 
-|GROUP BY analytics
+|Relationship property aggregation
 |Neo4j Spark Connector
 
 |Ad-hoc graph exploration
 |Neo4j Python Driver
 |===
 
-The federated queries in this guide use UC JDBC for aggregate counts and the Spark Connector for row-level data, combining both in a single analysis when needed. Query 5 (Fleet Health Dashboard) demonstrates this hybrid approach.
+The federated queries in this guide use UC JDBC for aggregate counts (including GROUP BY, HAVING, ORDER BY) and the Spark Connector for row-level data, combining both in a single analysis when needed. Query 5 (Fleet Health Dashboard) demonstrates this hybrid approach.
 
 == References
 
