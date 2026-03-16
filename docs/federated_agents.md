@@ -287,6 +287,8 @@ The Neo4j JDBC driver translates SQL to Cypher using these patterns (relevant fo
 - **COUNT(DISTINCT) in HAVING** — the DISTINCT flag is preserved through the entire pipeline
 - **Additional aggregate functions** — `percentileCont`, `percentileDisc`, `stDev`, `stDevP`
 
+> **Note:** All aggregation support applies to node properties only; aggregating over relationship properties remains Cypher-only.
+
 > The translation examples above cover aggregates, WHERE, JOIN, GROUP BY, HAVING, ORDER BY, LIMIT/OFFSET, DISTINCT, and their combinations. **Coming soon:** non-aggregate SELECT and relationship property aggregation.
 
 Full reference: [Neo4j JDBC SQL2Cypher](https://neo4j.com/docs/jdbc-manual/current/sql2cypher/)

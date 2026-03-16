@@ -162,6 +162,8 @@ The Neo4j JDBC driver automatically translates SQL to Cypher when `enableSQLTran
 - **COUNT(DISTINCT) in HAVING** — the DISTINCT flag is preserved through the entire pipeline
 - **Additional aggregate functions** — `percentileCont`, `percentileDisc`, `stDev`, `stDevP`
 
+> **Note:** All aggregation support applies to node properties only; aggregating over relationship properties remains Cypher-only.
+
 > The examples above cover GROUP BY, HAVING, ORDER BY, LIMIT/OFFSET, DISTINCT, and their combinations with WHERE and JOIN. **Coming soon:** non-aggregate SELECT (`SELECT col1, col2 FROM Label`) and relationship property aggregation (aggregating over properties stored on Neo4j relationships rather than node properties).
 
 **Not supported through UC JDBC** (use Neo4j Spark Connector instead):

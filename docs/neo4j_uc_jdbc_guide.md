@@ -241,6 +241,8 @@ The SQL-to-Cypher translator now supports GROUP BY, HAVING, ORDER BY, LIMIT/OFFS
 - **Additional aggregate functions** — `percentileCont`, `percentileDisc`, `stDev` (stddev_samp), `stDevP` (stddev_pop)
 - **Full clause combinations** — all of the above working together: WHERE + GROUP BY + HAVING + DISTINCT + ORDER BY + LIMIT + OFFSET
 
+> **Note:** All aggregation support applies to node properties only; aggregating over relationship properties remains Cypher-only.
+
 ### GROUP BY Examples
 
 ```sql

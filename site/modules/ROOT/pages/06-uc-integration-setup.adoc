@@ -318,6 +318,8 @@ The SQL-to-Cypher translator now supports GROUP BY, HAVING, ORDER BY, LIMIT/OFFS
 |WHERE + GROUP BY + HAVING + DISTINCT + ORDER BY + LIMIT + OFFSET
 |===
 
+NOTE: All aggregation support applies to node properties only; aggregating over relationship properties remains Cypher-only.
+
 NOTE: The examples above cover GROUP BY, HAVING, ORDER BY, LIMIT/OFFSET, DISTINCT, and their combinations with WHERE and JOIN. *Coming soon:* non-aggregate SELECT (`SELECT col1, col2 FROM Label`) and relationship property aggregation (aggregating over properties stored on Neo4j relationships rather than node properties).
 
 === Unsupported Patterns
