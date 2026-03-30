@@ -4,6 +4,9 @@ databricks.yml
 # Python
 __pycache__/
 *.py[cod]
+*$py.class
+*.so
+.Python
 *.pyo
 *.pyd
 *.pyc
@@ -13,8 +16,18 @@ __pycache__/
 *.egg-info/
 dist/
 build/
+develop-eggs/
+downloads/
+eggs/
 .eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
 *.egg
+.installed.cfg
 *.log
 *.pot
 *.mo
@@ -22,11 +35,13 @@ build/
 *.db
 *.env
 .env*
+!.env.sample
 .venv/
 venv/
 ENV/
 Pipfile.lock
 poetry.lock
+uv.lock
 pip-wheel-metadata/
 
 # Java
@@ -89,6 +104,17 @@ out/
 .vscode/
 .history/
 
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# Linting / Type checking
+.mypy_cache/
+.ruff_cache/
+
 # Windows
 Thumbs.db
 Desktop.ini
@@ -109,6 +135,11 @@ coverage/
 *.out
 *.log
 *.ctxt
+*~
+
+# Proposals / working docs
+neo4j-uc-federation-lab/OAUTH_UC.md
+neo4j-uc-federation-lab/OAUTH_UC_HACK.md
 
 # Secrets and credentials
 **/credentials.json
