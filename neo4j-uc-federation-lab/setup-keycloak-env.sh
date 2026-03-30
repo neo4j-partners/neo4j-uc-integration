@@ -8,7 +8,7 @@ usage() {
     echo ""
     echo "Arguments:"
     echo "  deployment.json   Path to keycloak-infra/.deployment.json from the azure-ee-template"
-    echo "  neo4j-host        Neo4j host (without protocol prefix)"
+    echo "  neo4j-host        Neo4j hostname (protocol prefix and port are stripped automatically)"
     echo "                    e.g. neo4j-vm.eastus.cloudapp.azure.com"
     echo ""
     echo "Example:"
@@ -21,7 +21,9 @@ if [ $# -lt 2 ]; then
 fi
 
 DEPLOYMENT_JSON="$1"
-NEO4J_HOST="$2"
+# Strip protocol prefix and port suffix if provided (e.g. bolt://host:7687 -> host)
+NEO4J_HOST="${2#*://}"
+NEO4J_HOST="${NEO4J_HOST%%:*}"
 
 if [ ! -f "$DEPLOYMENT_JSON" ]; then
     echo "Error: $DEPLOYMENT_JSON not found"
@@ -56,7 +58,7 @@ cat > "$ENV_FILE" << EOF
 # Generated from: $DEPLOYMENT_JSON
 # Used by setup-oauth.sh to create Databricks secrets
 
-# Neo4j host (without protocol prefix)
+# Neo4j hostname only (no protocol, no port — port 7687 is added by notebooks)
 NEO4J_HOST=$NEO4J_HOST
 
 # Optional: database name (defaults to "neo4j")
