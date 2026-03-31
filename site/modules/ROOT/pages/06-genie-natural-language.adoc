@@ -74,7 +74,63 @@ Genie sees all 8 as regular UC tables. It generates SQL that JOINs across them -
 
 === Genie Instructions
 
-Genie spaces support instructions (example SQL, plain text) that teach the LLM the domain and JOIN patterns. The instructions for this space cover:
+Genie spaces support instructions (example SQL, plain text) that teach the LLM the domain and JOIN patterns. Add the following to the Genie space instructions:
+
+[source,text]
+----
+This space combines aircraft sensor telemetry (Delta lakehouse) with maintenance
+events and flight operations (Neo4j knowledge graph) via Unity Catalog federation.
+
+## Sensor Data Model (IMPORTANT)
+
+Sensor data is stored across 4 Delta tables in a normalized model:
+- `aircraft` — fleet registry. Primary key: `:ID(Aircraft)` (e.g. "AC1001").
+- `systems` — aircraft systems. Columns: `:ID(System)`, `aircraft_id`, `type` (Engine, APU, Hydraulic, etc.).
+- `sensors` — individual sensors. Columns: `:ID(Sensor)`, `system_id`, `type` (EGT, Vibration, FuelFlow, N1Speed).
+- `sensor_readings` — time-series values. Columns: `sensor_id`, `timestamp`, `value` (numeric).
+
+There is NO direct "EGT" or "temperature" column. Sensor type is in `sensors.type`,
+and the reading value is in `sensor_readings.value`. To get EGT readings you MUST
+join through the chain: aircraft → systems → sensors → sensor_readings.
+
+JOIN pattern for sensor data:
+  aircraft.`:ID(Aircraft)` = systems.aircraft_id
+  systems.`:ID(System)` = sensors.system_id
+  sensors.`:ID(Sensor)` = sensor_readings.sensor_id
+
+Filter by sensor type: WHERE sensors.type = 'EGT' (or 'Vibration', 'FuelFlow', 'N1Speed')
+Filter by system type: WHERE systems.type = 'Engine' (or 'APU', 'Hydraulic', etc.)
+
+Example — average EGT per aircraft:
+  SELECT sys.aircraft_id, ROUND(AVG(r.value), 1) AS avg_egt
+  FROM sensor_readings r
+  JOIN sensors sen ON r.sensor_id = sen.`:ID(Sensor)`
+  JOIN systems sys ON sen.system_id = sys.`:ID(System)`
+  WHERE sen.type = 'EGT'
+  GROUP BY sys.aircraft_id
+
+Sensor types and units:
+- EGT: Exhaust Gas Temperature in Celsius
+- Vibration: vibration level in IPS (inches per second)
+- FuelFlow: fuel flow rate in kg/s
+- N1Speed: fan speed in RPM
+
+## Neo4j Tables (Materialized)
+
+Neo4j tables contain graph-sourced data materialized as Delta tables:
+- `neo4j_maintenance_events` — columns: aircraft_id, fault, severity (CRITICAL, MAJOR, MINOR), corrective_action, reported_at
+- `neo4j_flights` — columns: aircraft_id, flight_number, operator, origin, destination, scheduled_departure, scheduled_arrival
+- `neo4j_airports` — columns: iata, airport_name, city, country, icao, lat, lon
+- `neo4j_flight_airports` — columns: flight_number, aircraft_id, airport_code, airport_name
+
+## Cross-Source JOINs
+
+Join `aircraft_id` across both sources to correlate sensor health with maintenance
+and flight activity. The aircraft table's `:ID(Aircraft)` matches `aircraft_id` in
+the Neo4j tables and `systems.aircraft_id` in the sensor chain.
+----
+
+The instructions cover:
 
 * **Sensor data model:** Sensor data is stored across 4 normalized Delta tables. There is no direct "EGT" or "temperature" column -- to get sensor readings you must join through the chain: `aircraft` -> `systems` -> `sensors` -> `sensor_readings`, filtering by `sensors.type`.
 * **Neo4j table descriptions:** Column names, key fields, and what each materialized table contains.
