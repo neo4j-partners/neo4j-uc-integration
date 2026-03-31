@@ -44,7 +44,7 @@ set +a
 # Validate required variables
 missing=()
 [[ -z "$NEO4J_HOST" ]] && missing+=("NEO4J_HOST")
-[[ -z "$NEO4J_USER" ]] && missing+=("NEO4J_USER")
+[[ -z "$NEO4J_USERNAME" ]] && missing+=("NEO4J_USERNAME")
 [[ -z "$NEO4J_PASSWORD" ]] && missing+=("NEO4J_PASSWORD")
 [[ -z "$UC_CONNECTION_NAME" ]] && missing+=("UC_CONNECTION_NAME")
 [[ -z "$JDBC_JAR_PATH" ]] && missing+=("JDBC_JAR_PATH")
@@ -72,7 +72,7 @@ set_secret() {
 
 # Set secrets
 set_secret "host" "$NEO4J_HOST"
-set_secret "user" "$NEO4J_USER"
+set_secret "user" "$NEO4J_USERNAME"
 set_secret "password" "$NEO4J_PASSWORD"
 set_secret "connection_name" "$UC_CONNECTION_NAME"
 set_secret "jdbc_jar_path" "$JDBC_JAR_PATH"
