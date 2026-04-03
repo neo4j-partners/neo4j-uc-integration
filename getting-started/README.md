@@ -77,16 +77,56 @@ Reads graph data from Neo4j and writes it as managed Delta tables in Unity Catal
 
 Node labels (Company, Product, RiskFactor) are materialized via the JDBC `dbtable` option with `customSchema` to handle Neo4j's NullType inference behavior. Relationship data (OFFERS, COMPETES_WITH, HAS_RISK) is read through the Python driver, converted to Spark DataFrames, and written as Delta mapping tables. Four federated queries then join the materialized Neo4j tables with the original Delta tables using pure SQL, producing the kind of results a Genie agent could answer from natural language.
 
-## Prerequisites
+## Setup
 
-1. A Neo4j Aura instance with Bolt connectivity on port 7687
-2. A Databricks workspace with Unity Catalog enabled
-3. The [Neo4j Unity Catalog Connector JAR](https://github.com/neo4j-labs/neo4j-unity-catalog-connector/tags) uploaded to a UC Volume and installed as a cluster library
-4. The `neo4j` Python package installed on the cluster
-5. SafeSpark metaspace tuning applied to the cluster:
-   ```
-   spark.databricks.safespark.jdbcSandbox.jvm.maxMetaspace.mib 128
-   ```
+### Prerequisites
+
+#### 1. Databricks Preview Features
+
+Enable these preview features in your Databricks workspace:
+
+| Feature | Required For |
+|---------|--------------|
+| Custom JDBC on UC Compute | Loading custom JDBC drivers in UC connections |
+| remote_query table-valued function | Using `remote_query()` SQL function |
+
+#### 2. Neo4j Unity Catalog Connector JAR
+
+Download the latest release from [neo4j-unity-catalog-connector releases](https://github.com/neo4j-labs/neo4j-unity-catalog-connector/tags) and upload it to a Unity Catalog Volume.
+
+The JAR is a shaded bundle containing the JDBC driver, SQL-to-Cypher translator, and Spark subquery cleaner. See the [neo4j-unity-catalog-connector](https://github.com/neo4j-labs/neo4j-unity-catalog-connector) repo for details on what it contains and how it is built.
+
+The `java_dependencies` option in `CREATE CONNECTION TYPE JDBC` only accepts Unity Catalog Volume paths (e.g., `/Volumes/catalog/schema/jars/neo4j-unity-catalog-connector.jar`). Cluster-installed libraries (Maven coordinates, uploaded JARs) cannot be referenced here. The JAR must be in a UC Volume.
+
+#### 3. Neo4j Aura Instance
+
+A Neo4j Aura instance with Bolt connectivity on port 7687. The notebooks use the `neo4j+s://` URI scheme (Bolt over TLS), which is the default for Aura.
+
+#### 4. Cluster Libraries
+
+Install the Neo4j Python driver on your cluster:
+
+| Library | Version | Purpose |
+|---------|---------|---------|
+| neo4j (Python) | 6.0+ | Neo4j Python Driver for direct Cypher queries |
+
+For UC JDBC connections, cluster libraries are not used for the Java side. The `java_dependencies` option in `CREATE CONNECTION` references the JAR in a UC Volume. The Python driver is only needed for notebooks that write data to Neo4j (01 and 02) and for materializing relationship data (03).
+
+### Required Spark Configuration
+
+Add these settings to your Databricks cluster configuration to prevent SafeSpark sandbox memory exhaustion:
+
+```
+spark.databricks.safespark.jdbcSandbox.jvm.maxMetaspace.mib 128
+spark.databricks.safespark.jdbcSandbox.jvm.xmx.mib 300
+spark.databricks.safespark.jdbcSandbox.size.default.mib 512
+```
+
+Without these settings, UC JDBC connections to Neo4j will fail with: `Connection was closed before the operation completed`
+
+The Neo4j JDBC driver requires more memory for class loading than the default SafeSpark sandbox allocation. When metaspace is exhausted, the sandbox JVM crashes silently and the connection drops. These three settings increase the metaspace limit, heap size, and overall sandbox size to accommodate the driver's initialization.
+
+For the full reference on connection setup, query patterns, and troubleshooting, see [docs/neo4j_uc_jdbc_guide.md](../docs/neo4j_uc_jdbc_guide.md).
 
 ## Getting Started
 
