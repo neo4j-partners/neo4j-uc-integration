@@ -142,6 +142,7 @@ neo4j-uc-federation-lab/OAUTH_UC.md
 neo4j-uc-federation-lab/OAUTH_UC_HACK.md
 
 # Secrets and credentials
+*-connection.json
 **/credentials.json
 **/service-account*.json
 **/*secret*
@@ -151,6 +152,9 @@ neo4j-uc-federation-lab/OAUTH_UC_HACK.md
 **/*.pfx
 **/*.keystore
 **/*.truststore
+
+# MCP config (contains local paths)
+.mcp.json
 
 # End of .gitignore
 

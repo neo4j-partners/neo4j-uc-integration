@@ -48,6 +48,8 @@ missing=()
 [[ -z "$NEO4J_PASSWORD" ]] && missing+=("NEO4J_PASSWORD")
 [[ -z "$UC_CONNECTION_NAME" ]] && missing+=("UC_CONNECTION_NAME")
 [[ -z "$JDBC_JAR_PATH" ]] && missing+=("JDBC_JAR_PATH")
+[[ -z "$LAKEHOUSE_CATALOG" ]] && missing+=("LAKEHOUSE_CATALOG")
+[[ -z "$LAKEHOUSE_SCHEMA" ]] && missing+=("LAKEHOUSE_SCHEMA")
 
 if [[ ${#missing[@]} -gt 0 ]]; then
     log_error "Missing required variables in .env: ${missing[*]}"
@@ -76,6 +78,8 @@ set_secret "user" "$NEO4J_USERNAME"
 set_secret "password" "$NEO4J_PASSWORD"
 set_secret "connection_name" "$UC_CONNECTION_NAME"
 set_secret "jdbc_jar_path" "$JDBC_JAR_PATH"
+set_secret "lakehouse_catalog" "$LAKEHOUSE_CATALOG"
+set_secret "lakehouse_schema" "$LAKEHOUSE_SCHEMA"
 
 # Set optional database (default is "neo4j")
 if [[ -n "$NEO4J_DATABASE" ]]; then
@@ -88,5 +92,5 @@ echo "Verify with:"
 echo "  databricks secrets list-secrets $SCOPE_NAME"
 echo ""
 echo "Use in Databricks notebook:"
-echo "  from main import run"
-echo "  run()"
+echo "  NEO4J_HOST = dbutils.secrets.get('neo4j-uc-creds', 'host')"
+echo "  LAKEHOUSE_CATALOG = dbutils.secrets.get('neo4j-uc-creds', 'lakehouse_catalog')"
