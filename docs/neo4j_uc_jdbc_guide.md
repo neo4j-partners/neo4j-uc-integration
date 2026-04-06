@@ -1,4 +1,4 @@
-# Guide: Using Neo4j with Databricks Unity Catalog JDBC
+# Guide: Neo4j JDBC Lakehouse Federation Connector
 
 This guide explains how to connect to Neo4j from Databricks using a Unity Catalog JDBC connection, including required configuration, supported query patterns, and best practices.
 
@@ -33,13 +33,13 @@ Enable these preview features in your Databricks workspace:
 | Custom JDBC on UC Compute | Loading custom JDBC drivers in UC connections |
 | remote_query table-valued function | Using `remote_query()` SQL function |
 
-### 2. Neo4j Unity Catalog Connector JAR
+### 2. Neo4j JDBC Lakehouse Federation Connector JAR
 
 Download the latest release from [neo4j-unity-catalog-connector releases](https://github.com/neo4j-labs/neo4j-unity-catalog-connector/tags) and upload it to a Unity Catalog Volume:
 
 | JAR | Purpose |
 |-----|---------|
-| `neo4j-unity-catalog-connector-<version>.jar` | Shaded JAR bundling the JDBC driver, SQL-to-Cypher translator, and Spark subquery cleaner |
+| `neo4j-unity-catalog-connector-<version>.jar` | Neo4j JDBC Lakehouse Federation Connector — bundles the JDBC driver, SQL-to-Cypher translator, and Spark subquery cleaner |
 
 See the [neo4j-unity-catalog-connector](https://github.com/neo4j-labs/neo4j-unity-catalog-connector) repo for details on what the JAR contains and how it is built.
 

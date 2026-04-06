@@ -1,4 +1,4 @@
-# Neo4j Unity Catalog Integration — Notebooks
+# Neo4j JDBC Lakehouse Federation — Notebooks
 
 Databricks notebooks for validating Neo4j JDBC connectivity through Unity Catalog, running federated queries across Neo4j and Delta lakehouse tables, and synchronizing Neo4j metadata into Unity Catalog.
 
@@ -43,9 +43,9 @@ Uses pure UC JDBC federation only — no Spark Connector or cluster libraries re
 
 ## Prerequisites
 
-### 1. Neo4j Unity Catalog Connector JAR
+### 1. Neo4j JDBC Lakehouse Federation Connector JAR
 
-Upload the Neo4j Unity Catalog Connector JAR to a Unity Catalog Volume:
+Upload the Neo4j JDBC Lakehouse Federation Connector JAR to a Unity Catalog Volume:
 
 ```sql
 -- Create a volume for JDBC drivers
@@ -55,7 +55,7 @@ CREATE VOLUME IF NOT EXISTS main.jdbc_drivers.jars;
 
 **Required: Download the connector JAR**
 
-The Neo4j Unity Catalog Connector is a single shaded JAR that bundles the Neo4j JDBC driver, SQL-to-Cypher translator, and Spark subquery cleaner. Download the latest release from [neo4j-unity-catalog-connector releases](https://github.com/neo4j-labs/neo4j-unity-catalog-connector/tags). See the [neo4j-unity-catalog-connector](https://github.com/neo4j-labs/neo4j-unity-catalog-connector) repo for build details.
+The Neo4j JDBC Lakehouse Federation Connector is a single shaded JAR that bundles the Neo4j JDBC driver, SQL-to-Cypher translator, and Spark subquery cleaner. Download the latest release from [neo4j-unity-catalog-connector releases](https://github.com/neo4j-labs/neo4j-unity-catalog-connector/tags). See the [neo4j-unity-catalog-connector](https://github.com/neo4j-labs/neo4j-unity-catalog-connector) repo for build details.
 
 Upload the JAR to your UC Volume:
 - Upload to: `/Volumes/main/jdbc_drivers/jars/neo4j-unity-catalog-connector-<version>.jar`
@@ -121,7 +121,7 @@ databricks secrets put-secret neo4j-uc-creds database
 
 **Use the Full Bundle JAR**
 
-The `neo4j-unity-catalog-connector` JAR includes all required components: the core JDBC driver, SQL-to-Cypher translator, and Spark subquery cleaner in a single shaded JAR. This eliminates classpath issues and ensures all translation features work out of the box.
+The Neo4j JDBC Lakehouse Federation Connector JAR includes all required components: the core JDBC driver, SQL-to-Cypher translator, and Spark subquery cleaner in a single shaded JAR. This eliminates classpath issues and ensures all translation features work out of the box.
 
 **Enable SQL Translation via URL Parameter**
 
@@ -363,4 +363,4 @@ RELATIONSHIPS_SCHEMA = "relationships" # Change this
 
 ### Driver Downloads
 
-- [Neo4j Unity Catalog Connector releases](https://github.com/neo4j-labs/neo4j-unity-catalog-connector/tags) — Shaded JAR bundling the JDBC driver, SQL-to-Cypher translator, and Spark subquery cleaner
+- [Neo4j JDBC Lakehouse Federation Connector releases](https://github.com/neo4j-labs/neo4j-unity-catalog-connector/tags) — Shaded JAR bundling the JDBC driver, SQL-to-Cypher translator, and Spark subquery cleaner

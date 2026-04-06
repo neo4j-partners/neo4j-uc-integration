@@ -66,7 +66,7 @@ A single shaded JAR is uploaded to a Unity Catalog Volume:
 
 | JAR | Purpose |
 |-----|---------|
-| `neo4j-unity-catalog-connector-<version>.jar` | Bundles the Neo4j JDBC driver, SQL-to-Cypher translator, and Spark subquery cleaner |
+| `neo4j-unity-catalog-connector-<version>.jar` | Neo4j JDBC Lakehouse Federation Connector — bundles the Neo4j JDBC driver, SQL-to-Cypher translator, and Spark subquery cleaner |
 
 Download the latest release from [neo4j-unity-catalog-connector releases](https://github.com/neo4j-labs/neo4j-unity-catalog-connector/tags). See the [neo4j-unity-catalog-connector](https://github.com/neo4j-labs/neo4j-unity-catalog-connector) repo for details on what the JAR contains and how it is built.
 

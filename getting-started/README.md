@@ -90,11 +90,11 @@ Enable these preview features in your Databricks workspace:
 | Custom JDBC on UC Compute | Loading custom JDBC drivers in UC connections |
 | remote_query table-valued function | Using `remote_query()` SQL function |
 
-#### 2. Neo4j Unity Catalog Connector JAR
+#### 2. Neo4j JDBC Lakehouse Federation Connector JAR
 
 Download the latest release from [neo4j-unity-catalog-connector releases](https://github.com/neo4j-labs/neo4j-unity-catalog-connector/tags) and upload it to a Unity Catalog Volume.
 
-The JAR is a shaded bundle containing the JDBC driver, SQL-to-Cypher translator, and Spark subquery cleaner. See the [neo4j-unity-catalog-connector](https://github.com/neo4j-labs/neo4j-unity-catalog-connector) repo for details on what it contains and how it is built.
+The Neo4j JDBC Lakehouse Federation Connector is a shaded JAR bundle containing the JDBC driver, SQL-to-Cypher translator, and Spark subquery cleaner. See the [neo4j-unity-catalog-connector](https://github.com/neo4j-labs/neo4j-unity-catalog-connector) repo for details on what it contains and how it is built.
 
 The `java_dependencies` option in `CREATE CONNECTION TYPE JDBC` only accepts Unity Catalog Volume paths (e.g., `/Volumes/catalog/schema/jars/neo4j-unity-catalog-connector.jar`). Cluster-installed libraries (Maven coordinates, uploaded JARs) cannot be referenced here. The JAR must be in a UC Volume.
 

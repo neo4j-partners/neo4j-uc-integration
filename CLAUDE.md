@@ -4,11 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Neo4j + Databricks Unity Catalog Integration — a federated query system enabling SQL queries against Neo4j graph databases from Databricks via Unity Catalog's JDBC support. The core component is a shaded (fat) JAR connector that bundles the Neo4j JDBC driver with SQL-to-Cypher translators.
+Neo4j + Databricks Lakehouse Federation Integration — enables SQL queries against Neo4j graph databases from Databricks via Unity Catalog's JDBC connection support. The core component is the Neo4j JDBC Lakehouse Federation Connector, a shaded (fat) JAR that bundles the Neo4j JDBC driver with SQL-to-Cypher translators.
 
 ## Connector JAR
 
-The Neo4j Unity Catalog Connector JAR is built and released from a separate repo: [neo4j-unity-catalog-connector](https://github.com/neo4j-labs/neo4j-unity-catalog-connector). Download the latest release from [releases](https://github.com/neo4j-labs/neo4j-unity-catalog-connector/tags).
+The Neo4j JDBC Lakehouse Federation Connector JAR is built and released from a separate repo: [neo4j-unity-catalog-connector](https://github.com/neo4j-labs/neo4j-unity-catalog-connector). Download the latest release from [releases](https://github.com/neo4j-labs/neo4j-unity-catalog-connector/tags).
 
 ## Architecture
 
