@@ -14,6 +14,14 @@ For a step-by-step setup and usage guide, see [neo4j_uc_jdbc_guide.md](./docs/ne
 
 ---
 
+## Getting Started with the Neo4j Federated JDBC UC Connection
+
+The `getting-started/` directory contains four notebooks that walk through the Neo4j Federated JDBC UC Connection end to end. The notebooks cover loading graph data into Neo4j, establishing the Unity Catalog JDBC connection, running federated queries that join graph topology with Delta time-series data, and materializing Neo4j node labels as managed Delta tables. The dataset is an aircraft digital twin: 20 aircraft, 160 sensors, 800 flights, and 172,800 sensor readings stored across Neo4j and a Delta table.
+
+For prerequisites, cluster configuration, setup steps, and an explanation of each notebook, see [getting-started/README.md](./getting-started/README.md). For the full JDBC setup reference and query patterns, see [docs/neo4j_uc_jdbc_guide.md](./docs/neo4j_uc_jdbc_guide.md).
+
+---
+
 ## Overview of Neo4j Integration Patterns
 
 **JDBC Connectivity** — Neo4j connects to Unity Catalog via a generic JDBC connection (`TYPE JDBC`) using the [Neo4j JDBC driver](https://neo4j.com/docs/jdbc-manual/current/) with built-in SQL-to-Cypher translation. A SafeSpark compatibility issue (metaspace memory exhaustion) was resolved in collaboration with Databricks engineering. With three Spark configuration settings, the Neo4j Federated JDBC UC Connection works correctly — including queries, aggregates, GROUP BY, HAVING, ORDER BY, JOINs, and schema discovery.
