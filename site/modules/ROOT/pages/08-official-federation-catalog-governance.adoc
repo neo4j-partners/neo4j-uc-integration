@@ -2,9 +2,7 @@
 :description: Catalog-level integration and Unity Catalog governance demonstrated with Lakebase as a reference for what Neo4j would gain as an official Databricks federated data source
 
 [.lead]
-The federated query patterns in this guide work today because of the custom Neo4j JDBC connector. But the connector is not yet an official Databricks federated data source. This page shows exactly what that distinction means in practice.
-
-Lakebase, Databricks' managed PostgreSQL, is already an official federated data source. Every capability shown here — catalog-level discoverability, table-level access control, automatic audit logging, and column-level lineage — is what Neo4j would gain once it reaches the same status. The demo uses a financial holdings dataset: companies, asset managers, portfolio positions, and financial metrics. Berkshire Hathaway's holdings make for a recognizable story that a technical audience can follow without domain background.
+This guide uses Lakebase to demonstrate catalog-level discoverability, access control, audit logging, and lineage capabilities that will be available to Neo4j once it is accepted as an official Databricks federated data source.
 
 == Scenario 1: Catalog-Level Integration
 

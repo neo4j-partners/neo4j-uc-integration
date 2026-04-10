@@ -68,7 +68,7 @@ All notebooks are in `getting-started/` and should be imported to your Databrick
 | **Unity Catalog JDBC** | **PASS** | Works with SafeSpark memory configuration |
 | **UC Schema Discovery** | **PASS** | Works with SafeSpark memory configuration |
 
-**Non-aggregate SELECT is not supported through UC JDBC (use Neo4j Spark Connector instead). All other patterns pass.**
+**All supported patterns pass. Use the Neo4j Spark Connector for relationship property aggregation.**
 
 ---
 

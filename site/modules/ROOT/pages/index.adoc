@@ -89,8 +89,8 @@ image::architecture-overview.png[Federated Lakehouse Architecture,700]
 |Method |Pros |Cons
 
 |`remote_query()`
-|Pure SQL, no cluster library, UC governed, supports GROUP BY/HAVING/ORDER BY
-|Non-aggregate SELECT not supported
+|Pure SQL, no cluster library, UC governed, supports aggregate and row-level SELECT, GROUP BY/HAVING/ORDER BY
+|Relationship property aggregation not supported
 
 |Spark Connector
 |Full Cypher support, row-level data
@@ -99,7 +99,7 @@ image::architecture-overview.png[Federated Lakehouse Architecture,700]
 
 == Supported SQL Patterns
 
-The Neo4j Federated JDBC UC Connection supports aggregate queries, GROUP BY, HAVING, ORDER BY, DISTINCT, LIMIT/OFFSET, WHERE filters, NATURAL JOIN graph traversals, and their full combinations. Non-aggregate SELECT and relationship property aggregation are not supported — use the Neo4j Spark Connector for those.
+The Neo4j Federated JDBC UC Connection supports aggregate queries, row-level SELECT, GROUP BY, HAVING, ORDER BY, DISTINCT, LIMIT/OFFSET, WHERE filters, NATURAL JOIN graph traversals, and their full combinations. Relationship property aggregation is not supported — use the Neo4j Spark Connector for that.
 
 For the complete validated pattern list, SQL translation examples, and test results by script, see xref:sql-reference.adoc[SQL Reference].
 

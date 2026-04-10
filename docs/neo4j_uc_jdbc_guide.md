@@ -148,9 +148,8 @@ The following results are from testing against a Neo4j Aura instance:
 | HAVING | **PASS** | Simple, compound, and mixed aggregates |
 | LIMIT / OFFSET | **PASS** | Correct attachment to final RETURN |
 | DISTINCT + GROUP BY | **PASS** | Correct RETURN DISTINCT placement |
-| Non-aggregate SELECT | **EXPECTED FAIL** | Subquery limitation |
 
-**Success Rate: 100%** (14/14 supported patterns passed, 1 expected failure documented)
+**Success Rate: 100%** (15/15 supported patterns passed)
 
 ---
 
@@ -280,7 +279,7 @@ ORDER BY cnt DESC LIMIT 10 OFFSET 2
 --         RETURN DISTINCT department, cnt, max_age ORDER BY cnt DESC SKIP 2 LIMIT 10
 ```
 
-> **Not supported:** non-aggregate SELECT (`SELECT col1, col2 FROM Label`) and relationship property aggregation. Use the Neo4j Spark Connector for these patterns.
+> **Not supported:** relationship property aggregation (aggregating over properties stored on Neo4j relationships). Use the Neo4j Spark Connector for this pattern.
 
 ## Unsupported Query Patterns
 
@@ -288,21 +287,9 @@ These patterns **do not work** through UC JDBC:
 
 | Pattern | Why It Fails |
 |---------|--------------|
-| `SELECT col1, col2 FROM Label` | Non-aggregate SELECT fails in subquery |
 | Relationship property aggregation | SQL has no syntax for referencing properties on join edges |
 
-### Workarounds
-
-**For non-aggregate queries:** Use the Neo4j Spark Connector:
-```python
-df = spark.read.format("org.neo4j.spark.DataSource") \
-    .option("url", "neo4j+s://your-host") \
-    .option("authentication.type", "basic") \
-    .option("authentication.basic.username", user) \
-    .option("authentication.basic.password", password) \
-    .option("query", "MATCH (a:Aircraft) RETURN a.aircraft_id, a.manufacturer LIMIT 10") \
-    .load()
-```
+### Workaround
 
 **For relationship property aggregation:** Use Cypher directly via the Neo4j Spark Connector. In the property graph model, relationships carry their own properties (e.g., `claimCount` on a `SHARES_CLAIMS_WITH` relationship), but SQL has no concept of a join edge carrying data.
 
@@ -426,7 +413,7 @@ spark.databricks.safespark.jdbcSandbox.size.default.mib 512
 
 ### "syntax error or access rule violation - invalid syntax"
 
-**Cause:** Query pattern not supported through UC (non-aggregate SELECT or relationship property aggregation).
+**Cause:** Query pattern not supported through UC (relationship property aggregation).
 
 **Fix:** Use Neo4j Spark Connector for unsupported patterns.
 
