@@ -162,22 +162,6 @@ Spark SQL Engine
 
 Everything flows through Unity Catalog. No Spark Connector, no direct Bolt connection, no Python driver.
 
-== Agent Integration Patterns
-
-The Genie space can be accessed programmatically through either the https://docs.databricks.com/aws/en/generative-ai/mcp/managed-mcp[Genie Managed MCP Server] (for agent integration) or the https://docs.databricks.com/aws/en/genie/conversation-api[Genie Conversation API] (for direct app integration).
-
-=== Pattern 1: Genie as Standalone Agent
-
-A single Genie space handles all queries. Best when questions map cleanly to SQL over the unified table set and no multi-step reasoning is needed.
-
-=== Pattern 2: Multi-Agent with Genie + DBSQL MCP
-
-For questions that need both NL-to-SQL (Genie) and ad-hoc federated SQL, a supervisor agent routes between the Genie MCP server and a DBSQL MCP server. The DBSQL MCP server can execute arbitrary SQL including `remote_query()` calls for edge cases where the materialized tables don't cover a specific Neo4j query pattern.
-
-=== Pattern 3: Agent Bricks Supervisor (No-Code)
-
-Use Agent Bricks to create a supervisor that coordinates a Genie sub-agent (for the federated fleet data) with other agents (e.g., a RAG agent for unstructured maintenance manuals).
-
 == Example: Fleet Activity and Engine Health
 
 **Question:** _For each aircraft, show the number of flights, maintenance events, and average engine temperature._
