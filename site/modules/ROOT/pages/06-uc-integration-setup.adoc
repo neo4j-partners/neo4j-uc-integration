@@ -6,7 +6,7 @@ The federated queries in this guide depend on a Neo4j Federated JDBC UC Connecti
 
 == Required: SafeSpark Memory Configuration
 
-The Neo4j JDBC driver loads more classes during initialization than most JDBC drivers — its built-in SQL-to-Cypher translator requires more metaspace than the SafeSpark sandbox allocates by default. Without the following settings, every connection attempt fails with `Connection was closed before the operation completed`.
+The Neo4j JDBC driver loads more classes during initialization than most JDBC drivers; its built-in SQL-to-Cypher translator requires more metaspace than the SafeSpark sandbox allocates by default. Without the following settings, every connection attempt fails with `Connection was closed before the operation completed`.
 
 Add these to the cluster's **Advanced Options > Spark > Spark Config**:
 
@@ -92,7 +92,7 @@ A few things to note about this statement.
 
 The `ENVIRONMENT` block uses `java_dependencies` to load the connector JAR from the UC Volume. This is how the SafeSpark sandbox gets the driver classes. The JAR bundles the Neo4j JDBC driver and Spark subquery cleaner into a single artifact.
 
-NOTE: `java_dependencies` only accepts UC Volume paths. Cluster-installed libraries (e.g., Maven coordinates added via the cluster Libraries tab) cannot be referenced here — they are a separate system.
+NOTE: `java_dependencies` only accepts UC Volume paths. Cluster-installed libraries (e.g., Maven coordinates added via the cluster Libraries tab) cannot be referenced here; they are a separate system.
 
 The JDBC URL includes `enableSQLTranslation=true` as a query parameter. This activates the driver's built-in SQL-to-Cypher translator, which is what makes the whole federation approach work. Without it, the driver expects native Cypher and Spark's SQL queries would fail.
 

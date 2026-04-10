@@ -6,9 +6,9 @@ This guide uses Lakebase to demonstrate Genie natural language queries and AI/BI
 
 == Scenario 3: Genie
 
-Genie is where official federation makes the biggest visible difference. A direct integration means a Genie Space queries the source database live — no intermediate copies, no refresh delays.
+Genie is where official federation makes the biggest visible difference. A direct integration means a Genie Space queries the source database live, with no intermediate copies or refresh delays.
 
-With Lakebase as an official federated source, a Genie Space can be pointed directly at the `lakebase_financial` catalog. An analyst types "Which asset manager holds the most shares overall?" and Genie translates that into SQL, runs it against the live Lakebase tables, and returns the answer — no intermediate Delta table, no freshness problem.
+With Lakebase as an official federated source, a Genie Space can be pointed directly at the `lakebase_financial` catalog. An analyst types "Which asset manager holds the most shares overall?" and Genie translates that into SQL, runs it against the live Lakebase tables, and returns the answer, with no intermediate Delta table or freshness problem.
 
 With an official Neo4j integration, analysts point Genie directly at the graph database.
 
@@ -69,30 +69,30 @@ LIMIT 10;
 
 Run these before the demo to verify the space is working. Click *New chat* for each group to test from a clean context. If a prompt returns an error or a nonsense answer, add or refine the example query for that prompt before the call.
 
-*Basic aggregations* — should return immediately with a clean table:
+*Basic aggregations*: should return immediately with a clean table:
 
 * "Which asset manager holds the most shares overall?"
 * "Show me the top 5 asset managers by total shares held."
 * "How many asset managers are in the dataset?"
 * "What is the total number of shares held across all managers and companies?"
 
-*Joins and filtering* — tests that Genie can navigate the foreign keys:
+*Joins and filtering*: tests that Genie can navigate the foreign keys:
 
 * "Show me Berkshire Hathaway's top ten holdings by share count."
 * "Which companies does Berkshire Hathaway hold a position in?"
 * "List all asset managers that hold Apple stock."
 * "Which asset managers hold positions in both Apple and Microsoft?"
 
-*Counts and follow-ups* — tests conversational continuity within a session:
+*Counts and follow-ups*: tests conversational continuity within a session:
 
 * "How many distinct companies does Berkshire hold a position in?"
 * Then ask: "Which of those has the most shares?"
 * "Which company has the highest total share ownership across all managers?"
 * Then ask: "How many managers hold that company?"
 
-*Edge cases* — confirm Genie handles these gracefully:
+*Edge cases*: confirm Genie handles these gracefully:
 
-* "What percentage of all shares does Berkshire hold?" _(requires computing a ratio — watch whether Genie attempts it or asks for clarification)_
+* "What percentage of all shares does Berkshire hold?" _(requires computing a ratio; watch whether Genie attempts it or asks for clarification)_
 * "Which companies have only one manager holding them?"
 * "Show me managers that hold more than 10 different companies."
 
@@ -124,7 +124,7 @@ For Neo4j, this would mean graph data queryable via standard Databricks SQL, ena
 
 *Define three datasets.* For each: paste the query, click *Run* to verify rows return, then double-click the dataset name to rename it.
 
-*Dataset 1 — Top asset managers by total shares:*
+*Dataset 1: Top asset managers by total shares:*
 
 [source,sql]
 ----
@@ -139,7 +139,7 @@ ORDER BY total_shares DESC
 LIMIT 15;
 ----
 
-*Dataset 2 — Berkshire Hathaway portfolio:*
+*Dataset 2: Berkshire Hathaway portfolio:*
 
 [source,sql]
 ----
@@ -156,7 +156,7 @@ WHERE am.name = 'Berkshire Hathaway Inc.'
 ORDER BY h.shares DESC;
 ----
 
-*Dataset 3 — Portfolio summary:*
+*Dataset 3: Portfolio summary:*
 
 [source,sql]
 ----
@@ -201,16 +201,16 @@ Each scenario is a concrete, runnable demonstration of a capability that Neo4j i
 |Scenario |What it proves for Neo4j
 
 |Catalog-level integration
-|Node labels and relationship types would appear as tables in Catalog Explorer automatically — discoverable without explaining the database schema to every analyst
+|Node labels and relationship types would appear as tables in Catalog Explorer automatically, discoverable without explaining the database schema to every analyst
 
 |Governance and access control
-|Per-table grants, automatic audit logging, and column-level lineage would work without workarounds — the governance infrastructure that regulated industries require
+|Per-table grants, automatic audit logging, and column-level lineage would work without workarounds, providing the governance infrastructure that regulated industries require
 
 |Genie
-|Natural language queries would run directly against live Neo4j data — no materialization step, no freshness problem, no intermediate Delta table
+|Natural language queries would run directly against live Neo4j data, with no materialization step, freshness problem, or intermediate Delta table
 
 |AI/BI dashboards
-|Dashboards could query graph-backed foreign tables directly — the same SQL warehouse, the same dashboard builder, no pipeline to maintain
+|Dashboards could query graph-backed foreign tables directly, using the same SQL warehouse and dashboard builder, with no pipeline to maintain
 |===
 
 Together they show what a database looks like once it becomes a first-class citizen of the Unity Catalog ecosystem: discoverable, governed, queryable from dashboards, and accessible to Genie.

@@ -8,9 +8,9 @@ This guide uses Lakebase to demonstrate catalog-level discoverability, access co
 
 Without official federation, a database is a black box. You connect to it if you know the hostname and credentials, and you have no idea what's inside until you're already in.
 
-With Lakebase as an official federated source, the PostgreSQL database registers as a named catalog in Unity Catalog. A user opens Catalog Explorer and sees a catalog called `lakebase_financial` with schemas and tables — `companies`, `asset_managers`, `asset_manager_holdings`, and `financial_metrics` — all browsable like any other table in the lakehouse. Column names, row counts, and attached descriptions are visible before writing a single query.
+With Lakebase as an official federated source, the PostgreSQL database registers as a named catalog in Unity Catalog. A user opens Catalog Explorer and sees a catalog called `lakebase_financial` with schemas and tables including `companies`, `asset_managers`, `asset_manager_holdings`, and `financial_metrics`, all browsable like any other table in the lakehouse. Column names, row counts, and attached descriptions are visible before writing a single query.
 
-For Neo4j, this would mean node labels and relationship types appearing as tables in Catalog Explorer automatically — discoverable without any manual sync job or schema explanation.
+For Neo4j, this would mean node labels and relationship types appearing as tables in Catalog Explorer automatically, discoverable without any manual sync job or schema explanation.
 
 === Setup
 
@@ -92,11 +92,11 @@ Without official federation, the only access lever is connection-level: either y
 
 With Lakebase as an official federated source, access works at the table level through standard Unity Catalog grants. A compliance team can give analysts permission to query `companies` and `asset_managers` while restricting `asset_manager_holdings` to a smaller group. No one with restricted access can see Berkshire's positions even if they know the database hostname.
 
-Beyond access control, audit logging is automatic. Every query — which analyst ran it, which notebook it came from, which table was touched, and at what time — appears in the Unity Catalog system audit log with no configuration required.
+Beyond access control, audit logging is automatic. Every query (which analyst ran it, which notebook it came from, which table was touched, and at what time) appears in the Unity Catalog system audit log with no configuration required.
 
 Column-level lineage works the same way. When a dashboard reads the `shares` column from `asset_manager_holdings`, Unity Catalog records that automatically. A data steward can trace exactly which downstream reports depend on which upstream columns in the PostgreSQL database.
 
-For Neo4j, official federation means the same per-table, per-column governance that regulated industries need — automatic, with no custom configuration.
+For Neo4j, official federation means the same per-table, per-column governance that regulated industries need, automatic and requiring no custom configuration.
 
 === Setup
 
@@ -123,10 +123,10 @@ Log in as or impersonate a user in the `analysts` group. From a SQL warehouse:
 
 [source,sql]
 ----
--- This succeeds — analysts can read reference data
+-- This succeeds: analysts can read reference data
 SELECT name, ticker FROM lakebase_financial.public.companies LIMIT 10;
 
--- This fails — analysts cannot see position data
+-- This fails: analysts cannot see position data
 SELECT * FROM lakebase_financial.public.asset_manager_holdings LIMIT 10;
 -- Expected error: PERMISSION_DENIED: User does not have SELECT privilege on table...
 ----

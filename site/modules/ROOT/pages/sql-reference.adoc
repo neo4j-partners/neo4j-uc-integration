@@ -213,7 +213,7 @@ Pure `GROUP BY` without `HAVING` or `ORDER BY` intermittently returns 0 rows on 
 |Databricks strips quotes from LIKE string literals before the query reaches the JDBC driver. Use a `FORCE_CYPHER` hint with a Cypher `STARTS WITH` or `CONTAINS` clause instead.
 
 |User-authored derived-table subqueries (`SELECT * FROM (...) alias`)
-|Not supported. The translator generates invalid Cypher that treats the table alias as a node variable. The `SPARK_GEN_SUBQ_N` probe wrapping handled by the spark cleaner is separate internal plumbing — it does not represent general subquery support.
+|Not supported. The translator generates invalid Cypher that treats the table alias as a node variable. The `SPARK_GEN_SUBQ_N` probe wrapping handled by the spark cleaner is separate internal plumbing; it does not represent general subquery support.
 |===
 
 == References

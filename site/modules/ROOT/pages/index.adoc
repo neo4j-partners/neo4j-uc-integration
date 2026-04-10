@@ -99,7 +99,7 @@ image::architecture-overview.png[Federated Lakehouse Architecture,700]
 
 == Supported SQL Patterns
 
-The Neo4j Federated JDBC UC Connection supports aggregate queries, row-level SELECT, GROUP BY, HAVING, ORDER BY, DISTINCT, LIMIT/OFFSET, WHERE filters, NATURAL JOIN graph traversals, and their full combinations. Relationship property aggregation is not supported — use the Neo4j Spark Connector for that.
+The Neo4j Federated JDBC UC Connection supports aggregate queries, row-level SELECT, GROUP BY, HAVING, ORDER BY, DISTINCT, LIMIT/OFFSET, WHERE filters, NATURAL JOIN graph traversals, and their full combinations. Relationship property aggregation is not supported; use the Neo4j Spark Connector for that.
 
 For the complete validated pattern list, SQL translation examples, and test results by script, see xref:sql-reference.adoc[SQL Reference].
 
@@ -170,12 +170,12 @@ How the Neo4j Federated JDBC UC Connection was built, including the SafeSpark me
 
 == What's Next: Neo4j as an Official Federated Data Source
 
-The capabilities in this guide are possible today because of the custom Neo4j JDBC connector. As an official Databricks federated data source, Neo4j would gain direct Genie querying, native AI/BI dashboard connectivity, and automatic catalog-level lineage — the full set of capabilities Lakebase has today.
+The capabilities in this guide are possible today because of the custom Neo4j JDBC connector. As an official Databricks federated data source, Neo4j would gain direct Genie querying, native AI/BI dashboard connectivity, and automatic catalog-level lineage, the full set of capabilities Lakebase has today.
 
-Lakebase, Databricks' managed PostgreSQL, is already an official federated data source and has all of these capabilities today. The following pages demonstrate each one using a financial holdings dataset — companies, asset managers, portfolio positions, and financial metrics — so that when we say "this is what Neo4j would look like as an official integration," there is a running reference instead of a slide deck.
+Lakebase, Databricks' managed PostgreSQL, is already an official federated data source and has all of these capabilities today. The following pages demonstrate each one using a financial holdings dataset (companies, asset managers, portfolio positions, and financial metrics) so that when we say "this is what Neo4j would look like as an official integration," there is a running reference instead of a slide deck.
 
-* xref:08-official-federation-catalog-governance.adoc[Catalog & Governance] — data discovery in Catalog Explorer, table-level access grants, automatic audit logging, and column-level lineage
-* xref:09-official-federation-genie-analytics.adoc[Genie & AI/BI] — natural language queries on live federated data and dashboards that query the source directly with no pipeline
+* xref:08-official-federation-catalog-governance.adoc[Catalog & Governance]: data discovery in Catalog Explorer, table-level access grants, automatic audit logging, and column-level lineage
+* xref:09-official-federation-genie-analytics.adoc[Genie & AI/BI]: natural language queries on live federated data and dashboards that query the source directly with no pipeline
 
 == Prerequisites
 

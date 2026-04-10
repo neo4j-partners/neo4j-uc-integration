@@ -84,10 +84,10 @@ events and flight operations (Neo4j knowledge graph) via Unity Catalog federatio
 ## Sensor Data Model (IMPORTANT)
 
 Sensor data is stored across 4 Delta tables in a normalized model:
-- `aircraft` — fleet registry. Primary key: `:ID(Aircraft)` (e.g. "AC1001").
-- `systems` — aircraft systems. Columns: `:ID(System)`, `aircraft_id`, `type` (Engine, APU, Hydraulic, etc.).
-- `sensors` — individual sensors. Columns: `:ID(Sensor)`, `system_id`, `type` (EGT, Vibration, FuelFlow, N1Speed).
-- `sensor_readings` — time-series values. Columns: `sensor_id`, `timestamp`, `value` (numeric).
+- `aircraft`: fleet registry. Primary key: `:ID(Aircraft)` (e.g. "AC1001").
+- `systems`: aircraft systems. Columns: `:ID(System)`, `aircraft_id`, `type` (Engine, APU, Hydraulic, etc.).
+- `sensors`: individual sensors. Columns: `:ID(Sensor)`, `system_id`, `type` (EGT, Vibration, FuelFlow, N1Speed).
+- `sensor_readings`: time-series values. Columns: `sensor_id`, `timestamp`, `value` (numeric).
 
 There is NO direct "EGT" or "temperature" column. Sensor type is in `sensors.type`,
 and the reading value is in `sensor_readings.value`. To get EGT readings you MUST
@@ -101,7 +101,7 @@ JOIN pattern for sensor data:
 Filter by sensor type: WHERE sensors.type = 'EGT' (or 'Vibration', 'FuelFlow', 'N1Speed')
 Filter by system type: WHERE systems.type = 'Engine' (or 'APU', 'Hydraulic', etc.)
 
-Example — average EGT per aircraft:
+Example: average EGT per aircraft:
   SELECT sys.aircraft_id, ROUND(AVG(r.value), 1) AS avg_egt
   FROM sensor_readings r
   JOIN sensors sen ON r.sensor_id = sen.`:ID(Sensor)`
@@ -118,10 +118,10 @@ Sensor types and units:
 ## Neo4j Tables (Materialized)
 
 Neo4j tables contain graph-sourced data materialized as Delta tables:
-- `neo4j_maintenance_events` — columns: aircraft_id, fault, severity (CRITICAL, MAJOR, MINOR), corrective_action, reported_at
-- `neo4j_flights` — columns: aircraft_id, flight_number, operator, origin, destination, scheduled_departure, scheduled_arrival
-- `neo4j_airports` — columns: iata, airport_name, city, country, icao, lat, lon
-- `neo4j_flight_airports` — columns: flight_number, aircraft_id, airport_code, airport_name
+- `neo4j_maintenance_events`: columns: aircraft_id, fault, severity (CRITICAL, MAJOR, MINOR), corrective_action, reported_at
+- `neo4j_flights`: columns: aircraft_id, flight_number, operator, origin, destination, scheduled_departure, scheduled_arrival
+- `neo4j_airports`: columns: iata, airport_name, city, country, icao, lat, lon
+- `neo4j_flight_airports`: columns: flight_number, aircraft_id, airport_code, airport_name
 
 ## Cross-Source JOINs
 
@@ -240,10 +240,6 @@ The consistent EGT readings suggest uniform engine performance across the fleet,
 |Neo4j data is a snapshot, not live
 |Data may be stale if Neo4j is updated
 |Re-run the materialization notebook to refresh; consider scheduling as a job
-
-|Neo4j JDBC SQL translation is limited
-|Complex Cypher patterns (variable-length paths, APOC) may not translate
-|Use the Neo4j Spark Connector for complex graph patterns
 
 |Genie: 30 table/view limit per space
 |Must choose which tables to expose
