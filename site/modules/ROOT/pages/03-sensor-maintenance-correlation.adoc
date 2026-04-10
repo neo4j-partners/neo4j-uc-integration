@@ -139,4 +139,4 @@ Neo4j: MaintenanceEvent nodes (Spark Connector)
 
 == Why Spark Connector Here
 
-UC JDBC's `remote_query()` wraps queries in subqueries for schema inference, which prevents GROUP BY. The Spark Connector loads row-level data that Spark SQL can freely aggregate and JOIN, which is essential for per-aircraft grouping.
+The Neo4j Federated JDBC UC Connection's `remote_query()` wraps queries in subqueries for schema inference, which prevents GROUP BY. The Spark Connector loads row-level data that Spark SQL can freely aggregate and JOIN, which is essential for per-aircraft grouping.

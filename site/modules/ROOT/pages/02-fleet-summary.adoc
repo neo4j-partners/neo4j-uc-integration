@@ -1,9 +1,9 @@
 = Query 2: Fleet Summary
 :description: Fleet-wide overview combining Neo4j graph metrics with Delta sensor analytics via remote_query()
 
-Fleet-wide overview combining Neo4j graph metrics with Delta sensor analytics in a single SQL statement. No Spark Connector needed, using pure SQL federation via UC JDBC.
+Fleet-wide overview combining Neo4j graph metrics with Delta sensor analytics in a single SQL statement. No Spark Connector needed, using pure SQL federation via Neo4j Federated JDBC UC Connection.
 
-**Federation Method:** `remote_query()` (UC JDBC) with CROSS JOINs
+**Federation Method:** `remote_query()` (Neo4j Federated JDBC UC Connection) with CROSS JOINs
 
 == Data Flow
 
@@ -72,7 +72,7 @@ The following output was captured from a live Databricks cluster running against
 [listing]
 ....
 Fleet Summary: Neo4j Graph Metrics + Delta Sensor Analytics
-Neo4j: remote_query() via UC JDBC | Delta: sensor_readings + sensors
+Neo4j: remote_query() via Neo4j Federated JDBC UC Connection | Delta: sensor_readings + sensors
 ================================================================================
 +------------------------+---------------+-------------+--------------------------+---------------+-----------------+-----------------+----------------+--------------+
 |total_maintenance_events|critical_events|total_flights|flight_airport_connections|avg_egt_celsius|avg_vibration_ips|avg_fuel_flow_kgs|avg_n1_speed_rpm|total_readings|
@@ -83,4 +83,4 @@ Neo4j: remote_query() via UC JDBC | Delta: sensor_readings + sensors
 
 == Key Pattern
 
-`remote_query()` returns a single-row table per call, making CROSS JOINs natural for combining multiple aggregate metrics. This avoids the GROUP BY limitation of UC JDBC while keeping the query entirely in SQL.
+`remote_query()` returns a single-row table per call, making CROSS JOINs natural for combining multiple aggregate metrics. This avoids the GROUP BY limitation of Neo4j Federated JDBC UC Connection while keeping the query entirely in SQL.

@@ -16,7 +16,7 @@ For a step-by-step setup and usage guide, see [neo4j_uc_jdbc_guide.md](./docs/ne
 
 ## Overview of Neo4j Integration Patterns
 
-**JDBC Connectivity** — Neo4j connects to Unity Catalog via a generic JDBC connection (`TYPE JDBC`) using the [Neo4j JDBC driver](https://neo4j.com/docs/jdbc-manual/current/) with built-in SQL-to-Cypher translation. A SafeSpark compatibility issue (metaspace memory exhaustion) was resolved in collaboration with Databricks engineering. With three Spark configuration settings, UC JDBC connections to Neo4j work correctly — including queries, aggregates, GROUP BY, HAVING, ORDER BY, JOINs, and schema discovery.
+**JDBC Connectivity** — Neo4j connects to Unity Catalog via a generic JDBC connection (`TYPE JDBC`) using the [Neo4j JDBC driver](https://neo4j.com/docs/jdbc-manual/current/) with built-in SQL-to-Cypher translation. A SafeSpark compatibility issue (metaspace memory exhaustion) was resolved in collaboration with Databricks engineering. With three Spark configuration settings, the Neo4j Federated JDBC UC Connection works correctly — including queries, aggregates, GROUP BY, HAVING, ORDER BY, JOINs, and schema discovery.
 
 **Federated Queries** — Once connected, Neo4j graph data (flights, airports, maintenance events, component hierarchies) can be joined with Delta lakehouse tables (sensor readings, time-series analytics) in a single Spark SQL statement. No ETL pipelines required — each database is queried where the data lives, with results combined at read time.
 
@@ -28,17 +28,31 @@ For a step-by-step setup and usage guide, see [neo4j_uc_jdbc_guide.md](./docs/ne
 
 ---
 
+## What First-Class Lakehouse Federation Support Would Unlock
+
+The integration works today through Unity Catalog's custom JDBC connection. Elevating Neo4j to an officially supported Lakehouse Federation source (`TYPE NEO4J`) would replace the current manual workarounds with native platform capabilities:
+
+- **Foreign catalog** — `CREATE FOREIGN CATALOG neo4j_graph USING CONNECTION neo4j_conn` registers the full Neo4j schema as a browsable three-level namespace in Unity Catalog, making graph data discoverable alongside Delta tables without materialization jobs or External Metadata API workarounds
+- **Table-level governance** — UC grants (`SELECT`, `USE SCHEMA`, `BROWSE`) on individual Neo4j-backed tables rather than connection-level-only access control; data tagging and classification per table
+- **Column-level lineage and audit** — Every query tracked in `system.access.audit` with full context; column-level lineage for notebooks, jobs, and dashboards
+- **Improved query pushdown** — Broader filter, projection, aggregate, and sort pushdown managed by Databricks; potential join pushdown mapping cross-table joins to native graph traversals
+- **Genie and AI/BI Dashboards** — Neo4j foreign tables queryable via natural language and drag-and-drop dashboards without materialization as a prerequisite
+- **Service principal and OAuth support** — Native credential management rather than user/password stored in connection options
+
+For the full capability breakdown and trade-offs, see [docs/unlock.md](./docs/unlock.md).
+
+---
+
 ## Notebooks
 
-All notebooks are in `uc-neo4j-test-suite/` and should be imported to your Databricks workspace. See [uc-neo4j-test-suite/README.md](./uc-neo4j-test-suite/README.md) for prerequisites and setup instructions.
+All notebooks are in `getting-started/` and should be imported to your Databricks workspace. See [getting-started/README.md](./getting-started/README.md) for prerequisites and setup instructions.
 
 | Notebook | What It Covers |
 |----------|---------------|
-| `neo4j_databricks_sql_translation.ipynb` | UC JDBC connection and SQL-to-Cypher translation tests (sections 1-7 covering environment, network, drivers, direct JDBC, and UC JDBC) |
-| `metadata_sync_delta.ipynb` | Metadata sync via materialized Delta tables — reads Neo4j schema via Spark Connector, writes as managed Delta tables with full Catalog Explorer and `INFORMATION_SCHEMA` integration |
-| `metadata_sync_external.ipynb` | Metadata sync via External Metadata API — registers Neo4j schema as external metadata objects for discoverability and lineage without copying data |
-| `federated_lakehouse_query.ipynb` | Federated query patterns joining Neo4j graph data with Delta lakehouse tables in a single Spark SQL statement |
-| `federated_views_agent_ready.ipynb` | Agent-ready federated views that make Neo4j data queryable through Databricks Genie natural language interface |
+| `00-load-graph.ipynb` | Loads the aircraft digital twin dataset into Neo4j from CSV files in a UC Volume |
+| `01-simple-connect-test.ipynb` | Creates the UC JDBC connection and runs basic SQL queries against Neo4j |
+| `02-federated-queries.ipynb` | Federated queries joining Neo4j graph topology with Delta sensor time-series data |
+| `03-materialized-tables.ipynb` | Materializes Neo4j node labels as managed Delta tables for unrestricted SQL access |
 
 ---
 
@@ -54,7 +68,7 @@ All notebooks are in `uc-neo4j-test-suite/` and should be imported to your Datab
 | **Unity Catalog JDBC** | **PASS** | Works with SafeSpark memory configuration |
 | **UC Schema Discovery** | **PASS** | Works with SafeSpark memory configuration |
 
-**Test Results: 14/14 supported patterns pass, 1 expected failure documented (100% success rate)**
+**Non-aggregate SELECT is not supported through UC JDBC (use Neo4j Spark Connector instead). All other patterns pass.**
 
 ---
 
@@ -122,71 +136,15 @@ Enable these preview features in your Databricks workspace:
 
 ## SQL-to-Cypher Translation
 
-The Neo4j JDBC driver automatically translates SQL to Cypher when `enableSQLTranslation=true`:
-
-| SQL | Cypher |
-|-----|--------|
-| `SELECT COUNT(*) FROM Flight` | `MATCH (n:Flight) RETURN count(n)` |
-| `SELECT COUNT(DISTINCT manufacturer) FROM Aircraft` | `MATCH (n:Aircraft) RETURN count(DISTINCT n.manufacturer)` |
-| `SELECT COUNT(*) FROM Aircraft WHERE manufacturer = 'Boeing'` | `MATCH (n:Aircraft) WHERE n.manufacturer = 'Boeing' RETURN count(n)` |
-| `FROM A NATURAL JOIN REL NATURAL JOIN B` | `MATCH (a:A)-[:REL]->(b:B)` |
-| `SELECT name, count(*) FROM People p GROUP BY name` | `MATCH (p:People) RETURN p.name AS name, count(*)` |
-| `SELECT sum(age) FROM People p GROUP BY name` | `MATCH (p:People) WITH sum(p.age) AS __with_col_0, p.name AS __group_col_1 RETURN __with_col_0` |
-| `SELECT name, count(*) AS cnt FROM People p GROUP BY name HAVING cnt > 5` | `MATCH (p:People) WITH p.name AS name, count(*) AS cnt WHERE cnt > 5 RETURN name, cnt` |
-| `SELECT name FROM People p GROUP BY name HAVING count(*) > 5` | `MATCH (p:People) WITH p.name AS name, count(*) AS __having_col_0 WHERE __having_col_0 > 5 RETURN name` |
-| `SELECT name FROM People p GROUP BY name HAVING count(*) > 5 AND max(age) > 50` | `MATCH (p:People) WITH p.name AS name, count(*) AS __having_col_0, max(p.age) AS __having_col_1 WHERE (__having_col_0 > 5 AND __having_col_1 > 50) RETURN name` |
-| `SELECT sum(age) FROM People p GROUP BY name ORDER BY sum(age)` | `MATCH (p:People) WITH sum(p.age) AS __with_col_0, p.name AS __group_col_1 RETURN __with_col_0 ORDER BY __with_col_0` |
-| `SELECT c.name, count(*) FROM Customers c JOIN Orders o ON c.id = o.customer_id GROUP BY c.name` | `MATCH (c:Customers)<-[customer_id:CUSTOMER_ID]-(o:Orders) RETURN c.name, count(*)` |
-| `SELECT DISTINCT name FROM People p GROUP BY name HAVING count(*) > 5 ORDER BY name LIMIT 10 OFFSET 5` | `MATCH (p:People) WITH p.name AS name, count(*) AS __having_col_0 WHERE __having_col_0 > 5 RETURN DISTINCT name ORDER BY name SKIP 5 LIMIT 10` |
-
-**Supported through UC JDBC:**
-- Aggregate queries (COUNT, MIN, MAX, SUM, AVG, percentileCont, percentileDisc, stDev, stDevP)
-- COUNT DISTINCT
-- Aggregates with WHERE clauses
-- Aggregates with NATURAL JOIN (graph traversals)
-- GROUP BY (implicit grouping and explicit WITH-clause generation)
-- HAVING (simple, compound, mixed aggregates, without GROUP BY)
-- ORDER BY (including on aggregate aliases and after WITH clauses)
-- DISTINCT with GROUP BY/HAVING
-- LIMIT and OFFSET
-- Full clause combinations (WHERE + GROUP BY + HAVING + DISTINCT + ORDER BY + LIMIT + OFFSET)
-
-**New SQL functionality supported:**
-- **GROUP BY** — implicit grouping (columns match SELECT) and explicit WITH-clause generation (columns differ from SELECT)
-- **HAVING** — simple conditions, compound conditions (AND/OR), mixed SELECT/HAVING aggregates, HAVING without GROUP BY, HAVING on non-aggregate GROUP BY columns
-- **ORDER BY on aggregate aliases** — `ORDER BY cnt` where `cnt` aliases `count(*)`, with correct alias resolution after WITH clauses
-- **DISTINCT with GROUP BY/HAVING** — correct `RETURN DISTINCT` placement
-- **LIMIT and OFFSET with WITH clauses** — correct attachment to the final RETURN
-- **WHERE + GROUP BY combinations** — WHERE filters before aggregation, HAVING filters after
-- **JOIN + GROUP BY** — aggregation across relationships
-- **COUNT(DISTINCT) in HAVING** — the DISTINCT flag is preserved through the entire pipeline
-- **Additional aggregate functions** — `percentileCont`, `percentileDisc`, `stDev`, `stDevP`
-
-> **Note:** All aggregation support applies to node properties only; aggregating over relationship properties remains Cypher-only.
-
-> The examples above cover GROUP BY, HAVING, ORDER BY, LIMIT/OFFSET, DISTINCT, and their combinations with WHERE and JOIN. **Coming soon:** non-aggregate SELECT (`SELECT col1, col2 FROM Label`) and relationship property aggregation (aggregating over properties stored on Neo4j relationships rather than node properties).
-
-**Not supported through UC JDBC** (use Neo4j Spark Connector instead):
-- Non-aggregate SELECT
-- Relationship property aggregation
-
-See [neo4j_uc_jdbc_guide.md](./docs/neo4j_uc_jdbc_guide.md) for full details and workarounds.
+The Neo4j JDBC driver automatically translates SQL to Cypher when `enableSQLTranslation=true`. For the full translation reference, supported patterns, and examples see [docs/neo4j_uc_jdbc_guide.md](./docs/neo4j_uc_jdbc_guide.md).
 
 ---
 
 ## Metadata Synchronization
 
-Setting up a JDBC connection lets you query Neo4j from Databricks, but it doesn't make Neo4j's schema visible in Unity Catalog. Without metadata sync, there's no way to browse Neo4j's node labels and relationship types in Catalog Explorer, set table-level permissions, or track data lineage — the connection just shows up as a single opaque object.
+Setting up a JDBC connection lets you query Neo4j from Databricks, but it doesn't make Neo4j's schema visible in Unity Catalog. Metadata synchronization maps Neo4j's graph structure (node labels → tables, relationship types → tables, properties → columns) into Unity Catalog's three-level namespace so it can be browsed, governed, and tracked for lineage.
 
-Metadata synchronization solves this by mapping Neo4j's graph structure into Unity Catalog's three-level namespace. Node labels (like `Aircraft` or `Flight`) become tables in a `nodes` schema, relationship types (like `DEPARTS_FROM`) become tables in a `relationships` schema, and properties become columns with the appropriate data types. The result is that Neo4j data looks like any other set of tables in your catalog — you can browse it, grant access to specific tables, and see it in lineage views.
-
-This project prototypes two approaches:
-
-- **Materialized Delta Tables** — Reads data from Neo4j using the Spark Connector and writes it as managed Delta tables. This gives you the full Unity Catalog experience: Catalog Explorer browsing, `INFORMATION_SCHEMA` queries, standard SQL access, and Delta features like time travel. The trade-off is that it copies the data, so you need scheduled jobs to keep it fresh.
-
-- **External Metadata API** — Registers Neo4j's schema as metadata-only entries via Databricks REST API. No data is copied — it just makes Neo4j objects discoverable in the catalog for search and lineage purposes. The trade-off is that you can't query these entries directly with SQL.
-
-For the full design, type mappings, and implementation details, see [metadata_synchronization.md](./docs/metadata_synchronization.md). For prototype results from running the sync notebooks, see [METADATA_SYNC_REPORT.md](./METADATA_SYNC_REPORT.md).
+For design details, type mappings, and implementation, see [docs/metadata_synchronization.md](./docs/metadata_synchronization.md).
 
 ---
 
@@ -194,30 +152,26 @@ For the full design, type mappings, and implementation details, see [metadata_sy
 
 Neo4j data materialized as Delta tables becomes queryable through Databricks AI/BI Genie without any direct graph database access. Users ask natural language questions and Genie generates SQL that federates across Neo4j graph data and Delta lakehouse tables — all governed by Unity Catalog. The LLM never sees Cypher and the user never writes SQL.
 
-This supports several agent integration patterns: Genie as a standalone NL-to-SQL agent, multi-agent setups pairing Genie with a DBSQL MCP server, and Agent Bricks supervisors coordinating Genie with other agents (e.g., RAG over maintenance manuals).
-
-See [federated_agents.md](./docs/federated_agents.md) for the full architecture, Genie space setup instructions, example questions, and agent integration patterns.
-
 ---
 
 ## Repository Structure
 
 ```
 neo4j-uc-integration/
-├── README.md                          # This file
-├── METADATA_SYNC_REPORT.md            # Metadata sync prototype report
-├── NEO4J_UC_INTEGRATION_REPORT.md     # Full integration proposal for Databricks
+├── README.md
 ├── docs/
-│   ├── neo4j_uc_jdbc_guide.md         # Detailed JDBC usage guide
-│   ├── metadata_synchronization.md    # Metadata synchronization design
-│   ├── federated_agents.md            # Federated agents + Genie integration
-│   └── neo4j_jdbc_cleaner.md          # Spark subquery cleaner explanation
-├── uc-neo4j-test-suite/               # Databricks notebooks and test suite
-│   ├── neo4j_databricks_sql_translation.ipynb  # UC JDBC and SQL translation tests
-│   ├── metadata_sync_delta.ipynb               # Metadata sync via Delta tables
-│   ├── metadata_sync_external.ipynb            # Metadata sync via External Metadata API
-│   ├── federated_lakehouse_query.ipynb         # Federated query patterns
-│   └── federated_views_agent_ready.ipynb       # Agent-ready federated views
+│   ├── neo4j_uc_jdbc_guide.md          # JDBC setup, query patterns, troubleshooting
+│   ├── metadata_synchronization.md     # Metadata sync design and implementation
+│   └── neo4j_jdbc_cleaner.md           # Spark subquery cleaner explanation
+├── getting-started/                    # Intro notebooks (import to Databricks workspace)
+│   ├── 00-load-graph.ipynb
+│   ├── 01-simple-connect-test.ipynb
+│   ├── 02-federated-queries.ipynb
+│   └── 03-materialized-tables.ipynb
+├── neo4j-uc-federation-lab/            # Full test suite notebooks
+├── validate-federation/                # Validation scripts
+├── deploy-lakebase/                    # Lakebase deployment scripts
+└── site/                              # Antora documentation site
 ```
 
 ---
@@ -229,3 +183,5 @@ neo4j-uc-integration/
 - [Databricks Unity Catalog JDBC](https://docs.databricks.com/aws/en/connect/jdbc-connection)
 - [Databricks Lakehouse Federation](https://docs.databricks.com/aws/en/query-federation/)
 - [Neo4j Spark Connector](https://neo4j.com/docs/spark/current/)
+- [getting-started/README.md](./getting-started/README.md) — notebook prerequisites and setup
+- [docs/neo4j_uc_jdbc_guide.md](./docs/neo4j_uc_jdbc_guide.md) — JDBC setup, query patterns, troubleshooting

@@ -7,7 +7,7 @@ This page describes common use cases where this integration delivers value.
 
 == Types of Federated Queries
 
-The Neo4j UC JDBC integration supports several categories of federated queries:
+The Neo4j Federated JDBC UC Connection supports several categories of federated queries:
 
 * **Aggregate queries** — `COUNT`, `SUM`, `AVG`, `MIN`, `MAX`, and `COUNT DISTINCT` are pushed down to Neo4j via `remote_query()`, so only summarized results travel over the network. Useful for fleet-wide metrics, relationship counts, and graph statistics.
 * **Filtered queries** — `WHERE` clauses with equals, `IN`, `AND`, and `IS NOT NULL` are pushed down, letting you narrow results at the source before joining with lakehouse data.

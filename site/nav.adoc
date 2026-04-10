@@ -6,4 +6,7 @@
 * xref:05-fleet-health-dashboard.adoc[Query 5: Fleet Health Dashboard]
 * xref:06-genie-natural-language.adoc[Query 6: NL Queries with Genie]
 * xref:07-example-use-cases.adoc[Example Use Cases]
+* xref:sql-reference.adoc[SQL Reference]
 * xref:06-uc-integration-setup.adoc[Deep Dive: UC Integration Setup]
+* xref:08-official-federation-catalog-governance.adoc[What's Next: Catalog & Governance]
+* xref:09-official-federation-genie-analytics.adoc[What's Next: Genie & AI/BI]

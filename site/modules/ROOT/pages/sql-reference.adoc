@@ -1,0 +1,308 @@
+= SQL Reference: Neo4j Federated JDBC UC Connection
+:description: Complete reference for SQL patterns supported by the Neo4j JDBC SQL-to-Cypher translator through the Databricks JDBC UC connection
+
+This page documents the full set of SQL patterns validated against a live Neo4j Aura instance through the Neo4j Federated JDBC UC Connection, using the aircraft digital twin dataset (20 aircraft, 800 flights, 12 airports, 300 maintenance events, 514 delays).
+
+Before every query, Spark sends a schema probe: `SELECT * FROM (your_query) SPARK_GEN_SUBQ_0 WHERE 1=0`. The spark cleaner JAR strips this wrapper automatically before the SQL-to-Cypher translator sees it. Every pattern listed as PASS survived both the probe and the live execution.
+
+== Supported Patterns
+
+=== Basic Aggregates and Filters
+
+[cols="3,2"]
+|===
+|Pattern |Example
+
+|Simple expressions
+|`SELECT 1 AS test`
+
+|COUNT aggregate
+|`SELECT COUNT(*) AS cnt FROM Flight`
+
+|Multiple aggregates
+|`SELECT COUNT(*) AS total, MIN(aircraft_id) AS first, MAX(aircraft_id) AS last FROM Aircraft`
+
+|COUNT DISTINCT
+|`SELECT COUNT(DISTINCT manufacturer) AS makes FROM Aircraft`
+
+|Aggregate with WHERE (equals)
+|`SELECT COUNT(*) AS cnt FROM Aircraft WHERE manufacturer = 'Boeing'`
+
+|Aggregate with WHERE (IN)
+|`SELECT COUNT(*) AS cnt FROM Aircraft WHERE manufacturer IN ('Boeing', 'Airbus')`
+
+|Aggregate with WHERE (AND)
+|`SELECT COUNT(*) AS cnt FROM Aircraft WHERE manufacturer = 'Boeing' AND model IS NOT NULL`
+
+|Aggregate with WHERE (IS NOT NULL)
+|`SELECT COUNT(*) AS cnt FROM Aircraft WHERE model IS NOT NULL`
+
+|JOIN (graph traversal)
+|`SELECT COUNT(*) AS cnt FROM Flight f NATURAL JOIN DEPARTS_FROM r NATURAL JOIN Airport a`
+|===
+
+=== GROUP BY
+
+Both projected and non-projected group keys are supported.
+
+[cols="3,2"]
+|===
+|Pattern |Example
+
+|GROUP BY with projected key
+|`SELECT severity, COUNT(*) AS cnt FROM MaintenanceEvent GROUP BY severity`
+
+|GROUP BY with non-projected key (explicit WITH-clause)
+|`SELECT COUNT(*) AS cnt FROM MaintenanceEvent GROUP BY severity`
+
+|GROUP BY with multiple aggregates
+|`SELECT operator, COUNT(*) AS flights, COUNT(DISTINCT origin) AS origins, COUNT(DISTINCT destination) AS destinations FROM Flight GROUP BY operator`
+|===
+
+=== HAVING
+
+[cols="3,2"]
+|===
+|Pattern |Example
+
+|HAVING simple (filter on alias)
+|`SELECT operator, COUNT(*) AS cnt FROM Flight GROUP BY operator HAVING cnt > 20`
+
+|HAVING with non-projected aggregate
+|`SELECT severity FROM MaintenanceEvent GROUP BY severity HAVING COUNT(*) > 10`
+
+|HAVING compound
+|`SELECT operator, COUNT(*) AS cnt FROM Flight GROUP BY operator HAVING COUNT(*) > 10 AND COUNT(DISTINCT origin) > 2`
+
+|HAVING without GROUP BY
+|`SELECT COUNT(*) AS cnt FROM MaintenanceEvent HAVING COUNT(*) > 0`
+|===
+
+=== ORDER BY, DISTINCT, LIMIT, OFFSET
+
+[cols="3,2"]
+|===
+|Pattern |Example
+
+|ORDER BY on aggregate alias
+|`SELECT severity, COUNT(*) AS cnt FROM MaintenanceEvent GROUP BY severity ORDER BY cnt DESC`
+
+|ORDER BY multi-key
+|`SELECT operator, COUNT(*) AS cnt, COUNT(DISTINCT origin) AS routes FROM Flight GROUP BY operator ORDER BY cnt DESC, routes`
+
+|DISTINCT with GROUP BY
+|`SELECT DISTINCT operator, COUNT(*) AS cnt FROM Flight GROUP BY operator`
+
+|LIMIT and OFFSET
+|`SELECT operator, COUNT(*) AS cnt FROM Flight GROUP BY operator ORDER BY cnt DESC LIMIT 3 OFFSET 1`
+|===
+
+=== WHERE + GROUP BY, JOIN + GROUP BY
+
+[cols="3,2"]
+|===
+|Pattern |Example
+
+|WHERE + GROUP BY (comparison)
+|`SELECT COUNT(*) AS cnt FROM MaintenanceEvent WHERE severity = 'CRITICAL' GROUP BY aircraftId`
+
+|WHERE + GROUP BY (IS NOT NULL)
+|`SELECT COUNT(*) AS cnt FROM MaintenanceEvent WHERE fault IS NOT NULL GROUP BY severity`
+
+|JOIN + GROUP BY (non-projected key)
+|`SELECT COUNT(*) AS flight_count FROM Flight f NATURAL JOIN DEPARTS_FROM r NATURAL JOIN Airport a GROUP BY a.code`
+
+|JOIN + GROUP BY (projected key)
+|`SELECT a.code AS code, COUNT(*) AS flight_count FROM Flight f NATURAL JOIN DEPARTS_FROM r NATURAL JOIN Airport a GROUP BY a.code`
+
+|COUNT(DISTINCT) in HAVING
+|`SELECT operator FROM Flight GROUP BY operator HAVING COUNT(DISTINCT origin) > 3`
+|===
+
+=== Additional Aggregate Functions
+
+[cols="3,2"]
+|===
+|Pattern |Example
+
+|stDev
+|`SELECT stDev(minutes) AS std_delay FROM Delay`
+
+|stDevP
+|`SELECT stDevP(minutes) AS stdp_delay FROM Delay`
+
+|percentileCont
+|`SELECT percentileCont(minutes, 0.5) AS median_delay FROM Delay`
+
+|percentileDisc
+|`SELECT percentileDisc(minutes, 0.5) AS median_delay FROM Delay`
+|===
+
+=== Full Clause Combinations
+
+[cols="3,2"]
+|===
+|Pattern |Example
+
+|All clauses combined
+|`SELECT severity, COUNT(*) AS cnt FROM MaintenanceEvent GROUP BY severity HAVING COUNT(*) > 5 ORDER BY cnt DESC LIMIT 10 OFFSET 0`
+
+|Federated GROUP BY + Delta LEFT JOIN
+|`remote_query()` CTE with GROUP BY, LEFT JOINed to a Delta table on `aircraft_id`
+
+|Federated HAVING + Delta INNER JOIN
+|`remote_query()` CTE with GROUP BY + HAVING, INNER JOINed to a Delta table
+|===
+
+NOTE: All aggregation support applies to node properties only. Aggregating over relationship properties requires Cypher directly via the Neo4j Spark Connector.
+
+== Unsupported Patterns
+
+[cols="2,3"]
+|===
+|Pattern |Workaround
+
+|Non-aggregate `SELECT col1, col2 FROM Label`
+|Use the Neo4j Spark Connector with a Cypher query. This is a translator limitation — the SQL-to-Cypher translator does not project row-level node properties without an aggregate.
+
+|Relationship property aggregation
+|Use Cypher directly via the Neo4j Spark Connector.
+
+|`WHERE col LIKE 'pattern'` in `remote_query()`
+|Databricks strips quotes from LIKE string literals before the query reaches the JDBC driver. Use a `FORCE_CYPHER` hint with a Cypher `STARTS WITH` or `CONTAINS` clause instead.
+
+|User-authored derived-table subqueries (`SELECT * FROM (...) alias`)
+|Not supported. The translator generates invalid Cypher that treats the table alias as a node variable. The `SPARK_GEN_SUBQ_N` probe wrapping handled by the spark cleaner is separate internal plumbing — it does not represent general subquery support.
+|===
+
+== Qualified Column Name Aliasing
+
+When you write `SELECT a.code`, the result column is named `a.code` (with the table prefix), not `code`. This breaks any downstream `df["code"]` reference in PySpark. Always add an explicit alias for qualified columns:
+
+[source,sql]
+----
+-- Produces column named "a.code" (breaks downstream references)
+SELECT a.code, COUNT(*) AS flight_count
+FROM Flight f NATURAL JOIN DEPARTS_FROM r NATURAL JOIN Airport a
+GROUP BY a.code
+
+-- Produces column named "code" (correct)
+SELECT a.code AS code, COUNT(*) AS flight_count
+FROM Flight f NATURAL JOIN DEPARTS_FROM r NATURAL JOIN Airport a
+GROUP BY a.code
+----
+
+Unqualified columns (`SELECT severity`) do not need this treatment.
+
+== Federated Query Patterns
+
+=== Use LEFT JOIN from the Delta side
+
+When joining a `remote_query()` result with a Delta table, let Delta drive the join. Spark's Catalyst optimizer can resolve backtick-quoted columns from a `remote_query()` CTE inconsistently when that side drives the join.
+
+[source,sql]
+----
+WITH neo4j_counts AS (
+    SELECT aircraftId, COUNT(*) AS maint_count
+    FROM remote_query('neo4j_connection',
+        query => 'SELECT aircraftId, COUNT(*) AS maint_count
+                  FROM MaintenanceEvent
+                  GROUP BY aircraftId')
+    GROUP BY aircraftId
+)
+SELECT d.aircraft_id, n.maint_count
+FROM delta_aircraft_ref d
+LEFT JOIN neo4j_counts n ON d.aircraft_id = n.aircraftId
+----
+
+=== Add HAVING COUNT(*) > 0 for warm-cluster reliability
+
+Pure `GROUP BY` without `HAVING` or `ORDER BY` intermittently returns 0 rows on warm Databricks clusters due to a UC `remote_query()` caching issue. Adding `HAVING COUNT(*) > 0` avoids this.
+
+== Validated Test Results
+
+All patterns were validated end-to-end on Databricks Runtime 17.3 LTS connected to Neo4j Aura.
+
+[cols="1,2,1"]
+|===
+|Script |What It Validates |Result
+
+|run_01
+|Neo4j Federated JDBC UC Connection established; `SELECT 1` passes; `SELECT COUNT(*)` on Aircraft returns 20; sensor_readings Delta table (172,800 rows) accessible
+|PASS
+
+|run_02
+|Three federated queries: sensor health by aircraft, maintenance severity + sensor health, flight delay analysis
+|PASS
+
+|run_03
+|`remote_query()` patterns: basic query, COUNT aggregate, WHERE filter, NATURAL JOIN two-hop traversal (Flight → Airport), federated CTE joined to Delta table
+|PASS
+
+|run_04
+|Nine Neo4j labels materialized as managed Delta tables (neo4j_aircraft, neo4j_airports, neo4j_systems, neo4j_sensors, neo4j_components, neo4j_maintenance_events, neo4j_flights, neo4j_delays, neo4j_aircraft_systems); SQL validation (GROUP BY, WHERE + ORDER BY, aggregation + JOIN, DISTINCT) and federated queries on materialized data
+|PASS
+
+|run_05 §1
+|GROUP BY: projected key, non-projected key, multiple aggregates
+|PASS
+
+|run_05 §2
+|HAVING: simple (alias filter), non-projected aggregate, compound (AND)
+|PASS
+
+|run_05 §3
+|ORDER BY: aggregate alias, multi-key
+|PASS
+
+|run_05 §4
+|DISTINCT + GROUP BY
+|PASS
+
+|run_05 §5
+|LIMIT + OFFSET
+|PASS
+
+|run_05 §6
+|All clauses combined (GROUP BY + HAVING + ORDER BY + LIMIT + OFFSET)
+|PASS
+
+|run_05 §7
+|Federated GROUP BY + Delta sensor data (remote_query CTE + LEFT JOIN)
+|PASS
+
+|run_05 §8
+|Federated HAVING + Delta engine performance (remote_query CTE + INNER JOIN)
+|PASS
+
+|run_05 §9
+|JOIN + GROUP BY: non-projected and projected key across NATURAL JOIN traversal
+|PASS
+
+|run_05 §10
+|HAVING without GROUP BY
+|PASS
+
+|run_05 §11
+|WHERE + GROUP BY: comparison filter, IS NOT NULL filter
+|PASS
+
+|run_05 §12
+|Additional aggregates: stDev, stDevP, percentileCont, percentileDisc
+|PASS
+
+|run_05 §13
+|HAVING + ORDER BY + LIMIT + OFFSET combined
+|PASS
+
+|Non-aggregate SELECT
+|`SELECT aircraft_id, manufacturer FROM Aircraft` (row-level, no aggregate)
+|EXPECTED FAIL — translator limitation
+|===
+
+== References
+
+* https://neo4j.com/docs/jdbc-manual/current/sql2cypher/[Neo4j JDBC SQL-to-Cypher Translation Rules]
+* xref:06-uc-integration-setup.adoc[Deep Dive: UC Integration Setup]
+* https://docs.databricks.com/aws/en/connect/jdbc-connection[Databricks JDBC Connection documentation]
+* https://docs.databricks.com/aws/en/sql/language-manual/functions/remote_query[Databricks remote_query() reference]

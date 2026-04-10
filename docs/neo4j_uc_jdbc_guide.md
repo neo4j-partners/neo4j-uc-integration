@@ -280,7 +280,7 @@ ORDER BY cnt DESC LIMIT 10 OFFSET 2
 --         RETURN DISTINCT department, cnt, max_age ORDER BY cnt DESC SKIP 2 LIMIT 10
 ```
 
-> **Coming soon:** non-aggregate SELECT (`SELECT col1, col2 FROM Label`) and relationship property aggregation (aggregating over properties stored on Neo4j relationships rather than node properties).
+> **Not supported:** non-aggregate SELECT (`SELECT col1, col2 FROM Label`) and relationship property aggregation. Use the Neo4j Spark Connector for these patterns.
 
 ## Unsupported Query Patterns
 
@@ -315,14 +315,17 @@ The Neo4j JDBC driver automatically translates SQL to Cypher when `enableSQLTran
 | SQL | Cypher |
 |-----|--------|
 | `SELECT COUNT(*) FROM Flight` | `MATCH (n:Flight) RETURN count(n)` |
-| `SELECT * FROM Aircraft LIMIT 5` | `MATCH (n:Aircraft) RETURN n LIMIT 5` |
+| `SELECT COUNT(DISTINCT manufacturer) FROM Aircraft` | `MATCH (n:Aircraft) RETURN count(DISTINCT n.manufacturer)` |
+| `SELECT COUNT(*) FROM Aircraft WHERE manufacturer = 'Boeing'` | `MATCH (n:Aircraft) WHERE n.manufacturer = 'Boeing' RETURN count(n)` |
 | `FROM A NATURAL JOIN REL NATURAL JOIN B` | `MATCH (a:A)-[:REL]->(b:B)` |
-| `WHERE prop = 'value'` | `WHERE n.prop = 'value'` |
-| `SELECT name, count(*) FROM People GROUP BY name` | `MATCH (p:People) RETURN p.name AS name, count(*)` |
-| `... GROUP BY name HAVING count(*) > 5` | `... WITH p.name AS name, count(*) AS __having_col_0 WHERE __having_col_0 > 5 RETURN name` |
-| `... GROUP BY name ORDER BY count(*)` | `... WITH ... ORDER BY __with_col_0` |
-
-> The translation examples above cover aggregates, WHERE, JOIN, GROUP BY, HAVING, ORDER BY, LIMIT/OFFSET, DISTINCT, and their combinations. **Coming soon:** non-aggregate SELECT and relationship property aggregation.
+| `SELECT name, count(*) FROM People p GROUP BY name` | `MATCH (p:People) RETURN p.name AS name, count(*)` |
+| `SELECT sum(age) FROM People p GROUP BY name` | `MATCH (p:People) WITH sum(p.age) AS __with_col_0, p.name AS __group_col_1 RETURN __with_col_0` |
+| `SELECT name, count(*) AS cnt FROM People p GROUP BY name HAVING cnt > 5` | `MATCH (p:People) WITH p.name AS name, count(*) AS cnt WHERE cnt > 5 RETURN name, cnt` |
+| `SELECT name FROM People p GROUP BY name HAVING count(*) > 5` | `MATCH (p:People) WITH p.name AS name, count(*) AS __having_col_0 WHERE __having_col_0 > 5 RETURN name` |
+| `SELECT name FROM People p GROUP BY name HAVING count(*) > 5 AND max(age) > 50` | `MATCH (p:People) WITH p.name AS name, count(*) AS __having_col_0, max(p.age) AS __having_col_1 WHERE (__having_col_0 > 5 AND __having_col_1 > 50) RETURN name` |
+| `SELECT sum(age) FROM People p GROUP BY name ORDER BY sum(age)` | `MATCH (p:People) WITH sum(p.age) AS __with_col_0, p.name AS __group_col_1 RETURN __with_col_0 ORDER BY __with_col_0` |
+| `SELECT c.name, count(*) FROM Customers c JOIN Orders o ON c.id = o.customer_id GROUP BY c.name` | `MATCH (c:Customers)<-[customer_id:CUSTOMER_ID]-(o:Orders) RETURN c.name, count(*)` |
+| `SELECT DISTINCT name FROM People p GROUP BY name HAVING count(*) > 5 ORDER BY name LIMIT 10 OFFSET 5` | `MATCH (p:People) WITH p.name AS name, count(*) AS __having_col_0 WHERE __having_col_0 > 5 RETURN DISTINCT name ORDER BY name SKIP 5 LIMIT 10` |
 
 See [Neo4j JDBC SQL2Cypher docs](https://neo4j.com/docs/jdbc-manual/current/sql2cypher/) for complete translation rules.
 
@@ -448,15 +451,7 @@ spark.databricks.safespark.jdbcSandbox.size.default.mib 512
 
 | File | Description |
 |------|-------------|
-| `uc-neo4j-test-suite/neo4j_databricks_sql_translation.ipynb` | UC JDBC connection and SQL-to-Cypher translation tests |
-| `uc-neo4j-test-suite/metadata_sync_delta.ipynb` | Metadata sync via materialized Delta tables |
-| `uc-neo4j-test-suite/metadata_sync_external.ipynb` | Metadata sync via External Metadata API |
-| `uc-neo4j-test-suite/federated_lakehouse_query.ipynb` | Federated query testing |
-| `uc-neo4j-test-suite/federated_views_agent_ready.ipynb` | Agent-ready federated views |
+| `getting-started/01-simple-connect-test.ipynb` | Create the UC JDBC connection and run basic SQL queries |
+| `getting-started/02-federated-queries.ipynb` | Federated queries joining Neo4j graph topology with Delta |
+| `getting-started/03-materialized-tables.ipynb` | Materialize Neo4j node labels as managed Delta tables |
 
-### Additional Examples
-
-| Directory | Description |
-|-----------|-------------|
-| `pyspark-translation-example/` | Local PySpark tests for SQL-to-Cypher translation |
-| `sample-sql-translation/` | Spring Boot app for JDBC connectivity testing |

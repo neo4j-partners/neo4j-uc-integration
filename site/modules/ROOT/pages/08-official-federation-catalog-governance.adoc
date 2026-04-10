@@ -1,0 +1,157 @@
+= What's Next: Catalog & Governance
+:description: Catalog-level integration and Unity Catalog governance demonstrated with Lakebase as a reference for what Neo4j would gain as an official Databricks federated data source
+
+[.lead]
+The federated query patterns in this guide work today because of the custom Neo4j JDBC connector. But the connector is not yet an official Databricks federated data source. This page shows exactly what that distinction means in practice.
+
+Lakebase, Databricks' managed PostgreSQL, is already an official federated data source. Every capability shown here — catalog-level discoverability, table-level access control, automatic audit logging, and column-level lineage — is what Neo4j would gain once it reaches the same status. The demo uses a financial holdings dataset: companies, asset managers, portfolio positions, and financial metrics. Berkshire Hathaway's holdings make for a recognizable story that a technical audience can follow without domain background.
+
+== Scenario 1: Catalog-Level Integration
+
+Without official federation, a database is a black box. You connect to it if you know the hostname and credentials, and you have no idea what's inside until you're already in.
+
+With Lakebase as an official federated source, the PostgreSQL database registers as a named catalog in Unity Catalog. A user opens Catalog Explorer and sees a catalog called `lakebase_financial` with schemas and tables — `companies`, `asset_managers`, `asset_manager_holdings`, and `financial_metrics` — all browsable like any other table in the lakehouse. Column names, row counts, and attached descriptions are visible before writing a single query.
+
+For Neo4j, this would mean node labels and relationship types appearing as tables in Catalog Explorer automatically — discoverable without any manual sync job or schema explanation.
+
+=== Setup
+
+==== Step 1: Configure and deploy the Lakebase instance
+
+Copy `deploy-lakebase/.env.sample` to `deploy-lakebase/.env` and set the two values:
+
+[source]
+----
+LAKEBASE_PROJECT_NAME=lakebase-flb-demo
+DATABRICKS_PROFILE=azure-rk-knight
+----
+
+Then run the deploy script:
+
+[source,bash]
+----
+./deploy-lakebase/deploy.py deploy
+----
+
+The script creates the Lakebase project, generates an OAuth credential, and writes a connection file to `deploy-lakebase/lakebase-flb-demo-connection.json`. The JSON contains everything needed for the next steps:
+
+[source,json]
+----
+{
+  "project": "lakebase-flb-demo",
+  "branch": "main",
+  "endpoint": "main",
+  "connection": {
+    "host": "<your-instance>.lakebase.databricks.com",
+    "port": 5432,
+    "database": "databricks_postgres",
+    "username": "you@company.com",
+    "password": "<oauth-token>",
+    "token_expires": "2026-04-09T22:00:00Z"
+  }
+}
+----
+
+NOTE: The OAuth token expires after one hour. Run `./deploy-lakebase/deploy.py refresh` to generate a fresh token and overwrite the connection file before the demo.
+
+==== Step 2: Load the financial data
+
+[source,bash]
+----
+./deploy-lakebase/test_lakebase.py
+----
+
+This creates four tables (`companies`, `asset_managers`, `asset_manager_holdings`, `financial_metrics`) in the `public` schema of `databricks_postgres` and loads all CSV data from `deploy-lakebase/data/`. It then runs a set of verification queries and prints row counts and sample results to confirm the data is in place.
+
+==== Step 3: Create the connection and foreign catalog in Catalog Explorer
+
+Open the connection JSON and copy the `host`, `username`, and `password` fields.
+
+. In your Databricks workspace, click *Catalog* in the left sidebar.
+. At the top of the Catalog pane, click the *+* Add icon and select *Create a connection*.
+. Enter connection name: `lakebase_financial_conn`. Select *PostgreSQL* as the connection type. Click *Next*.
+. Fill in authentication details from the connection JSON:
+** *Host*: `connection.host`
+** *Port*: `5432`
+** *User*: `connection.username`
+** *Password*: `connection.password`
+. Click *Create connection*.
+. On the Catalog basics page:
+** *Catalog name*: `lakebase_financial`
+** *Database*: `databricks_postgres`
+** Click *Test connection* to confirm it reaches the instance, then click *Create catalog*.
+. On the Access page, select *All workspaces have access*. Set yourself as owner. Click *Next*, then *Save*.
+
+==== Step 4: Verify the catalog is browsable
+
+Navigate to `lakebase_financial` in the Catalog pane. Open the `public` schema. You should see four tables: `companies`, `asset_managers`, `asset_manager_holdings`, and `financial_metrics`. Click any table to see column names, data types, and row count with no query written.
+
+Click the *Sample Data* tab on any table to preview rows directly in Catalog Explorer. This is the moment to pause during a walkthrough: the audience is looking at PostgreSQL data inside Unity Catalog, with the same schema browsing experience they get for Delta tables.
+
+== Scenario 2: Governance and Access Control
+
+Without official federation, the only access lever is connection-level: either you have credentials to the database or you don't. There is no middle ground.
+
+With Lakebase as an official federated source, access works at the table level through standard Unity Catalog grants. A compliance team can give analysts permission to query `companies` and `asset_managers` while restricting `asset_manager_holdings` to a smaller group. No one with restricted access can see Berkshire's positions even if they know the database hostname.
+
+Beyond access control, audit logging is automatic. Every query — which analyst ran it, which notebook it came from, which table was touched, and at what time — appears in the Unity Catalog system audit log with no configuration required.
+
+Column-level lineage works the same way. When a dashboard reads the `shares` column from `asset_manager_holdings`, Unity Catalog records that automatically. A data steward can trace exactly which downstream reports depend on which upstream columns in the PostgreSQL database.
+
+For Neo4j, this is the difference between connection-level governance that today requires workarounds and the per-table, per-column governance that regulated industries actually need.
+
+=== Setup
+
+Run the following SQL in a notebook or the SQL query editor to create a group called `analysts` and grant it access to reference tables only. The holdings data is withheld:
+
+[source,sql]
+----
+-- Grant access to the catalog and schema
+GRANT USE CATALOG ON CATALOG lakebase_financial TO `analysts`;
+GRANT USE SCHEMA ON SCHEMA lakebase_financial.public TO `analysts`;
+
+-- Allow reads on reference tables
+GRANT SELECT ON TABLE lakebase_financial.public.companies TO `analysts`;
+GRANT SELECT ON TABLE lakebase_financial.public.asset_managers TO `analysts`;
+
+-- Do NOT grant SELECT on asset_manager_holdings or financial_metrics
+----
+
+To show the current permission state in Catalog Explorer: navigate to `lakebase_financial` → `public` → `asset_manager_holdings`, click the *Permissions* tab. The `analysts` group does not appear.
+
+=== Verification
+
+Log in as or impersonate a user in the `analysts` group. From a SQL warehouse:
+
+[source,sql]
+----
+-- This succeeds — analysts can read reference data
+SELECT name, ticker FROM lakebase_financial.public.companies LIMIT 10;
+
+-- This fails — analysts cannot see position data
+SELECT * FROM lakebase_financial.public.asset_manager_holdings LIMIT 10;
+-- Expected error: PERMISSION_DENIED: User does not have SELECT privilege on table...
+----
+
+*Show the audit trail.* Every query attempt, including the denied one, appears in the system audit log automatically. No configuration required:
+
+[source,sql]
+----
+SELECT
+  event_time,
+  user_name,
+  action_name,
+  response.status_code AS status
+FROM system.access.audit
+WHERE event_time > current_timestamp() - INTERVAL 1 HOUR
+  AND service_name = 'databricks.sql'
+ORDER BY event_time DESC
+LIMIT 20;
+----
+
+*Show column-level lineage* after the dashboard in xref:09-official-federation-genie-analytics.adoc[Scenario 4] has been published:
+
+. Click *Catalog* in the sidebar.
+. Navigate to `lakebase_financial` → `public` → `asset_manager_holdings`.
+. Click the *Lineage* tab.
+. The `shares` column shows a downstream lineage edge to the AI/BI dashboard dataset. Unity Catalog recorded this when the dashboard first ran its query.

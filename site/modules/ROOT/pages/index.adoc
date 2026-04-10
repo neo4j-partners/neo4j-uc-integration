@@ -14,7 +14,7 @@ Databricks https://docs.databricks.com/query-federation/[Lakehouse Federation] m
 
 == How It Works: Neo4j JDBC + Unity Catalog
 
-The key enabler is the https://neo4j.com/docs/jdbc-manual/current/[Neo4j JDBC driver] with its built-in https://neo4j.com/docs/jdbc-manual/current/sql2cypher/[SQL-to-Cypher translation]. When you send a SQL query through a UC JDBC connection, the Neo4j driver automatically translates it to Cypher so Databricks can treat Neo4j as just another SQL data source.
+The key enabler is the https://neo4j.com/docs/jdbc-manual/current/[Neo4j JDBC driver] with its built-in https://neo4j.com/docs/jdbc-manual/current/sql2cypher/[SQL-to-Cypher translation]. When you send a SQL query through a Neo4j Federated JDBC UC Connection, the Neo4j driver automatically translates it to Cypher so Databricks can treat Neo4j as just another SQL data source.
 
 For example, this SQL:
 
@@ -34,15 +34,14 @@ MATCH (f:Flight)-[:DEPARTS_FROM]->(a:Airport)
 RETURN count(*) AS cnt
 ----
 
-The UC JDBC connection is created with a `CREATE CONNECTION` statement that points to your Neo4j instance and loads the JDBC driver JARs from a Unity Catalog Volume:
+The Neo4j Federated JDBC UC Connection is created with a `CREATE CONNECTION` statement that points to your Neo4j instance and loads the JDBC driver JARs from a Unity Catalog Volume:
 
 [source,sql]
 ----
 CREATE CONNECTION neo4j_connection TYPE JDBC
 ENVIRONMENT (
   java_dependencies '[
-    "/Volumes/catalog/schema/jars/neo4j-jdbc-full-bundle-6.10.3.jar",
-    "/Volumes/catalog/schema/jars/neo4j-jdbc-translator-sparkcleaner-6.10.3.jar"
+    "/Volumes/catalog/schema/jars/neo4j-unity-catalog-connector.jar"
   ]'
 )
 OPTIONS (
@@ -56,7 +55,7 @@ OPTIONS (
 
 Once this connection exists, you can query Neo4j directly from SQL using `remote_query()`, or from PySpark using the Spark DataFrame JDBC reader, all governed by Unity Catalog.
 
-NOTE: The Neo4j JDBC driver requires additional memory for class loading in the Databricks SafeSpark sandbox. Without the correct Spark configuration (`spark.databricks.safespark.jdbcSandbox.jvm.maxMetaspace.mib`, etc.), the sandbox JVM will crash with "Connection was closed before the operation completed." See the full setup details in the https://github.com/neo4j-field/neo4j-uc-integration/blob/main/neo4j_uc_jdbc_guide.md[Neo4j UC JDBC Guide].
+NOTE: The Neo4j JDBC driver requires additional memory for class loading in the Databricks SafeSpark sandbox. Without the correct Spark configuration (`spark.databricks.safespark.jdbcSandbox.jvm.maxMetaspace.mib`, etc.), the sandbox JVM will crash with "Connection was closed before the operation completed." See the full setup details in the https://github.com/neo4j-field/neo4j-uc-integration/blob/main/neo4j_uc_jdbc_guide.md[Neo4j Federated JDBC UC Connection Setup Guide].
 
 == The Demo: Aircraft Digital Twin
 
@@ -83,27 +82,6 @@ The federated queries in this guide join both sources to answer questions that n
 
 image::architecture-overview.png[Federated Lakehouse Architecture,700]
 
-== How This Works with Genie
-
-The federated queries shown in this guide can also be driven by natural language through https://docs.databricks.com/aws/en/genie/[Databricks AI/BI Genie]. Instead of writing SQL by hand, a user asks a plain-English question and Genie generates the SQL automatically, federating across Neo4j graph data and Delta lakehouse tables, all governed by Unity Catalog.
-
-The key insight is that Neo4j data can be **materialized as managed Delta tables** by reading it through the UC JDBC connection and saving the results as regular tables. Once materialized, Genie sees all tables (Delta and Neo4j-sourced) as regular UC tables and generates SQL that JOINs across them transparently.
-
-A Genie space is configured with:
-
-* **Delta tables (direct):** `aircraft`, `systems`, `sensors`, `sensor_readings`
-* **Neo4j tables (materialized):** `neo4j_maintenance_events`, `neo4j_flights`, `neo4j_airports`, `neo4j_flight_airports`
-* **Instructions:** domain context, JOIN patterns, and example SQL that teach Genie how to navigate the sensor data model and cross-source joins
-
-The Genie space can then use natural language queries to query the data, combining Delta tables and Neo4j tables transparently. The full architecture and implementation details are in the https://github.com/neo4j-partners/neo4j-uc-integration/blob/main/federated_agents.md[Federated Agents guide].
-
-[source,text]
-----
-Natural Language → Genie (NL → SQL) → Spark SQL Engine
-    ├── Delta tables → direct read
-    └── Neo4j tables → materialized via JDBC dbtable + customSchema
-----
-
 == Federation Methods
 
 [cols="1,2,2"]
@@ -119,108 +97,24 @@ Natural Language → Genie (NL → SQL) → Spark SQL Engine
 |Requires cluster library, no UC governance
 |===
 
-== UC JDBC: Supported and Unsupported Query Patterns
+== Supported SQL Patterns
 
-Spark wraps UC JDBC queries in a subquery for schema inference, which limits what SQL constructs the Neo4j driver can translate. The following patterns were validated against a live Neo4j Aura instance (see the full test results in the https://github.com/neo4j-field/neo4j-uc-integration/blob/main/neo4j_uc_jdbc_guide.md[Neo4j UC JDBC Guide]).
+The Neo4j Federated JDBC UC Connection supports aggregate queries, GROUP BY, HAVING, ORDER BY, DISTINCT, LIMIT/OFFSET, WHERE filters, NATURAL JOIN graph traversals, and their full combinations. Non-aggregate SELECT and relationship property aggregation are not supported — use the Neo4j Spark Connector for those.
 
-=== Supported Patterns
-
-All of these passed through UC JDBC with `remote_query()` or the Spark DataFrame JDBC reader:
-
-[cols="2,1"]
-|===
-|Pattern |Example
-
-|Simple expressions
-|`SELECT 1 AS test`
-
-|COUNT, MIN, MAX, SUM, AVG aggregates
-|`SELECT COUNT(*) AS cnt FROM Flight`
-
-|Multiple aggregates in one query
-|`SELECT COUNT(*) AS total, MIN(aircraft_id) AS first_id, MAX(aircraft_id) AS last_id FROM Aircraft`
-
-|COUNT DISTINCT
-|`SELECT COUNT(DISTINCT manufacturer) AS unique_manufacturers FROM Aircraft`
-
-|Aggregates with WHERE (equals, IN, AND, IS NOT NULL)
-|`SELECT COUNT(*) AS cnt FROM Aircraft WHERE manufacturer = 'Boeing'`
-
-|JOIN with aggregate (graph traversal)
-|`SELECT COUNT(*) AS cnt FROM Flight f NATURAL JOIN DEPARTS_FROM r NATURAL JOIN Airport a`
-|===
-
-=== New SQL Functionality Supported
-
-The SQL-to-Cypher translator now supports the following patterns that were previously unavailable:
-
-[cols="2,1"]
-|===
-|Pattern |Example
-
-|GROUP BY (implicit grouping)
-|`SELECT name, count(*) FROM People GROUP BY name`
-
-|GROUP BY (explicit WITH-clause)
-|`SELECT sum(age) FROM People GROUP BY name`
-
-|HAVING (simple and compound)
-|`SELECT name, count(*) AS cnt FROM People GROUP BY name HAVING cnt > 5`
-
-|HAVING with aggregate not in SELECT
-|`SELECT name FROM People GROUP BY name HAVING count(*) > 5`
-
-|ORDER BY on aggregate aliases
-|`SELECT name, count(*) AS cnt FROM People GROUP BY name ORDER BY cnt`
-
-|DISTINCT with GROUP BY/HAVING
-|`SELECT DISTINCT name FROM People GROUP BY name HAVING count(*) > 5`
-
-|LIMIT and OFFSET
-|`... GROUP BY name HAVING count(*) > 5 ORDER BY name LIMIT 10 OFFSET 5`
-
-|WHERE + GROUP BY combinations
-|`SELECT count(*) FROM People WHERE age > 18 GROUP BY name HAVING count(*) > 1`
-
-|JOIN + GROUP BY
-|`SELECT c.name, count(*) FROM Customers c JOIN Orders o ON c.id = o.customer_id GROUP BY c.name`
-
-|COUNT(DISTINCT) in HAVING
-|`SELECT name FROM People GROUP BY name HAVING count(DISTINCT age) > 3`
-
-|Additional aggregate functions
-|`percentileCont`, `percentileDisc`, `stDev`, `stDevP`
-
-|Full clause combinations
-|WHERE + GROUP BY + HAVING + DISTINCT + ORDER BY + LIMIT + OFFSET
-|===
-
-NOTE: All aggregation support applies to node properties only; aggregating over relationship properties remains Cypher-only.
-
-NOTE: The examples above cover GROUP BY, HAVING, ORDER BY, LIMIT/OFFSET, DISTINCT, and their combinations with WHERE and JOIN. *Coming soon:* non-aggregate SELECT (`SELECT col1, col2 FROM Label`) and relationship property aggregation (aggregating over properties stored on Neo4j relationships rather than node properties).
-
-=== Unsupported Patterns
-
-[cols="1,2"]
-|===
-|Pattern |Workaround
-
-|Non-aggregate `SELECT col1, col2`
-|Use the Neo4j Spark Connector with a Cypher query
-
-|Relationship property aggregation
-|Use Cypher directly via the Neo4j Spark Connector
-|===
-
-The federated query examples in this guide use `remote_query()` for aggregate metrics (including GROUP BY and HAVING) and the Spark Connector for row-level data, combining both methods where needed.
+For the complete validated pattern list, SQL translation examples, and test results by script, see xref:sql-reference.adoc[SQL Reference].
 
 == Query Examples
 
-The source for all the examples below is in the https://github.com/neo4j-partners/neo4j-uc-integration/blob/main/uc-neo4j-test-suite/federated_lakehouse_query.ipynb[federated_lakehouse_query.ipynb] notebook. The https://github.com/neo4j-partners/neo4j-uc-integration[neo4j-uc-integration repo] has more info on setup, configuration, and running the queries end-to-end.
+The https://github.com/neo4j-partners/neo4j-uc-integration/tree/main/getting-started[getting-started notebooks] in the repo walk through the complete setup and query progression:
+
+* https://github.com/neo4j-partners/neo4j-uc-integration/blob/main/getting-started/00-load-graph.ipynb[00-load-graph.ipynb] -- loads the aircraft digital twin dataset into Neo4j
+* https://github.com/neo4j-partners/neo4j-uc-integration/blob/main/getting-started/01-simple-connect-test.ipynb[01-simple-connect-test.ipynb] -- creates the UC JDBC connection and validates connectivity
+* https://github.com/neo4j-partners/neo4j-uc-integration/blob/main/getting-started/02-federated-queries.ipynb[02-federated-queries.ipynb] -- runs live federated queries combining Neo4j graph topology with Delta sensor data
+* https://github.com/neo4j-partners/neo4j-uc-integration/blob/main/getting-started/03-materialized-tables.ipynb[03-materialized-tables.ipynb] -- materializes Neo4j node labels as Delta tables for Genie and SQL analytics
 
 === xref:01-verify-data-sources.adoc[Query 1: Verify Data Sources]
 
-Confirm both Delta lakehouse tables and the Neo4j UC JDBC connection are accessible.
+Confirm both Delta lakehouse tables and the Neo4j Federated JDBC UC Connection are accessible.
 
 **Method:** `remote_query()` + Delta SQL
 
@@ -272,18 +166,27 @@ Real-world use cases for Neo4j + Databricks Unity Catalog federated queries, inc
 
 == xref:06-uc-integration-setup.adoc[Deep Dive: UC Integration Setup]
 
-How the Neo4j JDBC connection to Unity Catalog was built, including the SafeSpark memory fix, SQL-to-Cypher translation details, the `customSchema` requirement, validated query patterns, and workarounds for unsupported SQL constructs.
+How the Neo4j Federated JDBC UC Connection was built, including the SafeSpark memory fix, SQL-to-Cypher translation details, the `customSchema` requirement, and workarounds for unsupported SQL constructs.
+
+== What's Next: Neo4j as an Official Federated Data Source
+
+The capabilities in this guide are possible today because of the custom Neo4j JDBC connector. But the connector is not yet an official Databricks federated data source, which limits what's available: Genie cannot query Neo4j directly, AI/BI dashboards cannot connect without materializing data into Delta first, and catalog-level discovery and column-level lineage require workarounds.
+
+Lakebase, Databricks' managed PostgreSQL, is already an official federated data source and has all of these capabilities today. The following pages demonstrate each one using a financial holdings dataset — companies, asset managers, portfolio positions, and financial metrics — so that when we say "this is what Neo4j would look like as an official integration," there is a running reference instead of a slide deck.
+
+* xref:08-official-federation-catalog-governance.adoc[Catalog & Governance] — data discovery in Catalog Explorer, table-level access grants, automatic audit logging, and column-level lineage
+* xref:09-official-federation-genie-analytics.adoc[Genie & AI/BI] — natural language queries on live federated data and dashboards that query the source directly with no pipeline
 
 == Prerequisites
 
 1. Lakehouse tables in Unity Catalog: `aircraft`, `systems`, `sensors`, `sensor_readings`
-2. Neo4j UC JDBC connection configured (see https://github.com/neo4j-field/neo4j-uc-integration/blob/main/neo4j_uc_jdbc_guide.md[setup guide])
+2. Neo4j Federated JDBC UC Connection configured (see https://github.com/neo4j-field/neo4j-uc-integration/blob/main/neo4j_uc_jdbc_guide.md[setup guide])
 3. Neo4j Spark Connector installed as cluster library (for queries 3-5)
 4. `neo4j-uc-creds` secret scope configured
 
 == References
 
-* https://github.com/neo4j-field/neo4j-uc-integration/blob/main/neo4j_uc_jdbc_guide.md[Neo4j UC JDBC Setup Guide]
+* https://github.com/neo4j-partners/neo4j-uc-integration/blob/main/neo4j_uc_jdbc_guide.md[Neo4j Federated JDBC UC Connection Setup Guide]
 * https://github.com/neo4j-field/databricks-neo4j-mcp-demo/tree/main/aircraft_digital_twin_data[Aircraft Digital Twin Dataset]
 * https://neo4j.com/docs/jdbc-manual/current/sql2cypher/[Neo4j JDBC SQL2Cypher]
 * https://docs.databricks.com/sql/language-manual/functions/remote_query[Databricks remote_query()]

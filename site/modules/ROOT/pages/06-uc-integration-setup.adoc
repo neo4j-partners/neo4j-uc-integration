@@ -1,14 +1,14 @@
-= Deep Dive: Setting Up the Neo4j UC JDBC Integration
+= Deep Dive: Setting Up the Neo4j Federated JDBC UC Connection
 :description: Step-by-step walkthrough of connecting Neo4j to Databricks Unity Catalog via JDBC, including the SafeSpark fix, SQL-to-Cypher translation, and validated query patterns
 
 [.lead]
-The federated queries in this guide depend on a Unity Catalog JDBC connection to Neo4j. Getting that connection working required solving a SafeSpark sandbox memory issue in collaboration with Databricks engineering. This section walks through the full setup, from uploading JARs to running validated queries, so the integration can be reproduced in any Databricks workspace.
+The federated queries in this guide depend on a Neo4j Federated JDBC UC Connection. Getting that connection working required solving a SafeSpark sandbox memory issue in collaboration with Databricks engineering. This section walks through the full setup, from uploading JARs to running validated queries, so the integration can be reproduced in any Databricks workspace.
 
 == The Problem
 
 Databricks Unity Catalog supports JDBC connections to external databases through https://docs.databricks.com/query-federation/[Lakehouse Federation]. In theory, any database with a JDBC driver can participate. In practice, connecting Neo4j hit a wall.
 
-The Neo4j Python driver worked. The Neo4j Spark Connector worked. Direct JDBC outside of Unity Catalog worked. The UC JDBC connection failed every time with the same error:
+The Neo4j Python driver worked. The Neo4j Spark Connector worked. Direct JDBC outside of Unity Catalog worked. The Neo4j Federated JDBC UC Connection failed every time with the same error:
 
 [source,text]
 ----
@@ -28,7 +28,7 @@ spark.databricks.safespark.jdbcSandbox.jvm.xmx.mib 300
 spark.databricks.safespark.jdbcSandbox.size.default.mib 512
 ----
 
-These go in the cluster's **Advanced Options > Spark > Spark Config** section. Without them, every UC JDBC query to Neo4j will fail with the "Connection was closed" error, regardless of whether the query itself is valid.
+These go in the cluster's **Advanced Options > Spark > Spark Config** section. Without them, every Neo4j Federated JDBC UC Connection query to Neo4j will fail with the "Connection was closed" error, regardless of whether the query itself is valid.
 
 == Prerequisites
 
@@ -84,7 +84,7 @@ UC_CONNECTION_NAME = dbutils.secrets.get(SCOPE_NAME, "connection_name")
 
 A `setup.sh` script in the test suite reads from a `.env` file and configures these secrets automatically using the Databricks CLI.
 
-== Creating the UC Connection
+== Creating the Neo4j Federated JDBC UC Connection
 
 With the prerequisites in place, the connection is a single SQL statement:
 
@@ -114,7 +114,7 @@ NOTE: `java_dependencies` only accepts UC Volume paths. Cluster-installed librar
 
 The JDBC URL includes `enableSQLTranslation=true` as a query parameter. This activates the driver's built-in SQL-to-Cypher translator, which is what makes the whole federation approach work. Without it, the driver expects native Cypher and Spark's SQL queries would fail.
 
-The `externalOptionsAllowList` property is significant. By default, UC JDBC connections only allow connection-level options. Adding `customSchema` to the allow list lets individual queries specify their own schema, which turns out to be mandatory for Neo4j (explained in the next section).
+The `externalOptionsAllowList` property is significant. By default, Neo4j Federated JDBC UC Connections only allow connection-level options. Adding `customSchema` to the allow list lets individual queries specify their own schema, which turns out to be mandatory for Neo4j (explained in the next section).
 
 To verify the connection was created correctly:
 
@@ -170,7 +170,7 @@ df = spark.read.format("jdbc") \
     .load()
 ----
 
-Every query through the UC JDBC connection needs `customSchema`. There are no exceptions. The column names in the schema must match the aliases in the SQL query, and the types must match what Neo4j returns (typically `LONG` for counts, `STRING` for text properties, `DOUBLE` for floating-point values).
+Every query through the Neo4j Federated JDBC UC Connection needs `customSchema`. There are no exceptions. The column names in the schema must match the aliases in the SQL query, and the types must match what Neo4j returns (typically `LONG` for counts, `STRING` for text properties, `DOUBLE` for floating-point values).
 
 == Two Ways to Query
 
@@ -192,7 +192,7 @@ df.show()
 # +----+
 # | cnt|
 # +----+
-# |2400|
+# | 800|
 # +----+
 ----
 
@@ -218,7 +218,7 @@ Spark wraps JDBC queries in subqueries for schema resolution. The wrapping looks
 
 === Supported Patterns
 
-These SQL patterns have been validated through UC JDBC with 100% pass rate:
+These SQL patterns have been validated through Neo4j Federated JDBC UC Connection with 100% pass rate:
 
 [cols="2,1,2"]
 |===
@@ -263,64 +263,82 @@ These SQL patterns have been validated through UC JDBC with 100% pass rate:
 
 === New SQL Functionality Supported
 
-The SQL-to-Cypher translator now supports GROUP BY, HAVING, ORDER BY, LIMIT/OFFSET, DISTINCT, and their full combinations:
+The SQL-to-Cypher translator supports GROUP BY, HAVING, ORDER BY, LIMIT/OFFSET, DISTINCT, and their full combinations. All examples below are from the validated aircraft digital twin dataset.
 
 [cols="2,1,2"]
 |===
 |Pattern |Status |Example
 
-|GROUP BY (implicit grouping)
+|GROUP BY (projected key)
 |PASS
-|`SELECT name, count(*) FROM People GROUP BY name`
+|`SELECT severity, COUNT(*) AS cnt FROM MaintenanceEvent GROUP BY severity`
 
-|GROUP BY (explicit WITH-clause)
+|GROUP BY (non-projected key)
 |PASS
-|`SELECT sum(age) FROM People GROUP BY name`
+|`SELECT COUNT(*) AS cnt FROM MaintenanceEvent GROUP BY severity`
 
-|HAVING (simple and compound)
+|GROUP BY multi-aggregate
 |PASS
-|`SELECT name, count(*) AS cnt FROM People GROUP BY name HAVING cnt > 5`
+|`SELECT operator, COUNT(*) AS flights, COUNT(DISTINCT origin) AS origins FROM Flight GROUP BY operator`
 
-|HAVING with aggregate not in SELECT
+|HAVING (simple)
 |PASS
-|`SELECT name FROM People GROUP BY name HAVING count(*) > 5`
+|`SELECT operator, COUNT(*) AS cnt FROM Flight GROUP BY operator HAVING cnt > 20`
 
-|ORDER BY on aggregate aliases
+|HAVING (non-projected aggregate)
 |PASS
-|`SELECT name, count(*) AS cnt FROM People GROUP BY name ORDER BY cnt`
+|`SELECT severity FROM MaintenanceEvent GROUP BY severity HAVING COUNT(*) > 10`
 
-|DISTINCT with GROUP BY/HAVING
+|HAVING (compound)
 |PASS
-|`SELECT DISTINCT name FROM People GROUP BY name HAVING count(*) > 5`
+|`SELECT operator, COUNT(*) AS cnt FROM Flight GROUP BY operator HAVING COUNT(*) > 10 AND COUNT(DISTINCT origin) > 2`
 
-|LIMIT and OFFSET
+|HAVING without GROUP BY
 |PASS
-|`... GROUP BY name ORDER BY name LIMIT 10 OFFSET 5`
+|`SELECT COUNT(*) AS cnt FROM MaintenanceEvent HAVING COUNT(*) > 0`
 
-|WHERE + GROUP BY combinations
+|ORDER BY on aggregate alias
 |PASS
-|`SELECT count(*) FROM People WHERE age > 18 GROUP BY name`
+|`SELECT severity, COUNT(*) AS cnt FROM MaintenanceEvent GROUP BY severity ORDER BY cnt DESC`
 
-|JOIN + GROUP BY
+|ORDER BY multi-key
 |PASS
-|`SELECT c.name, count(*) FROM Customers c JOIN Orders o ON c.id = o.customer_id GROUP BY c.name`
+|`SELECT operator, COUNT(*) AS cnt, COUNT(DISTINCT origin) AS routes FROM Flight GROUP BY operator ORDER BY cnt DESC, routes`
+
+|DISTINCT + GROUP BY
+|PASS
+|`SELECT DISTINCT operator, COUNT(*) AS cnt FROM Flight GROUP BY operator`
+
+|LIMIT + OFFSET
+|PASS
+|`SELECT operator, COUNT(*) AS cnt FROM Flight GROUP BY operator ORDER BY cnt DESC LIMIT 3 OFFSET 1`
+
+|WHERE + GROUP BY
+|PASS
+|`SELECT COUNT(*) AS cnt FROM MaintenanceEvent WHERE severity = 'CRITICAL' GROUP BY aircraftId`
+
+|JOIN + GROUP BY (non-projected)
+|PASS
+|`SELECT COUNT(*) AS flight_count FROM Flight f NATURAL JOIN DEPARTS_FROM r NATURAL JOIN Airport a GROUP BY a.code`
+
+|JOIN + GROUP BY (projected)
+|PASS
+|`SELECT a.code AS code, COUNT(*) AS flight_count FROM Flight f NATURAL JOIN DEPARTS_FROM r NATURAL JOIN Airport a GROUP BY a.code`
 
 |COUNT(DISTINCT) in HAVING
 |PASS
-|`SELECT name FROM People GROUP BY name HAVING count(DISTINCT age) > 3`
+|`SELECT operator FROM Flight GROUP BY operator HAVING COUNT(DISTINCT origin) > 3`
 
 |Additional aggregate functions
 |PASS
-|`percentileCont`, `percentileDisc`, `stDev`, `stDevP`
+|`stDev(minutes)`, `stDevP(minutes)`, `percentileCont(minutes, 0.5)`, `percentileDisc(minutes, 0.5)` on `Delay`
 
-|Full clause combinations
+|Full clause combination
 |PASS
-|WHERE + GROUP BY + HAVING + DISTINCT + ORDER BY + LIMIT + OFFSET
+|`SELECT severity, COUNT(*) AS cnt FROM MaintenanceEvent GROUP BY severity HAVING COUNT(*) > 5 ORDER BY cnt DESC LIMIT 10 OFFSET 0`
 |===
 
-NOTE: All aggregation support applies to node properties only; aggregating over relationship properties remains Cypher-only.
-
-NOTE: The examples above cover GROUP BY, HAVING, ORDER BY, LIMIT/OFFSET, DISTINCT, and their combinations with WHERE and JOIN. *Coming soon:* non-aggregate SELECT (`SELECT col1, col2 FROM Label`) and relationship property aggregation (aggregating over properties stored on Neo4j relationships rather than node properties).
+NOTE: All aggregation support applies to node properties only. Aggregating over relationship properties requires Cypher directly via the Neo4j Spark Connector.
 
 === Unsupported Patterns
 
@@ -335,7 +353,7 @@ NOTE: The examples above cover GROUP BY, HAVING, ORDER BY, LIMIT/OFFSET, DISTINC
 |Use Cypher directly via the Neo4j Spark Connector
 |===
 
-The practical implication: UC JDBC now works well for aggregate analytics with GROUP BY, HAVING, ORDER BY, LIMIT, and DISTINCT, in addition to simple aggregates with WHERE filters and JOINs. For row-level data access or relationship property aggregation, use the Neo4j Spark Connector instead.
+The practical implication: Neo4j Federated JDBC UC Connection now works well for aggregate analytics with GROUP BY, HAVING, ORDER BY, LIMIT, and DISTINCT, in addition to simple aggregates with WHERE filters and JOINs. For row-level data access or relationship property aggregation, use the Neo4j Spark Connector instead.
 
 === Workarounds for Unsupported Patterns
 
@@ -354,74 +372,56 @@ df = spark.read.format("org.neo4j.spark.DataSource") \
 
 == Validated Test Results
 
-The full test suite (`full_uc_tests.py`) runs 12 tests against a live Neo4j Aura instance through the UC JDBC connection:
+All patterns were validated end-to-end on Databricks Runtime 17.3 LTS against a live Neo4j Aura instance using the aircraft digital twin dataset (20 aircraft, 800 flights, 12 airports, 300 maintenance events, 514 delays). For the full script-by-script breakdown see xref:sql-reference.adoc[SQL Reference].
 
 [cols="2,1,2"]
 |===
-|Test |Status |Result
+|Test |Status |Notes
 
-|Basic Query (`SELECT 1`)
+|run_01: Basic query, COUNT aggregate, Delta table access
 |PASS
-|1
+|20 aircraft, 172,800 sensor readings
 
-|COUNT Aggregate
+|run_02: Three federated queries (sensor health, maintenance severity, flight delays)
 |PASS
-|2,400 flights
+|Federated Neo4j topology + Delta aggregates
 
-|Multiple Aggregates (COUNT, MIN, MAX)
+|run_03: remote_query() patterns (aggregate, WHERE, NATURAL JOIN, federated CTE)
 |PASS
-|60 aircraft, AC1001-AC1020
+|Two-hop traversal: Flight → Airport
 
-|COUNT DISTINCT
+|run_04: Materialize 9 Neo4j labels as Delta, SQL validation
 |PASS
-|3 unique manufacturers
+|GROUP BY, WHERE + ORDER BY, aggregation + JOIN, DISTINCT
 
-|Aggregate with WHERE (equals)
+|run_05: GROUP BY (projected, non-projected, multi-aggregate)
 |PASS
-|15 Boeing aircraft
+|All three variants
 
-|Aggregate with WHERE (IN clause)
+|run_05: HAVING (simple, non-projected, compound, without GROUP BY)
 |PASS
-|45 Boeing+Airbus aircraft
+|All four variants
 
-|Aggregate with WHERE (AND)
-|PASS
-|15 Boeing with model
-
-|Aggregate with WHERE (IS NOT NULL)
-|PASS
-|60 aircraft with icao24
-
-|JOIN with Aggregate (2-hop)
-|PASS
-|11,200 relationships
-
-|GROUP BY
-|PASS
-|Implicit and explicit WITH-clause grouping
-
-|ORDER BY
+|run_05: ORDER BY, DISTINCT, LIMIT/OFFSET
 |PASS
 |Including aggregate alias resolution
 
-|HAVING
+|run_05: WHERE + GROUP BY, JOIN + GROUP BY
 |PASS
-|Simple, compound, and mixed aggregates
+|Both projected and non-projected key variants
 
-|LIMIT / OFFSET
+|run_05: COUNT(DISTINCT) in HAVING, additional aggregates
 |PASS
-|Correct attachment to final RETURN
+|stDev, stDevP, percentileCont, percentileDisc
 
-|DISTINCT + GROUP BY
+|run_05: All clauses combined + federated variants
 |PASS
-|Correct RETURN DISTINCT placement
+|GROUP BY + HAVING + ORDER BY + LIMIT + OFFSET; remote_query CTEs with Delta joins
 
 |Non-aggregate SELECT
 |EXPECTED FAIL
-|Subquery limitation
+|Translator limitation — the SQL-to-Cypher translator does not support row-level SELECT without an aggregate. Use the Neo4j Spark Connector for row-level data access.
 |===
-
-14 of 14 supported patterns passed. 1 expected failure confirmed. Total execution time across all tests was approximately 194 seconds, with most of the time spent on connection initialization rather than query execution.
 
 == Choosing the Right Method
 
@@ -432,13 +432,13 @@ Both federation methods have a place. The right choice depends on the query patt
 |Use Case |Recommended Method
 
 |Aggregate analytics (COUNT, SUM, AVG, MIN, MAX)
-|UC JDBC via `remote_query()` or DataFrame API
+|Neo4j Federated JDBC UC Connection via `remote_query()` or DataFrame API
 
 |GROUP BY / HAVING analytics
-|UC JDBC via `remote_query()` or DataFrame API
+|Neo4j Federated JDBC UC Connection via `remote_query()` or DataFrame API
 
 |Graph traversal counts (flights per airport, maintenance per system)
-|UC JDBC with NATURAL JOIN
+|Neo4j Federated JDBC UC Connection with NATURAL JOIN
 
 |Row-level data access (list all aircraft, all flights)
 |Neo4j Spark Connector
@@ -453,11 +453,12 @@ Both federation methods have a place. The right choice depends on the query patt
 |Neo4j Python Driver
 |===
 
-The federated queries in this guide use UC JDBC for aggregate counts (including GROUP BY, HAVING, ORDER BY) and the Spark Connector for row-level data, combining both in a single analysis when needed. Query 5 (Fleet Health Dashboard) demonstrates this hybrid approach.
+The federated queries in this guide use Neo4j Federated JDBC UC Connection for aggregate counts (including GROUP BY, HAVING, ORDER BY) and the Spark Connector for row-level data, combining both in a single analysis when needed. Query 5 (Fleet Health Dashboard) demonstrates this hybrid approach.
 
 == References
 
-* https://github.com/neo4j-field/neo4j-uc-integration/blob/main/neo4j_uc_jdbc_guide.md[Neo4j UC JDBC Setup Guide] - Full configuration reference
+* https://github.com/neo4j-partners/neo4j-uc-integration/blob/main/getting-started/01-simple-connect-test.ipynb[01-simple-connect-test.ipynb] -- runnable notebook that creates the UC JDBC connection and validates connectivity
+* https://github.com/neo4j-partners/neo4j-uc-integration/blob/main/neo4j_uc_jdbc_guide.md[Neo4j Federated JDBC UC Connection Setup Guide] - Full configuration reference
 * https://neo4j.com/docs/jdbc-manual/current/[Neo4j JDBC Driver Documentation]
 * https://neo4j.com/docs/jdbc-manual/current/sql2cypher/[Neo4j SQL2Cypher Translation Rules]
 * https://docs.databricks.com/query-federation/[Databricks Lakehouse Federation]

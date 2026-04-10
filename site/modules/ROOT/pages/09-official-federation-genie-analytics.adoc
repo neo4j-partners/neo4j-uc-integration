@@ -1,0 +1,228 @@
+= What's Next: Genie & AI/BI
+:description: Natural language queries and live AI/BI dashboards on federated data, demonstrated with Lakebase as a reference for what Neo4j would gain as an official Databricks federated data source
+
+[.lead]
+Genie and AI/BI dashboards both require data sources that Databricks can govern directly. Today, Neo4j data must be materialized into Delta before Genie can query it or a dashboard can connect to it — which means a copy, a pipeline to maintain, and a freshness problem. As an official federated data source, Neo4j would be queryable directly from both. This page demonstrates both capabilities using Lakebase.
+
+== Scenario 3: Genie
+
+Genie is where official federation makes the biggest visible difference, because today Genie requires Delta tables. To ask a natural language question about Neo4j or PostgreSQL data, you first have to copy that data into Delta, and then Genie queries the copy. That copy goes stale the moment the source changes.
+
+With Lakebase as an official federated source, a Genie Space can be pointed directly at the `lakebase_financial` catalog. An analyst types "Which asset manager holds the most shares overall?" and Genie translates that into SQL, runs it against the live Lakebase tables, and returns the answer — no intermediate Delta table, no freshness problem.
+
+For Neo4j, the contrast is direct: either you can point Genie at your database or you cannot. With an official integration, you can.
+
+=== Setup
+
+*Requirements:* A Pro or Serverless SQL warehouse; `SELECT` privileges on the `lakebase_financial` catalog tables for the Genie Space author.
+
+*Create the Genie Space:*
+
+. Click *Genie* in the left sidebar.
+. Click *New* in the upper-right corner.
+. In the *Connect data* dialog, navigate to `lakebase_financial` → `public` and select all four tables: `asset_manager_holdings`, `asset_managers`, `companies`, `financial_metrics`. Click *Create*.
+. Click *Configure* → *Settings*. Set:
+** *Title*: `Portfolio Holdings`
+** *Default warehouse*: select a Serverless SQL warehouse
+. Click *Save*.
+
+*Add example queries* to make Genie reliable on the questions you plan to ask. Click *Configure* → *Instructions* → *SQL Queries* → *Add* for each:
+
+[source,sql]
+----
+-- "Which asset manager holds the most shares overall?"
+SELECT am.name, SUM(h.shares) AS total_shares
+FROM lakebase_financial.public.asset_manager_holdings h
+JOIN lakebase_financial.public.asset_managers am
+  ON h.manager_id = am.manager_id
+GROUP BY am.name
+ORDER BY total_shares DESC
+LIMIT 1;
+----
+
+[source,sql]
+----
+-- "Show me Berkshire Hathaway's top ten holdings by share count"
+SELECT c.name AS company, c.ticker, h.shares
+FROM lakebase_financial.public.asset_manager_holdings h
+JOIN lakebase_financial.public.companies c
+  ON h.company_id = c.company_id
+JOIN lakebase_financial.public.asset_managers am
+  ON h.manager_id = am.manager_id
+WHERE am.name = 'Berkshire Hathaway Inc.'
+ORDER BY h.shares DESC
+LIMIT 10;
+----
+
+*Add general instructions* (Configure → Instructions → Text tab):
+
+[source]
+----
+- asset_manager_holdings connects managers to companies via manager_id and company_id
+- shares is an integer count of shares held, not a percentage or dollar value
+- Berkshire Hathaway's manager_id is 'AM006'
+- When asked about a portfolio, join asset_manager_holdings to companies on company_id
+- financial_metrics contains named metric values (e.g. revenue, operating income) per company and period
+----
+
+=== Test Prompts
+
+Run these before the demo to verify the space is working. Click *New chat* for each group to test from a clean context. If a prompt returns an error or a nonsense answer, add or refine the example query for that prompt before the call.
+
+*Basic aggregations* — should return immediately with a clean table:
+
+* "Which asset manager holds the most shares overall?"
+* "Show me the top 5 asset managers by total shares held."
+* "How many asset managers are in the dataset?"
+* "What is the total number of shares held across all managers and companies?"
+
+*Joins and filtering* — tests that Genie can navigate the foreign keys:
+
+* "Show me Berkshire Hathaway's top ten holdings by share count."
+* "Which companies does Berkshire Hathaway hold a position in?"
+* "List all asset managers that hold Apple stock."
+* "Which asset managers hold positions in both Apple and Microsoft?"
+
+*Counts and follow-ups* — tests conversational continuity within a session:
+
+* "How many distinct companies does Berkshire hold a position in?"
+* Then ask: "Which of those has the most shares?"
+* "Which company has the highest total share ownership across all managers?"
+* Then ask: "How many managers hold that company?"
+
+*Edge cases* — confirm Genie handles these gracefully:
+
+* "What percentage of all shares does Berkshire hold?" _(requires computing a ratio — watch whether Genie attempts it or asks for clarification)_
+* "Which companies have only one manager holding them?"
+* "Show me managers that hold more than 10 different companies."
+
+=== Live Demo Questions
+
+Type these in order during the walkthrough. Do not replay canned prompts.
+
+. "Which asset manager holds the most shares overall?"
+. "Show me Berkshire Hathaway's top ten holdings by share count."
+. "How many distinct companies does Berkshire hold a position in?"
+. "Which company has the highest total share ownership across all managers?"
+
+Each answer comes directly from the live Lakebase tables. Click *Show code* on any response to show the generated SQL to the audience.
+
+== Scenario 4: AI/BI and Analytics
+
+Without official federation, building a dashboard on PostgreSQL data means one of two things: either connect directly to the database and accept no governance, or materialize the data into Delta tables and accept maintaining a pipeline to keep it current.
+
+With Lakebase as an official federated source, an AI/BI dashboard queries the Lakebase tables directly. No Delta tables. No pipeline. The data in the charts is live, reflecting whatever is currently in the PostgreSQL database. From the dashboard author's perspective, the Lakebase tables look identical to Delta tables.
+
+For Neo4j, this would mean graph data queryable via standard Databricks SQL, enabling dashboards built directly on graph-backed foreign tables without materializing anything into Delta first.
+
+=== Setup
+
+*Create the dashboard:*
+
+. Click *New* in the left sidebar and select *Dashboard*.
+. Click the *Data* tab, then *Create from SQL*.
+
+*Define three datasets.* For each: paste the query, click *Run* to verify rows return, then double-click the dataset name to rename it.
+
+*Dataset 1 — Top asset managers by total shares:*
+
+[source,sql]
+----
+SELECT
+  am.name         AS asset_manager,
+  SUM(h.shares)   AS total_shares
+FROM lakebase_financial.public.asset_manager_holdings h
+JOIN lakebase_financial.public.asset_managers am
+  ON h.manager_id = am.manager_id
+GROUP BY am.name
+ORDER BY total_shares DESC
+LIMIT 15;
+----
+
+*Dataset 2 — Berkshire Hathaway portfolio:*
+
+[source,sql]
+----
+SELECT
+  c.name      AS company,
+  c.ticker,
+  h.shares
+FROM lakebase_financial.public.asset_manager_holdings h
+JOIN lakebase_financial.public.companies c
+  ON h.company_id = c.company_id
+JOIN lakebase_financial.public.asset_managers am
+  ON h.manager_id = am.manager_id
+WHERE am.name = 'Berkshire Hathaway Inc.'
+ORDER BY h.shares DESC;
+----
+
+*Dataset 3 — Portfolio summary:*
+
+[source,sql]
+----
+SELECT
+  COUNT(DISTINCT manager_id)  AS manager_count,
+  COUNT(DISTINCT company_id)  AS company_count,
+  SUM(shares)                 AS total_shares_held
+FROM lakebase_financial.public.asset_manager_holdings;
+----
+
+*Add visualizations:*
+
+. Click the *Canvas* tab, then click *Add a visualization*.
+. From Dataset 1: select *Bar* chart, set X-axis to `asset_manager` and Y-axis to `total_shares`. Title the widget "Top 15 Asset Managers by Shares Held."
+. Add a second visualization from Dataset 2: *Bar* chart, X-axis `company`, Y-axis `shares`. Title it "Berkshire Hathaway Portfolio."
+. Add three *Counter* widgets from Dataset 3, one each for `manager_count`, `company_count`, and `total_shares_held`.
+. Click *Publish* → *Share with data permissions (default)* → *Publish*.
+
+=== Verification
+
+To show the data is live and not cached: update a value directly in the Lakebase PostgreSQL database, then reload the dashboard.
+
+[source,python]
+----
+# Add 1 million shares to Berkshire's Apple position
+cur.execute("""
+  UPDATE asset_manager_holdings
+  SET shares = shares + 1000000
+  WHERE manager_id = 'AM006' AND company_id = 'C002'
+""")
+conn.commit()
+----
+
+Reload the published dashboard. The Berkshire chart updates immediately. No pipeline rerun, no cache invalidation step. The next query hits the live PostgreSQL row.
+
+== What This Proves
+
+Each scenario is a concrete, runnable demonstration of a capability that Neo4j is working toward as an official federated data source.
+
+[cols="1,2"]
+|===
+|Scenario |What it proves for Neo4j
+
+|Catalog-level integration
+|Node labels and relationship types would appear as tables in Catalog Explorer automatically — discoverable without explaining the database schema to every analyst
+
+|Governance and access control
+|Per-table grants, automatic audit logging, and column-level lineage would work without workarounds — the governance infrastructure that regulated industries require
+
+|Genie
+|Natural language queries would run directly against live Neo4j data — no materialization step, no freshness problem, no intermediate Delta table
+
+|AI/BI dashboards
+|Dashboards could query graph-backed foreign tables directly — the same SQL warehouse, the same dashboard builder, no pipeline to maintain
+|===
+
+Together they show what a database looks like once it becomes a first-class citizen of the Unity Catalog ecosystem: discoverable, governed, queryable from dashboards, and accessible to Genie.
+
+== Pre-demo Checklist
+
+* [ ] `.env` configured in `deploy-lakebase/` with project name and profile
+* [ ] `./deploy-lakebase/deploy.py deploy` run successfully; connection JSON present in `deploy-lakebase/`
+* [ ] `./deploy-lakebase/test_lakebase.py` run successfully; row counts confirmed in output
+* [ ] OAuth token refreshed within the hour before the demo: `./deploy-lakebase/deploy.py refresh`
+* [ ] `lakebase_financial` foreign catalog visible in Catalog Explorer with all four tables; Sample Data tab loads rows
+* [ ] `analysts` group created and grants applied; access denial verified with a test user
+* [ ] Portfolio Holdings dashboard published and displaying correct data
+* [ ] Genie Space created, all four tables added, example queries loaded, and each demo question tested
+* [ ] Serverless SQL warehouse running (avoids cold-start delay during the walkthrough)

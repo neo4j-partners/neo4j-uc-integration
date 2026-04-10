@@ -5,7 +5,7 @@ The federated queries in this guide require hand-written SQL. With https://docs.
 
 == How It Works
 
-Neo4j graph data (maintenance events, flights, airports) is materialized as managed Delta tables via the UC JDBC connection. Once materialized, Genie sees all tables -- both the original Delta tables and the Neo4j-sourced tables -- as regular UC tables and generates SQL that JOINs across them transparently. The user never writes SQL, and the LLM never sees Cypher.
+Neo4j graph data (maintenance events, flights, airports) is materialized as managed Delta tables via the Neo4j Federated JDBC UC Connection. Once materialized, Genie sees all tables -- both the original Delta tables and the Neo4j-sourced tables -- as regular UC tables and generates SQL that JOINs across them transparently. The user never writes SQL, and the LLM never sees Cypher.
 
 === Materializing Neo4j Data
 
@@ -261,4 +261,4 @@ The consistent EGT readings suggest uniform engine performance across the fleet,
 * https://docs.databricks.com/aws/en/genie/set-up[Set up a Genie space]
 * https://docs.databricks.com/aws/en/genie/conversation-api[Genie Conversation API]
 * https://docs.databricks.com/aws/en/generative-ai/mcp/managed-mcp[Managed MCP servers]
-* https://github.com/neo4j-partners/neo4j-uc-integration/blob/main/uc-neo4j-test-suite/federated_views_agent_ready.ipynb[federated_views_agent_ready.ipynb] -- materialization notebook
+* https://github.com/neo4j-partners/neo4j-uc-integration/blob/main/getting-started/03-materialized-tables.ipynb[03-materialized-tables.ipynb] -- materialization notebook

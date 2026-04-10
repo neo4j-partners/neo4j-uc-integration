@@ -8,6 +8,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+cd "$SCRIPT_DIR"
 
 SKIP_UPLOAD=""
 if [[ "${1:-}" == "--skip-upload" ]]; then
@@ -19,28 +20,28 @@ echo "validate-federation: Full Validation Suite"
 echo "============================================"
 echo ""
 
+SCRIPTS=(
+    "run_01_connection_validation.py"
+    "run_02_federated_queries.py"
+    "run_03_metadata_sync_tables.py"
+    "run_04_metadata_sync_api.py"
+)
+
 if [[ -z "$SKIP_UPLOAD" ]]; then
     echo "--- Step 1: Uploading all scripts ---"
-    "$SCRIPT_DIR/upload.sh" --all
+    for script in "${SCRIPTS[@]}"; do
+        uv run python -m cli upload "$script"
+    done
     echo ""
 else
     echo "--- Step 1: Skipping upload (--skip-upload) ---"
     echo ""
 fi
 
-SCRIPTS=(
-    "run_01_connection_validation.py"
-    "run_02_federated_queries.py"
-    "run_03_materialized_tables.py"
-    "run_04_metadata_sync_tables.py"
-    "run_05_metadata_sync_api.py"
-    "run_06_advanced_sql.py"
-)
-
 FAILED=0
 for script in "${SCRIPTS[@]}"; do
     echo "--- Running: $script ---"
-    if "$SCRIPT_DIR/submit.sh" "$script"; then
+    if uv run python -m cli submit "$script"; then
         echo "[OK] $script completed"
     else
         echo "[FAIL] $script failed"

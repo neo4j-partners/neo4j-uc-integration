@@ -146,6 +146,7 @@ neo4j-uc-federation-lab/OAUTH_UC_HACK.md
 **/credentials.json
 **/service-account*.json
 **/*secret*
+!sample-validation/create_secrets.sh
 **/*.pem
 **/*.key
 **/*.p12

@@ -1,9 +1,9 @@
 = Query 1: Verify Data Sources
-:description: Verify Delta lakehouse tables and Neo4j UC JDBC connection before running federated queries
+:description: Verify Delta lakehouse tables and Neo4j Federated JDBC UC Connection before running federated queries
 
-Confirm both the Delta lakehouse tables and the Neo4j UC JDBC connection are accessible before running federated queries.
+Confirm both the Delta lakehouse tables and the Neo4j Federated JDBC UC Connection are accessible before running federated queries.
 
-**Federation Method:** `remote_query()` (UC JDBC) + Delta SQL
+**Federation Method:** `remote_query()` (Neo4j Federated JDBC UC Connection) + Delta SQL
 
 == Data Flow
 
@@ -51,7 +51,7 @@ Sample aircraft data:
 +-----------+-----------+--------+------------+-----------+
 ....
 
-== Verify Neo4j UC JDBC Connection
+== Verify Neo4j Federated JDBC UC Connection
 
 Use `remote_query()` to count nodes by label:
 
@@ -78,6 +78,6 @@ SELECT * FROM remote_query('neo4j_uc_connection',
 == What This Verifies
 
 * Delta tables are accessible in the current catalog/schema context
-* The Neo4j UC JDBC connection (`remote_query()`) can execute SQL queries against Neo4j
+* The Neo4j Federated JDBC UC Connection (`remote_query()`) can execute SQL queries against Neo4j
 * Neo4j's SQL2Cypher translation handles `NATURAL JOIN` for relationship traversals
 * Both data sources are ready for federated queries in subsequent examples

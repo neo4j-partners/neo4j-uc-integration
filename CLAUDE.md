@@ -58,8 +58,10 @@ git tag connector-1.0.0
 git push origin connector-1.0.0
 ```
 
-## SQL-to-Cypher Support via UC JDBC
+## SQL-to-Cypher Support via Neo4j Federated JDBC UC Connection
 
-Supported: `SELECT COUNT(*)`, aggregates with `WHERE`, `COUNT DISTINCT`, `NATURAL JOIN` (graph traversals), subqueries with aggregates, `GROUP BY` (implicit and explicit WITH-clause generation), `HAVING` (simple, compound, mixed aggregates, without GROUP BY), `ORDER BY` (including on aggregate aliases and after WITH clauses), `DISTINCT` with GROUP BY/HAVING, `LIMIT`/`OFFSET` with WITH clauses, `WHERE` + `GROUP BY` combinations, `JOIN` + `GROUP BY`, `COUNT(DISTINCT)` in HAVING, additional aggregate functions (`percentileCont`, `percentileDisc`, `stDev`, `stDevP`), full clause combinations.
+Supported: `SELECT COUNT(*)`, aggregates with `WHERE`, `COUNT DISTINCT`, `NATURAL JOIN` (graph traversals), `GROUP BY` (implicit and explicit WITH-clause generation), `HAVING` (simple, compound, mixed aggregates, without GROUP BY), `ORDER BY` (including on aggregate aliases and after WITH clauses), `DISTINCT` with GROUP BY/HAVING, `LIMIT`/`OFFSET` with WITH clauses, `WHERE` + `GROUP BY` combinations, `JOIN` + `GROUP BY`, `COUNT(DISTINCT)` in HAVING, additional aggregate functions (`stDev`, `stDevP`), full clause combinations.
 
-Not supported (use Spark Connector instead): non-aggregate `SELECT`, relationship property aggregation.
+Not supported (use Spark Connector instead): non-aggregate `SELECT`, relationship property aggregation, user-authored derived-table subqueries (`SELECT * FROM (...) alias`).
+
+Note: Spark's `SPARK_GEN_SUBQ_N` probe wrappers are stripped automatically by the spark cleaner JAR before translation. This is internal plumbing — it is not the same as support for user-authored subqueries.
