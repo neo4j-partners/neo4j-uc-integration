@@ -2,15 +2,15 @@
 :description: Natural language queries and live AI/BI dashboards on federated data, demonstrated with Lakebase as a reference for what Neo4j would gain as an official Databricks federated data source
 
 [.lead]
-Genie and AI/BI dashboards both require data sources that Databricks can govern directly. Today, Neo4j data must be materialized into Delta before Genie can query it or a dashboard can connect to it — which means a copy, a pipeline to maintain, and a freshness problem. As an official federated data source, Neo4j would be queryable directly from both. This page demonstrates both capabilities using Lakebase.
+Genie and AI/BI dashboards both require data sources that Databricks can govern directly. As an official federated data source, Neo4j is queryable directly from both — live data, no Delta materialization, no pipeline to maintain. This page demonstrates both capabilities using Lakebase.
 
 == Scenario 3: Genie
 
-Genie is where official federation makes the biggest visible difference, because today Genie requires Delta tables. To ask a natural language question about Neo4j or PostgreSQL data, you first have to copy that data into Delta, and then Genie queries the copy. That copy goes stale the moment the source changes.
+Genie is where official federation makes the biggest visible difference. A direct integration means a Genie Space queries the source database live — no intermediate copies, no refresh delays.
 
 With Lakebase as an official federated source, a Genie Space can be pointed directly at the `lakebase_financial` catalog. An analyst types "Which asset manager holds the most shares overall?" and Genie translates that into SQL, runs it against the live Lakebase tables, and returns the answer — no intermediate Delta table, no freshness problem.
 
-For Neo4j, the contrast is direct: either you can point Genie at your database or you cannot. With an official integration, you can.
+With an official Neo4j integration, analysts point Genie directly at the graph database.
 
 === Setup
 

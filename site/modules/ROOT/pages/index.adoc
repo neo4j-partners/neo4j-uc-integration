@@ -1,4 +1,4 @@
-= Neo4j + Databricks UC: Federated Query Patterns
+= Neo4j + Databricks: Federated Query Patterns
 :description: Federated query examples combining Neo4j graph data with Databricks Delta lakehouse tables via Unity Catalog
 
 [.lead]
@@ -46,8 +46,8 @@ ENVIRONMENT (
 )
 OPTIONS (
   url 'jdbc:neo4j+s://your-host:7687/neo4j?enableSQLTranslation=true',
-  user secret('scope', 'neo4j-user'),
-  password secret('scope', 'neo4j-password'),
+  user secret('neo4j-uc-creds', 'user'),
+  password secret('neo4j-uc-creds', 'password'),
   driver 'org.neo4j.jdbc.Neo4jDriver',
   externalOptionsAllowList 'dbtable,query,customSchema'
 )
@@ -55,7 +55,7 @@ OPTIONS (
 
 Once this connection exists, you can query Neo4j directly from SQL using `remote_query()`, or from PySpark using the Spark DataFrame JDBC reader, all governed by Unity Catalog.
 
-NOTE: The Neo4j JDBC driver requires additional memory for class loading in the Databricks SafeSpark sandbox. Without the correct Spark configuration (`spark.databricks.safespark.jdbcSandbox.jvm.maxMetaspace.mib`, etc.), the sandbox JVM will crash with "Connection was closed before the operation completed." See the full setup details in the https://github.com/neo4j-field/neo4j-uc-integration/blob/main/neo4j_uc_jdbc_guide.md[Neo4j Federated JDBC UC Connection Setup Guide].
+NOTE: The Neo4j JDBC driver requires additional memory for class loading in the Databricks SafeSpark sandbox. Without the correct Spark configuration (`spark.databricks.safespark.jdbcSandbox.jvm.maxMetaspace.mib`, etc.), the sandbox JVM will crash with "Connection was closed before the operation completed." See the full setup details in the https://github.com/neo4j-partners/neo4j-uc-integration/blob/main/neo4j_uc_jdbc_guide.md[Neo4j Federated JDBC UC Connection Setup Guide].
 
 == The Demo: Aircraft Digital Twin
 
@@ -170,7 +170,7 @@ How the Neo4j Federated JDBC UC Connection was built, including the SafeSpark me
 
 == What's Next: Neo4j as an Official Federated Data Source
 
-The capabilities in this guide are possible today because of the custom Neo4j JDBC connector. But the connector is not yet an official Databricks federated data source, which limits what's available: Genie cannot query Neo4j directly, AI/BI dashboards cannot connect without materializing data into Delta first, and catalog-level discovery and column-level lineage require workarounds.
+The capabilities in this guide are possible today because of the custom Neo4j JDBC connector. As an official Databricks federated data source, Neo4j would gain direct Genie querying, native AI/BI dashboard connectivity, and automatic catalog-level lineage — the full set of capabilities Lakebase has today.
 
 Lakebase, Databricks' managed PostgreSQL, is already an official federated data source and has all of these capabilities today. The following pages demonstrate each one using a financial holdings dataset — companies, asset managers, portfolio positions, and financial metrics — so that when we say "this is what Neo4j would look like as an official integration," there is a running reference instead of a slide deck.
 
@@ -180,7 +180,7 @@ Lakebase, Databricks' managed PostgreSQL, is already an official federated data 
 == Prerequisites
 
 1. Lakehouse tables in Unity Catalog: `aircraft`, `systems`, `sensors`, `sensor_readings`
-2. Neo4j Federated JDBC UC Connection configured (see https://github.com/neo4j-field/neo4j-uc-integration/blob/main/neo4j_uc_jdbc_guide.md[setup guide])
+2. Neo4j Federated JDBC UC Connection configured (see https://github.com/neo4j-partners/neo4j-uc-integration/blob/main/neo4j_uc_jdbc_guide.md[setup guide])
 3. Neo4j Spark Connector installed as cluster library (for queries 3-5)
 4. `neo4j-uc-creds` secret scope configured
 

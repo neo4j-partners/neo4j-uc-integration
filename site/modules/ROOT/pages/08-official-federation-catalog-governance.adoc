@@ -98,7 +98,7 @@ Beyond access control, audit logging is automatic. Every query — which analyst
 
 Column-level lineage works the same way. When a dashboard reads the `shares` column from `asset_manager_holdings`, Unity Catalog records that automatically. A data steward can trace exactly which downstream reports depend on which upstream columns in the PostgreSQL database.
 
-For Neo4j, this is the difference between connection-level governance that today requires workarounds and the per-table, per-column governance that regulated industries actually need.
+For Neo4j, official federation means the same per-table, per-column governance that regulated industries need — automatic, with no custom configuration.
 
 === Setup
 

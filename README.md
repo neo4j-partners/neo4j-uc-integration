@@ -1,4 +1,4 @@
-# Neo4j + Databricks Unity Catalog Integration
+# Neo4j + Databricks Lakehouse Federation
 
 **Documentation Site:** [https://neo4j-partners.github.io/neo4j-uc-integration](https://neo4j-partners.github.io/neo4j-uc-integration)
 

@@ -1,5 +1,5 @@
 name: neo4j-uc-integration-docs
-title: Neo4j + Databricks UC Federation
+title: Neo4j + Databricks Lakehouse Federation
 version: '1.0'
 start_page: ROOT:index.adoc
 nav:

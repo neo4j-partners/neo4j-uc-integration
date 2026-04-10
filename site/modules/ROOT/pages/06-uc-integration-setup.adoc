@@ -4,22 +4,11 @@
 [.lead]
 The federated queries in this guide depend on a Neo4j Federated JDBC UC Connection. Getting that connection working required solving a SafeSpark sandbox memory issue in collaboration with Databricks engineering. This section walks through the full setup, from uploading JARs to running validated queries, so the integration can be reproduced in any Databricks workspace.
 
-== The Problem
+== Required: SafeSpark Memory Configuration
 
-Databricks Unity Catalog supports JDBC connections to external databases through https://docs.databricks.com/query-federation/[Lakehouse Federation]. In theory, any database with a JDBC driver can participate. In practice, connecting Neo4j hit a wall.
+The Neo4j JDBC driver loads more classes during initialization than most JDBC drivers — its built-in SQL-to-Cypher translator requires more metaspace than the SafeSpark sandbox allocates by default. Without the following settings, every connection attempt fails with `Connection was closed before the operation completed`.
 
-The Neo4j Python driver worked. The Neo4j Spark Connector worked. Direct JDBC outside of Unity Catalog worked. The Neo4j Federated JDBC UC Connection failed every time with the same error:
-
-[source,text]
-----
-Connection was closed before the operation completed
-----
-
-The error originated in `com.databricks.safespark.jdbc.grpc_client.JdbcConnectClient.awaitWhileConnected`, which pointed to the SafeSpark sandbox, not Neo4j itself. SafeSpark is the isolation layer Databricks uses to run JDBC drivers in a sandboxed JVM, preventing untrusted driver code from accessing cluster internals. The Neo4j JDBC driver, with its built-in SQL-to-Cypher translator, loads more classes during initialization than most JDBC drivers. The default SafeSpark sandbox allocated too little metaspace memory for that class loading, so the sandboxed JVM crashed silently.
-
-== The Fix: SafeSpark Memory Configuration
-
-Three Spark configuration properties control the SafeSpark sandbox memory allocation. Adding these to the Databricks cluster configuration resolves the issue:
+Add these to the cluster's **Advanced Options > Spark > Spark Config**:
 
 [source,properties]
 ----
@@ -27,8 +16,6 @@ spark.databricks.safespark.jdbcSandbox.jvm.maxMetaspace.mib 128
 spark.databricks.safespark.jdbcSandbox.jvm.xmx.mib 300
 spark.databricks.safespark.jdbcSandbox.size.default.mib 512
 ----
-
-These go in the cluster's **Advanced Options > Spark > Spark Config** section. Without them, every Neo4j Federated JDBC UC Connection query to Neo4j will fail with the "Connection was closed" error, regardless of whether the query itself is valid.
 
 == Prerequisites
 
@@ -51,20 +38,17 @@ Two preview features must be enabled in the Databricks workspace:
 
 === JDBC Driver JARs
 
-The Neo4j JDBC driver ships as two JARs that need to be uploaded to a Unity Catalog Volume:
+The Neo4j UC connector ships as a single JAR that needs to be uploaded to a Unity Catalog Volume:
 
 [cols="1,2"]
 |===
 |JAR |Purpose
 
-|`neo4j-jdbc-full-bundle-6.10.3.jar`
-|The JDBC driver itself, including the SQL-to-Cypher translation engine
-
-|`neo4j-jdbc-translator-sparkcleaner-6.10.3.jar`
-|Cleans Spark-generated SQL artifacts before translation (removes `SPARK_GEN_SUBQ` wrappers and similar constructs)
+|`neo4j-unity-catalog-connector.jar`
+|A shaded (fat) JAR bundling the Neo4j JDBC driver, SQL-to-Cypher translation engine, and Spark subquery cleaner into a single artifact
 |===
 
-Upload both to a UC Volume path, for example `/Volumes/catalog/schema/jars/`. The `CREATE CONNECTION` statement references these paths directly, so the Volume must be accessible from the cluster.
+Upload it to a UC Volume path, for example `/Volumes/catalog/schema/jars/`. The `CREATE CONNECTION` statement references this path directly, so the Volume must be accessible from the cluster.
 
 === Credentials in Databricks Secrets
 
@@ -78,7 +62,6 @@ NEO4J_HOST = dbutils.secrets.get(SCOPE_NAME, "host")
 NEO4J_USER = dbutils.secrets.get(SCOPE_NAME, "user")
 NEO4J_PASSWORD = dbutils.secrets.get(SCOPE_NAME, "password")
 JDBC_JAR_PATH = dbutils.secrets.get(SCOPE_NAME, "jdbc_jar_path")
-CLEANER_JAR_PATH = dbutils.secrets.get(SCOPE_NAME, "cleaner_jar_path")
 UC_CONNECTION_NAME = dbutils.secrets.get(SCOPE_NAME, "connection_name")
 ----
 
@@ -93,8 +76,7 @@ With the prerequisites in place, the connection is a single SQL statement:
 CREATE CONNECTION neo4j_connection TYPE JDBC
 ENVIRONMENT (
   java_dependencies '[
-    "/Volumes/catalog/schema/jars/neo4j-jdbc-full-bundle-6.10.3.jar",
-    "/Volumes/catalog/schema/jars/neo4j-jdbc-translator-sparkcleaner-6.10.3.jar"
+    "/Volumes/catalog/schema/jars/neo4j-unity-catalog-connector.jar"
   ]'
 )
 OPTIONS (
@@ -108,7 +90,7 @@ OPTIONS (
 
 A few things to note about this statement.
 
-The `ENVIRONMENT` block uses `java_dependencies` to load the two JARs from the UC Volume. This is how the SafeSpark sandbox gets the driver classes. Both JARs are required. The spark cleaner JAR preprocesses Spark-generated SQL before the main driver translates it to Cypher.
+The `ENVIRONMENT` block uses `java_dependencies` to load the connector JAR from the UC Volume. This is how the SafeSpark sandbox gets the driver classes. The JAR bundles the Neo4j JDBC driver and Spark subquery cleaner into a single artifact.
 
 NOTE: `java_dependencies` only accepts UC Volume paths. Cluster-installed libraries (e.g., Maven coordinates added via the cluster Libraries tab) cannot be referenced here — they are a separate system.
 
